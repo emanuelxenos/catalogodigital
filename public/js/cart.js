@@ -10,6 +10,10 @@ function carrinhoGlobal() {
         paymentMethod: localStorage.getItem('cart_paymentMethod') || '',
         justAdded: false,
         toastMessage: '',
+        searchQuery: '',
+        productModalOpen: false,
+        selectedProduct: null,
+        modalQty: 1,
 
         // Salva o estado no localStorage
         save() {
@@ -165,6 +169,65 @@ function carrinhoGlobal() {
             this.items = [];
             this.save();
             this.showToast('Carrinho limpo');
+        },
+
+        // Modal de produto
+        openProductModal(product) {
+            this.selectedProduct = product;
+            this.modalQty = 1;
+            this.productModalOpen = true;
+        },
+
+        closeProductModal() {
+            this.productModalOpen = false;
+            setTimeout(() => {
+                this.selectedProduct = null;
+            }, 300);
+        },
+
+        increaseModalQty() {
+            this.modalQty++;
+        },
+
+        decreaseModalQty() {
+            if (this.modalQty > 1) {
+                this.modalQty--;
+            }
+        },
+
+        addModalProductToCart() {
+            if (!this.selectedProduct) return;
+            
+            const product = this.selectedProduct;
+            const existing = this.items.find(i => i.id === product.id);
+            if (existing) {
+                existing.qty += this.modalQty;
+            } else {
+                this.items.push({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    image: product.image || '',
+                    qty: this.modalQty
+                });
+            }
+            this.save();
+            
+            // Animação de pulso no FAB
+            this.justAdded = true;
+            setTimeout(() => { this.justAdded = false; }, 500);
+            
+            this.showToast('✅ ' + this.modalQty + 'x ' + product.name + ' adicionado!');
+            this.closeProductModal();
+        },
+
+        // Filtro local de busca
+        productMatches(name, categoryName) {
+            if (!this.searchQuery) return true;
+            const query = this.searchQuery.toLowerCase().trim();
+            const matchesName = name.toLowerCase().includes(query);
+            const matchesCategory = categoryName ? categoryName.toLowerCase().includes(query) : false;
+            return matchesName || matchesCategory;
         }
     };
 }

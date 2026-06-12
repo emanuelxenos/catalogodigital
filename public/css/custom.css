@@ -293,3 +293,75 @@
         transform: none;
     }
 }
+
+/* ============================================
+   Visual Overhaul & Premium Additions
+   ============================================ */
+
+/* Active category pills styling with dynamic color scale */
+.category-btn-active {
+    background-color: var(--primary-color) !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 15px -3px rgba(var(--primary-color-rgb), 0.3), 0 4px 6px -4px rgba(var(--primary-color-rgb), 0.3);
+}
+
+/* Modal fade animations */
+@keyframes backdrop-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes modal-scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.animate-backdrop-in {
+    animation: backdrop-fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-modal-in {
+    animation: modal-scale-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Soft mesh grid background */
+.mesh-grid {
+    background-size: 20px 20px;
+    background-image: 
+        linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+}
+
+/* Floating custom details */
+.focus-ring-primary:focus {
+    outline: none;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+}
+
+/* Image zoom effect correction for mobile */
+@media (hover: hover) {
+    .product-card:hover .product-image-zoom {
+        transform: scale(1.06);
+    }
+}
+
+.product-image-zoom {
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Modern shadows */
+.shadow-premium {
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 20px 40px -15px rgba(0, 0, 0, 0.03);
+}
+
+.shadow-premium-hover:hover {
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.12), 0 10px 20px -5px rgba(0, 0, 0, 0.06);
+}
+
