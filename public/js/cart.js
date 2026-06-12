@@ -10,10 +10,19 @@ function carrinhoGlobal() {
         paymentMethod: localStorage.getItem('cart_paymentMethod') || '',
         justAdded: false,
         toastMessage: '',
+        
+        // Modal de produto e observações
         searchQuery: '',
         productModalOpen: false,
         selectedProduct: null,
         modalQty: 1,
+        modalNote: '',
+
+        // Sistema de cupons e descontos
+        couponCode: '',
+        discountApplied: 0,
+        couponError: '',
+        couponSuccess: '',
 
         // Salva o estado no localStorage
         save() {
@@ -26,7 +35,7 @@ function carrinhoGlobal() {
 
         // Adiciona um item ao carrinho
         addItem(product) {
-            const existing = this.items.find(i => i.id === product.id);
+            const existing = this.items.find(i => i.id === product.id && i.note === '');
             if (existing) {
                 existing.qty++;
             } else {
@@ -35,7 +44,8 @@ function carrinhoGlobal() {
                     name: product.name,
                     price: product.price,
                     image: product.image || '',
-                    qty: 1
+                    qty: 1,
+                    note: ''
                 });
             }
             this.save();
@@ -54,7 +64,7 @@ function carrinhoGlobal() {
             this.save();
         },
 
-        // Atualiza a quantidade de um item
+        // Atualiza a quantidade de um item no drawer
         updateQty(id, delta) {
             const item = this.items.find(i => i.id === id);
             if (!item) return;
@@ -67,9 +77,80 @@ function carrinhoGlobal() {
             }
         },
 
-        // Calcula o total do carrinho
+        // Métodos de controle de quantidade reativa direta no card (sem abrir modal)
+        getItemQty(productId) {
+            // Retorna a soma das quantidades do produto no carrinho
+            return this.items
+                .filter(i => i.id === productId)
+                .reduce((sum, item) => sum + item.qty, 0);
+        },
+
+        updateCardQty(product, delta) {
+            // Busca o primeiro item do produto no carrinho (geralmente o sem observações)
+            const existing = this.items.find(i => i.id === product.id);
+            if (existing) {
+                existing.qty += delta;
+                if (existing.qty <= 0) {
+                    this.items = this.items.filter(i => i.id !== product.id);
+                }
+            } else if (delta > 0) {
+                this.items.push({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    image: product.image || '',
+                    qty: 1,
+                    note: ''
+                });
+            }
+            this.save();
+            
+            // Feedback visual de pulso
+            this.justAdded = true;
+            setTimeout(() => { this.justAdded = false; }, 500);
+        },
+
+        // Calcula o total bruto
         getTotal() {
             return this.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        },
+
+        // Sistema de Cupons
+        applyCoupon() {
+            const code = this.couponCode.toUpperCase().trim();
+            this.couponError = '';
+            this.couponSuccess = '';
+
+            if (code === 'PROMO10') {
+                this.discountApplied = 0.10;
+                this.couponSuccess = 'Cupom de 10% aplicado com sucesso!';
+                this.showToast('🎟️ Cupom PROMO10 aplicado!');
+            } else if (code === 'FRETEGRATIS') {
+                this.discountApplied = 0.05; // 5% como simulação de frete grátis
+                this.couponSuccess = 'Desconto de Frete (5% OFF) aplicado!';
+                this.showToast('🎟️ Cupom FRETEGRATIS aplicado!');
+            } else if (code === '') {
+                this.couponError = 'Digite um cupom';
+            } else {
+                this.couponError = 'Cupom inválido!';
+                this.discountApplied = 0;
+            }
+        },
+
+        removeCoupon() {
+            this.couponCode = '';
+            this.discountApplied = 0;
+            this.couponError = '';
+            this.couponSuccess = '';
+            this.showToast('Cupom removido');
+        },
+
+        getDiscount() {
+            return this.getTotal() * this.discountApplied;
+        },
+
+        getFinalTotal() {
+            return this.getTotal() - this.getDiscount();
         },
 
         // Conta total de itens
@@ -93,12 +174,19 @@ function carrinhoGlobal() {
             // Itens
             this.items.forEach((item, idx) => {
                 msg += `*${idx + 1}.* ${item.name}\n`;
+                if (item.note) {
+                    msg += `   📝 _Obs: ${item.note}_\n`;
+                }
                 msg += `   Qtd: ${item.qty} x ${this.formatCurrency(item.price)}\n`;
                 msg += `   Subtotal: ${this.formatCurrency(item.price * item.qty)}\n\n`;
             });
             
             msg += '━━━━━━━━━━━━━━━\n';
-            msg += `💰 *TOTAL: ${this.formatCurrency(this.getTotal())}*\n`;
+            msg += `💰 *Subtotal:* ${this.formatCurrency(this.getTotal())}\n`;
+            if (this.discountApplied > 0) {
+                msg += `🎟️ *Desconto (${this.discountApplied * 100}%):* -${this.formatCurrency(this.getDiscount())}\n`;
+            }
+            msg += `✨ *TOTAL: ${this.formatCurrency(this.getFinalTotal())}*\n`;
             msg += '━━━━━━━━━━━━━━━\n\n';
             
             // Dados do cliente
@@ -115,7 +203,7 @@ function carrinhoGlobal() {
             
             const paymentLabels = {
                 'pix': '💳 Pix',
-                'cartao': '💳 Cartão',
+                'cartao': '💳 Cartão de Crédito/Débito',
                 'dinheiro': '💵 Dinheiro'
             };
             msg += `💳 *Pagamento:* ${paymentLabels[this.paymentMethod] || this.paymentMethod}\n`;
@@ -150,6 +238,10 @@ function carrinhoGlobal() {
             this.customerName = '';
             this.address = '';
             this.paymentMethod = '';
+            this.couponCode = '';
+            this.discountApplied = 0;
+            this.couponSuccess = '';
+            this.couponError = '';
             this.save();
             this.isOpen = false;
             
@@ -167,6 +259,10 @@ function carrinhoGlobal() {
         // Limpa todo o carrinho
         clearCart() {
             this.items = [];
+            this.couponCode = '';
+            this.discountApplied = 0;
+            this.couponSuccess = '';
+            this.couponError = '';
             this.save();
             this.showToast('Carrinho limpo');
         },
@@ -175,6 +271,7 @@ function carrinhoGlobal() {
         openProductModal(product) {
             this.selectedProduct = product;
             this.modalQty = 1;
+            this.modalNote = '';
             this.productModalOpen = true;
         },
 
@@ -182,6 +279,7 @@ function carrinhoGlobal() {
             this.productModalOpen = false;
             setTimeout(() => {
                 this.selectedProduct = null;
+                this.modalNote = '';
             }, 300);
         },
 
@@ -199,7 +297,8 @@ function carrinhoGlobal() {
             if (!this.selectedProduct) return;
             
             const product = this.selectedProduct;
-            const existing = this.items.find(i => i.id === product.id);
+            // Identifica se já existe o mesmo item com as mesmas observações
+            const existing = this.items.find(i => i.id === product.id && i.note === this.modalNote);
             if (existing) {
                 existing.qty += this.modalQty;
             } else {
@@ -208,7 +307,8 @@ function carrinhoGlobal() {
                     name: product.name,
                     price: product.price,
                     image: product.image || '',
-                    qty: this.modalQty
+                    qty: this.modalQty,
+                    note: this.modalNote.trim()
                 });
             }
             this.save();
