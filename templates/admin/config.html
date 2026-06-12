@@ -124,9 +124,11 @@
         </div>
 
         <!-- Sales and Hours Config -->
+        <script type="application/json" id="business-hours-json">
+            {{if .Shop}}{{if .Shop.BusinessHours}}{{.Shop.BusinessHours}}{{else}}{}{{end}}{{else}}{}{{end}}
+        </script>
         <div class="glass-dark rounded-2xl p-6 space-y-5"
-             data-hours="{{if .Shop}}{{if .Shop.BusinessHours}}{{.Shop.BusinessHours}}{{else}}{}{{end}}{{else}}{}{{end}}"
-             x-data="{ hours: JSON.parse($el.getAttribute('data-hours') || '{}') }">
+             x-data="{ hours: JSON.parse(document.getElementById('business-hours-json').textContent || '{}') }">
             <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Vendas e Horários</h3>
             
             <div>
