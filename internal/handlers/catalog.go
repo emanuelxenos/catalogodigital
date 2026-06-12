@@ -47,11 +47,19 @@ func (h *Handlers) HandleCatalog(w http.ResponseWriter, r *http.Request) {
 	// Verifica se a loja está aberta
 	isOpen := IsShopOpen(shop.BusinessHours)
 
+	var parsedHours map[string]map[string]string
+	if shop.BusinessHours != nil && *shop.BusinessHours != "" && *shop.BusinessHours != "null" {
+		if err := json.Unmarshal([]byte(*shop.BusinessHours), &parsedHours); err != nil {
+			log.Printf("Erro ao parsear BusinessHours: %v", err)
+		}
+	}
+
 	data := map[string]interface{}{
-		"Shop":       shop,
-		"Categories": categories,
-		"Products":   products,
-		"IsOpen":     isOpen,
+		"Shop":          shop,
+		"Categories":    categories,
+		"Products":      products,
+		"IsOpen":        isOpen,
+		"BusinessHours": parsedHours,
 	}
 
 	if err := h.Tmpl.Render(w, "base", "catalog/index.html", data); err != nil {

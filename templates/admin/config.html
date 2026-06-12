@@ -125,10 +125,27 @@
 
         <!-- Sales and Hours Config -->
         <script type="application/json" id="business-hours-json">
-            {{if .Shop}}{{if .Shop.BusinessHours}}{{.Shop.BusinessHours}}{{else}}{}{{end}}{{else}}{}{{end}}
+            {{if .Shop}}{{if .Shop.BusinessHours}}{{safeHTML .Shop.BusinessHours}}{{else}}{}{{end}}{{else}}{}{{end}}
         </script>
         <div class="glass-dark rounded-2xl p-6 space-y-5"
-             x-data="{ hours: JSON.parse(document.getElementById('business-hours-json').textContent || '{}') }">
+             x-data="{ 
+                 hours: (function() {
+                     try {
+                         let raw = document.getElementById('business-hours-json').textContent.trim();
+                         let h = JSON.parse(raw || '{}');
+                         ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].forEach(d => {
+                             h[d] = h[d] || {open: '', close: ''};
+                         });
+                         return h;
+                     } catch(e) {
+                         let h = {};
+                         ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].forEach(d => {
+                             h[d] = {open: '', close: ''};
+                         });
+                         return h;
+                     }
+                 })()
+             }">
             <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Vendas e Horários</h3>
             
             <div>
@@ -141,50 +158,231 @@
             <div class="border-t border-slate-800/50 pt-4">
                 <label class="block text-sm font-medium text-slate-300 mb-3 font-semibold">Período de Atendimento (Dia a Dia):</label>
                 <div class="space-y-3">
-                    <template x-for="day in [
-                        {key: 'mon', label: 'Segunda-feira'},
-                        {key: 'tue', label: 'Terça-feira'},
-                        {key: 'wed', label: 'Quarta-feira'},
-                        {key: 'thu', label: 'Quinta-feira'},
-                        {key: 'fri', label: 'Sexta-feira'},
-                        {key: 'sat', label: 'Sábado'},
-                        {key: 'sun', label: 'Domingo'}
-                    ]" :key="day.key">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl bg-slate-800/20 border border-slate-800/40 gap-3"
-                             x-data="{ active: !!(hours[day.key] && hours[day.key].open && hours[day.key].close) }">
-                            <div class="flex items-center gap-3 w-40">
-                                <!-- Switch/Toggle -->
-                                <button type="button" 
-                                    @click="active = !active; if(!active) { hours[day.key] = {open: '', close: ''} } else { hours[day.key] = hours[day.key] || {}; hours[day.key].open = hours[day.key].open || '09:00'; hours[day.key].close = hours[day.key].close || '18:00'; }"
-                                    :class="active ? 'bg-violet-600' : 'bg-slate-700'"
-                                    class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
-                                    <span :class="active ? 'translate-x-5' : 'translate-x-0'"
-                                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
-                                </button>
-                                <span class="text-sm font-semibold text-slate-300" x-text="day.label"></span>
+                    
+                    <!-- Segunda-feira -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl bg-slate-800/20 border border-slate-800/40 gap-3"
+                         x-data="{ active: false }" x-init="active = !!(hours.mon.open && hours.mon.close)">
+                        <div class="flex items-center gap-3 w-40">
+                            <button type="button" 
+                                @click="active = !active; if(!active) { hours.mon.open = ''; hours.mon.close = ''; } else { hours.mon.open = '09:00'; hours.mon.close = '18:00'; }"
+                                :class="active ? 'bg-violet-600' : 'bg-slate-700'"
+                                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+                                <span :class="active ? 'translate-x-5' : 'translate-x-0'"
+                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                            </button>
+                            <span class="text-sm font-semibold text-slate-300">Segunda-feira</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div x-show="active" class="flex items-center gap-3">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs text-slate-500">De:</span>
+                                    <input type="time" name="hours_mon_open" x-model="hours.mon.open"
+                                        class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs text-slate-500">Até:</span>
+                                    <input type="time" name="hours_mon_close" x-model="hours.mon.close"
+                                        class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
+                                </div>
                             </div>
-                            
-                            <div class="flex flex-wrap items-center gap-3">
-                                <div x-show="active" class="flex items-center gap-3">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-xs text-slate-500">De:</span>
-                                        <input type="time" :name="'hours_' + day.key + '_open'"
-                                            x-model="hours[day.key] = hours[day.key] || {}; hours[day.key].open"
-                                            class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
-                                    </div>
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-xs text-slate-500">Até:</span>
-                                        <input type="time" :name="'hours_' + day.key + '_close'"
-                                            x-model="hours[day.key] = hours[day.key] || {}; hours[day.key].close"
-                                            class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
-                                    </div>
-                                </div>
-                                <div x-show="!active" class="text-xs font-semibold text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 flex items-center gap-1">
-                                    <span class="w-2 h-2 rounded-full bg-red-500"></span> Fechado (Não funciona neste dia)
-                                </div>
+                            <div x-show="!active" class="text-xs font-semibold text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-red-500"></span> Fechado
                             </div>
                         </div>
-                    </template>
+                    </div>
+
+                    <!-- Terça-feira -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl bg-slate-800/20 border border-slate-800/40 gap-3"
+                         x-data="{ active: false }" x-init="active = !!(hours.tue.open && hours.tue.close)">
+                        <div class="flex items-center gap-3 w-40">
+                            <button type="button" 
+                                @click="active = !active; if(!active) { hours.tue.open = ''; hours.tue.close = ''; } else { hours.tue.open = '09:00'; hours.tue.close = '18:00'; }"
+                                :class="active ? 'bg-violet-600' : 'bg-slate-700'"
+                                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+                                <span :class="active ? 'translate-x-5' : 'translate-x-0'"
+                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                            </button>
+                            <span class="text-sm font-semibold text-slate-300">Terça-feira</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div x-show="active" class="flex items-center gap-3">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs text-slate-500">De:</span>
+                                    <input type="time" name="hours_tue_open" x-model="hours.tue.open"
+                                        class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs text-slate-500">Até:</span>
+                                    <input type="time" name="hours_tue_close" x-model="hours.tue.close"
+                                        class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
+                                </div>
+                            </div>
+                            <div x-show="!active" class="text-xs font-semibold text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-red-500"></span> Fechado
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quarta-feira -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl bg-slate-800/20 border border-slate-800/40 gap-3"
+                         x-data="{ active: false }" x-init="active = !!(hours.wed.open && hours.wed.close)">
+                        <div class="flex items-center gap-3 w-40">
+                            <button type="button" 
+                                @click="active = !active; if(!active) { hours.wed.open = ''; hours.wed.close = ''; } else { hours.wed.open = '09:00'; hours.wed.close = '18:00'; }"
+                                :class="active ? 'bg-violet-600' : 'bg-slate-700'"
+                                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+                                <span :class="active ? 'translate-x-5' : 'translate-x-0'"
+                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                            </button>
+                            <span class="text-sm font-semibold text-slate-300">Quarta-feira</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div x-show="active" class="flex items-center gap-3">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs text-slate-500">De:</span>
+                                    <input type="time" name="hours_wed_open" x-model="hours.wed.open"
+                                        class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs text-slate-500">Até:</span>
+                                    <input type="time" name="hours_wed_close" x-model="hours.wed.close"
+                                        class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
+                                </div>
+                            </div>
+                            <div x-show="!active" class="text-xs font-semibold text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-red-500"></span> Fechado
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quinta-feira -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl bg-slate-800/20 border border-slate-800/40 gap-3"
+                         x-data="{ active: false }" x-init="active = !!(hours.thu.open && hours.thu.close)">
+                        <div class="flex items-center gap-3 w-40">
+                            <button type="button" 
+                                @click="active = !active; if(!active) { hours.thu.open = ''; hours.thu.close = ''; } else { hours.thu.open = '09:00'; hours.thu.close = '18:00'; }"
+                                :class="active ? 'bg-violet-600' : 'bg-slate-700'"
+                                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+                                <span :class="active ? 'translate-x-5' : 'translate-x-0'"
+                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                            </button>
+                            <span class="text-sm font-semibold text-slate-300">Quinta-feira</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div x-show="active" class="flex items-center gap-3">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs text-slate-500">De:</span>
+                                    <input type="time" name="hours_thu_open" x-model="hours.thu.open"
+                                        class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs text-slate-500">Até:</span>
+                                    <input type="time" name="hours_thu_close" x-model="hours.thu.close"
+                                        class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
+                                </div>
+                            </div>
+                            <div x-show="!active" class="text-xs font-semibold text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-red-500"></span> Fechado
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sexta-feira -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl bg-slate-800/20 border border-slate-800/40 gap-3"
+                         x-data="{ active: false }" x-init="active = !!(hours.fri.open && hours.fri.close)">
+                        <div class="flex items-center gap-3 w-40">
+                            <button type="button" 
+                                @click="active = !active; if(!active) { hours.fri.open = ''; hours.fri.close = ''; } else { hours.fri.open = '09:00'; hours.fri.close = '18:00'; }"
+                                :class="active ? 'bg-violet-600' : 'bg-slate-700'"
+                                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+                                <span :class="active ? 'translate-x-5' : 'translate-x-0'"
+                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                            </button>
+                            <span class="text-sm font-semibold text-slate-300">Sexta-feira</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div x-show="active" class="flex items-center gap-3">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs text-slate-500">De:</span>
+                                    <input type="time" name="hours_fri_open" x-model="hours.fri.open"
+                                        class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs text-slate-500">Até:</span>
+                                    <input type="time" name="hours_fri_close" x-model="hours.fri.close"
+                                        class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
+                                </div>
+                            </div>
+                            <div x-show="!active" class="text-xs font-semibold text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-red-500"></span> Fechado
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sábado -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl bg-slate-800/20 border border-slate-800/40 gap-3"
+                         x-data="{ active: false }" x-init="active = !!(hours.sat.open && hours.sat.close)">
+                        <div class="flex items-center gap-3 w-40">
+                            <button type="button" 
+                                @click="active = !active; if(!active) { hours.sat.open = ''; hours.sat.close = ''; } else { hours.sat.open = '09:00'; hours.sat.close = '18:00'; }"
+                                :class="active ? 'bg-violet-600' : 'bg-slate-700'"
+                                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+                                <span :class="active ? 'translate-x-5' : 'translate-x-0'"
+                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                            </button>
+                            <span class="text-sm font-semibold text-slate-300">Sábado</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div x-show="active" class="flex items-center gap-3">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs text-slate-500">De:</span>
+                                    <input type="time" name="hours_sat_open" x-model="hours.sat.open"
+                                        class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs text-slate-500">Até:</span>
+                                    <input type="time" name="hours_sat_close" x-model="hours.sat.close"
+                                        class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
+                                </div>
+                            </div>
+                            <div x-show="!active" class="text-xs font-semibold text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-red-500"></span> Fechado
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Domingo -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl bg-slate-800/20 border border-slate-800/40 gap-3"
+                         x-data="{ active: false }" x-init="active = !!(hours.sun.open && hours.sun.close)">
+                        <div class="flex items-center gap-3 w-40">
+                            <button type="button" 
+                                @click="active = !active; if(!active) { hours.sun.open = ''; hours.sun.close = ''; } else { hours.sun.open = '09:00'; hours.sun.close = '18:00'; }"
+                                :class="active ? 'bg-violet-600' : 'bg-slate-700'"
+                                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+                                <span :class="active ? 'translate-x-5' : 'translate-x-0'"
+                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                            </button>
+                            <span class="text-sm font-semibold text-slate-300">Domingo</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div x-show="active" class="flex items-center gap-3">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs text-slate-500">De:</span>
+                                    <input type="time" name="hours_sun_open" x-model="hours.sun.open"
+                                        class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs text-slate-500">Até:</span>
+                                    <input type="time" name="hours_sun_close" x-model="hours.sun.close"
+                                        class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
+                                </div>
+                            </div>
+                            <div x-show="!active" class="text-xs font-semibold text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-red-500"></span> Fechado
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
