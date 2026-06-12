@@ -42,12 +42,44 @@
                 </div>
             </div>
             
-            <div>
+            <div x-data="{ 
+                whatsapp: '{{if .Shop}}{{.Shop.WhatsappNumber}}{{end}}',
+                formatWhatsApp(val) {
+                    if (!val) return '';
+                    let digits = val.replace(/\D/g, '');
+                    if (digits.length >= 12 && digits.startsWith('55')) {
+                        digits = digits.substring(2);
+                    }
+                    digits = digits.substring(0, 11);
+                    if (digits.length === 0) return '';
+                    let formatted = '+55';
+                    if (digits.length > 0) {
+                        formatted += ' (' + digits.substring(0, 2);
+                    }
+                    if (digits.length > 2) {
+                        formatted += ') ';
+                        let number = digits.substring(2);
+                        if (number.length > 4) {
+                            if (number.length <= 8) {
+                                formatted += number.substring(0, 4) + '-' + number.substring(4);
+                            } else {
+                                formatted += number.substring(0, 5) + '-' + number.substring(5, 9);
+                            }
+                        } else {
+                            formatted += number;
+                        }
+                    }
+                    return formatted;
+                }
+            }" x-init="whatsapp = formatWhatsApp(whatsapp)">
                 <label class="block text-sm font-medium text-slate-300 mb-2">WhatsApp *</label>
-                <input type="text" name="whatsapp" required value="{{if .Shop}}{{.Shop.WhatsappNumber}}{{end}}" placeholder="5511999999999"
+                <input type="text" name="whatsapp" required 
+                    x-model="whatsapp"
+                    @input="whatsapp = formatWhatsApp($event.target.value)"
+                    placeholder="+55 (11) 99999-9999"
                     class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all text-sm"
                     id="config-whatsapp">
-                <p class="text-xs text-slate-500 mt-1">Formato internacional: 55 + DDD + número (sem espaços ou traços)</p>
+                <p class="text-xs text-slate-500 mt-1">Formato: +55 (DDD) Celular. O código do país +55 (Brasil) é adicionado automaticamente.</p>
             </div>
         </div>
         

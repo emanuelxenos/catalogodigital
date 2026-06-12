@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { fontFamily: { 'sans': ['Outfit', 'system-ui', 'sans-serif'] } } } }</script>
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="/static/css/custom.css">
 </head>
 <body class="h-full font-sans antialiased">
@@ -65,11 +67,43 @@
                             class="w-full px-4 py-3.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all text-sm">
                     </div>
                     
-                    <div>
+                    <div x-data="{ 
+                        whatsapp: '',
+                        formatWhatsApp(val) {
+                            if (!val) return '';
+                            let digits = val.replace(/\D/g, '');
+                            if (digits.length >= 12 && digits.startsWith('55')) {
+                                digits = digits.substring(2);
+                            }
+                            digits = digits.substring(0, 11);
+                            if (digits.length === 0) return '';
+                            let formatted = '+55';
+                            if (digits.length > 0) {
+                                formatted += ' (' + digits.substring(0, 2);
+                            }
+                            if (digits.length > 2) {
+                                formatted += ') ';
+                                let number = digits.substring(2);
+                                if (number.length > 4) {
+                                    if (number.length <= 8) {
+                                        formatted += number.substring(0, 4) + '-' + number.substring(4);
+                                    } else {
+                                        formatted += number.substring(0, 5) + '-' + number.substring(5, 9);
+                                    }
+                                } else {
+                                    formatted += number;
+                                }
+                            }
+                            return formatted;
+                        }
+                    }">
                         <label for="whatsapp" class="block text-sm font-medium text-slate-300 mb-2">WhatsApp (com DDD)</label>
-                        <input type="text" id="whatsapp" name="whatsapp" required placeholder="5511999999999"
+                        <input type="text" id="whatsapp" name="whatsapp" required 
+                            x-model="whatsapp"
+                            @input="whatsapp = formatWhatsApp($event.target.value)"
+                            placeholder="+55 (11) 99999-9999"
                             class="w-full px-4 py-3.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all text-sm">
-                        <p class="text-xs text-slate-500 mt-1">Formato: 55 + DDD + número</p>
+                        <p class="text-xs text-slate-500 mt-1">Formato: +55 (DDD) Celular. Código +55 (Brasil) adicionado automaticamente.</p>
                     </div>
                     
                     <button type="submit" id="btn-register"

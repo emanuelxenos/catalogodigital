@@ -90,7 +90,7 @@ func (h *Handlers) HandleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	email := strings.TrimSpace(r.FormValue("email"))
 	password := r.FormValue("password")
 	shopName := strings.TrimSpace(r.FormValue("shop_name"))
-	whatsapp := strings.TrimSpace(r.FormValue("whatsapp"))
+	whatsapp := cleanWhatsAppNumber(strings.TrimSpace(r.FormValue("whatsapp")))
 
 	if name == "" || email == "" || password == "" || shopName == "" || whatsapp == "" {
 		http.Redirect(w, r, "/admin/register?error=Preencha todos os campos", http.StatusSeeOther)
@@ -504,7 +504,7 @@ func (h *Handlers) HandleShopConfigPost(w http.ResponseWriter, r *http.Request) 
 
 	name := strings.TrimSpace(r.FormValue("name"))
 	slug := strings.TrimSpace(r.FormValue("slug"))
-	whatsapp := strings.TrimSpace(r.FormValue("whatsapp"))
+	whatsapp := cleanWhatsAppNumber(strings.TrimSpace(r.FormValue("whatsapp")))
 	primaryColor := strings.TrimSpace(r.FormValue("primary_color"))
 	deliveryFeeStr := strings.TrimSpace(r.FormValue("delivery_fee"))
 
@@ -859,4 +859,28 @@ func (h *Handlers) HandleDeleteCoupon(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(""))
 }
+
+// cleanWhatsAppNumber limpa caracteres não-numéricos e adiciona o DDI +55 (Brasil) se ausente
+func cleanWhatsAppNumber(number string) string {
+	var clean strings.Builder
+	for _, r := range number {
+		if r >= '0' && r <= '9' {
+			clean.WriteRune(r)
+		}
+	}
+	s := clean.String()
+	if s == "" {
+		return ""
+	}
+	// Se tiver 11 dígitos ou menos, com certeza não tem o DDI do Brasil (55),
+	// mesmo que os primeiros dígitos sejam 55 (que seria o DDD 55 do RS).
+	if len(s) <= 11 {
+		s = "55" + s
+	} else if !strings.HasPrefix(s, "55") {
+		// Se tiver mais de 11 dígitos mas não começar com 55, adicionamos
+		s = "55" + s
+	}
+	return s
+}
+
 
