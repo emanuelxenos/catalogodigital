@@ -540,6 +540,12 @@ func (h *Handlers) HandleShopConfigPost(w http.ResponseWriter, r *http.Request) 
 		bhStr := string(bhBytes)
 		bhPtr = &bhStr
 	}
+	log.Printf("[CONFIG] Hours Map parsed from form: %+v", hoursMap)
+	if bhPtr != nil {
+		log.Printf("[CONFIG] BusinessHours JSON string: %s", *bhPtr)
+	} else {
+		log.Printf("[CONFIG] BusinessHours JSON is nil")
+	}
 
 	// Upload de logo
 	logoURL := ""
