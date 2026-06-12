@@ -61,8 +61,37 @@ func NewTemplateEngine(baseDir string) *TemplateEngine {
 		"formatPriceRaw": func(price float64) string {
 			return fmt.Sprintf("%.2f", price)
 		},
-		"safeHTML": func(s string) template.HTML {
-			return template.HTML(s)
+		"safeHTML": func(s interface{}) template.HTML {
+			switch v := s.(type) {
+			case string:
+				return template.HTML(v)
+			case *string:
+				if v != nil {
+					return template.HTML(*v)
+				}
+				return template.HTML("{}")
+			default:
+				return template.HTML("{}")
+			}
+		},
+		"getHour": func(hours map[string]map[string]string, day, field string) string {
+			if hours == nil {
+				return ""
+			}
+			if dayMap, ok := hours[day]; ok {
+				return dayMap[field]
+			}
+			return ""
+		},
+		"hasDay": func(hours map[string]map[string]string, day string) bool {
+			if hours == nil {
+				return false
+			}
+			dayMap, ok := hours[day]
+			if !ok {
+				return false
+			}
+			return dayMap["open"] != "" && dayMap["close"] != ""
 		},
 		"seq": func(n int) []int {
 			s := make([]int, n)

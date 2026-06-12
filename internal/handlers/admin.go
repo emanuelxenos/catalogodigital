@@ -479,11 +479,21 @@ func (h *Handlers) HandleShopConfig(w http.ResponseWriter, r *http.Request) {
 	user := middleware.GetUserFromContext(r)
 	shop := middleware.GetShopFromContext(r)
 
+	// Parse business hours JSON into a map for easier template rendering
+	var businessHoursMap map[string]map[string]string
+	if shop != nil && shop.BusinessHours != nil && *shop.BusinessHours != "" {
+		if err := json.Unmarshal([]byte(*shop.BusinessHours), &businessHoursMap); err != nil {
+			log.Printf("[CONFIG] Erro ao parsear business_hours: %v", err)
+			businessHoursMap = nil
+		}
+	}
+
 	data := map[string]interface{}{
-		"User":    user,
-		"Shop":    shop,
-		"Success": r.URL.Query().Get("success"),
-		"Error":   r.URL.Query().Get("error"),
+		"User":         user,
+		"Shop":         shop,
+		"BusinessHours": businessHoursMap,
+		"Success":      r.URL.Query().Get("success"),
+		"Error":        r.URL.Query().Get("error"),
 	}
 
 	if err := h.Tmpl.Render(w, "admin", "admin/config.html", data); err != nil {
