@@ -67,10 +67,59 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 
 -- =============================================================
--- Dados de Seed (lojista de demonstração)
--- Senha: admin123 (bcrypt hash)
+-- Alterações para Catálogo Comercial (SaaS Completo)
 -- =============================================================
--- INSERT INTO users (name, email, password_hash) VALUES
--- ('Lojista Demo', 'demo@catalogo.com', '$2a$10$...hash...');
--- INSERT INTO shops (user_id, name, slug, whatsapp_number, primary_color) VALUES
--- (1, 'Loja Demo', 'loja-demo', '5511999999999', '#8B5CF6');
+
+-- Novas colunas em shops
+ALTER TABLE shops ADD COLUMN IF NOT EXISTS banner_url TEXT DEFAULT '';
+ALTER TABLE shops ADD COLUMN IF NOT EXISTS delivery_fee DECIMAL(10,2) DEFAULT 0.00;
+ALTER TABLE shops ADD COLUMN IF NOT EXISTS business_hours JSONB DEFAULT NULL;
+
+-- Novas colunas em produtos
+ALTER TABLE products ADD COLUMN IF NOT EXISTS options JSONB DEFAULT NULL;
+
+-- Tabela de Cupons
+CREATE TABLE IF NOT EXISTS coupons (
+    id SERIAL PRIMARY KEY,
+    shop_id INTEGER REFERENCES shops(id) ON DELETE CASCADE,
+    code VARCHAR(50) NOT NULL,
+    type VARCHAR(10) NOT NULL, -- 'percentage' ou 'fixed'
+    value DECIMAL(10,2) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_shop_coupon UNIQUE (shop_id, code)
+);
+
+-- Tabela de Pedidos
+CREATE TABLE IF NOT EXISTS orders (
+    id SERIAL PRIMARY KEY,
+    shop_id INTEGER REFERENCES shops(id) ON DELETE CASCADE,
+    customer_name VARCHAR(255) NOT NULL,
+    delivery_method VARCHAR(50) NOT NULL, -- 'delivery' ou 'pickup'
+    address TEXT DEFAULT '',
+    payment_method VARCHAR(50) NOT NULL,
+    coupon_code VARCHAR(50) DEFAULT '',
+    discount DECIMAL(10,2) DEFAULT 0.00,
+    subtotal DECIMAL(10,2) NOT NULL,
+    total DECIMAL(10,2) NOT NULL,
+    status VARCHAR(50) DEFAULT 'Pendente', -- 'Pendente', 'Preparando', 'Enviado', 'Concluido', 'Cancelado'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela de Itens de Pedidos
+CREATE TABLE IF NOT EXISTS order_items (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+    product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    qty INTEGER NOT NULL,
+    note TEXT DEFAULT '',
+    options JSONB DEFAULT NULL -- Opções escolhidas pelo cliente (ex: tamanho, adicionais)
+);
+
+-- Índices adicionais para performance
+CREATE INDEX IF NOT EXISTS idx_coupons_shop_id ON coupons(shop_id);
+CREATE INDEX IF NOT EXISTS idx_orders_shop_id ON orders(shop_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+

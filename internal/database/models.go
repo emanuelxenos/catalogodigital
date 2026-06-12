@@ -24,6 +24,9 @@ type Shop struct {
 	PrimaryColor   string    `json:"primary_color"`
 	IsActive       bool      `json:"is_active"`
 	CreatedAt      time.Time `json:"created_at"`
+	BannerURL      string    `json:"banner_url"`
+	DeliveryFee    float64   `json:"delivery_fee"`
+	BusinessHours  *string   `json:"business_hours"` // JSON string
 }
 
 // Category representa uma categoria de produtos
@@ -47,6 +50,7 @@ type Product struct {
 	IsAvailable  bool      `json:"is_available"`
 	CreatedAt    time.Time `json:"created_at"`
 	CategoryName string    `json:"category_name,omitempty"` // JOIN auxiliar
+	Options      *string   `json:"options"`                 // JSON string
 }
 
 // Session representa uma sessão de autenticação
@@ -56,3 +60,44 @@ type Session struct {
 	CreatedAt time.Time `json:"created_at"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
+
+// Coupon representa um cupom de desconto
+type Coupon struct {
+	ID        int       `json:"id"`
+	ShopID    int       `json:"shop_id"`
+	Code      string    `json:"code"`
+	Type      string    `json:"type"` // "percentage" ou "fixed"
+	Value     float64   `json:"value"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// Order representa um pedido de cliente gravado no banco
+type Order struct {
+	ID             int         `json:"id"`
+	ShopID         int         `json:"shop_id"`
+	CustomerName   string      `json:"customer_name"`
+	DeliveryMethod string      `json:"delivery_method"` // "delivery" ou "pickup"
+	Address        string      `json:"address"`
+	PaymentMethod  string      `json:"payment_method"`
+	CouponCode     string      `json:"coupon_code"`
+	Discount       float64     `json:"discount"`
+	Subtotal       float64     `json:"subtotal"`
+	Total          float64     `json:"total"`
+	Status         string      `json:"status"` // "Pendente", "Preparando", "Enviado", "Concluido", "Cancelado"
+	CreatedAt      time.Time   `json:"created_at"`
+	Items          []OrderItem `json:"items,omitempty"`
+}
+
+// OrderItem representa um item associado a um pedido
+type OrderItem struct {
+	ID        int     `json:"id"`
+	OrderID   int     `json:"order_id"`
+	ProductID *int    `json:"product_id"`
+	Name      string  `json:"name"`
+	Price     float64 `json:"price"`
+	Qty       int     `json:"qty"`
+	Note      string  `json:"note"`
+	Options   *string `json:"options"` // JSON string
+}
+

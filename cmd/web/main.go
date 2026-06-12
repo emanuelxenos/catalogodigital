@@ -90,6 +90,15 @@ func main() {
 		// Configurações da loja
 		r.Get("/admin/config", h.HandleShopConfig)
 		r.Post("/admin/config", h.HandleShopConfigPost)
+
+		// Pedidos do lojista
+		r.Get("/admin/pedidos", h.HandleOrders)
+		r.Post("/admin/pedidos/{id}/status", h.HandleOrderStatusPost)
+
+		// Cupons de desconto
+		r.Get("/admin/cupons", h.HandleCoupons)
+		r.Post("/admin/cupons", h.HandleCreateCoupon)
+		r.Delete("/admin/cupons/{id}", h.HandleDeleteCoupon)
 	})
 
 	// ==================== ROTAS CATÁLOGO PÚBLICO ====================
@@ -97,6 +106,8 @@ func main() {
 
 	r.Get("/{slug}", h.HandleCatalog)
 	r.Get("/{slug}/produtos", h.HandleProductsByCategory)
+	r.Post("/{slug}/checkout", h.HandleCheckout)
+	r.Get("/{slug}/coupon/{code}", h.HandleValidateCoupon)
 
 	// ==================== SERVIDOR ====================
 

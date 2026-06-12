@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"catalogo/internal/database"
 )
@@ -84,6 +85,19 @@ func NewTemplateEngine(baseDir string) *TemplateEngine {
 		},
 		"isNil": func(p *int) bool {
 			return p == nil
+		},
+		"formatTime": func(t time.Time) string {
+			loc, err := time.LoadLocation("America/Sao_Paulo")
+			if err == nil {
+				t = t.In(loc)
+			}
+			return t.Format("02/01/2006 às 15:04")
+		},
+		"multiply": func(price float64, qty int) float64 {
+			return price * float64(qty)
+		},
+		"subtract": func(a, b float64) float64 {
+			return a - b
 		},
 	}
 

@@ -1,6 +1,6 @@
 // carrinhoGlobal - Alpine.js store para o carrinho de compras
 // Persiste no localStorage para manter o estado entre navegações
-function carrinhoGlobal() {
+function carrinhoGlobal(deliveryFee = 0) {
     return {
         items: JSON.parse(localStorage.getItem('cart_items') || '[]'),
         isOpen: false,
@@ -10,6 +10,7 @@ function carrinhoGlobal() {
         paymentMethod: localStorage.getItem('cart_paymentMethod') || '',
         justAdded: false,
         toastMessage: '',
+        deliveryFee: parseFloat(deliveryFee),
         
         // Modal de produto e observações
         searchQuery: '',
@@ -18,11 +19,24 @@ function carrinhoGlobal() {
         modalQty: 1,
         modalNote: '',
 
-        // Sistema de cupons e descontos
-        couponCode: '',
-        discountApplied: 0,
+        // Sistema de opcionais selecionados
+        selectedChoices: {}, // mapeia { "NomeOpcao": {name: "M", price_adjust: 5.0} } ou array se multi-escolha
+
+        // Sistema de cupons e descontos reais
+        couponCode: localStorage.getItem('cart_couponCode') || '',
+        couponType: localStorage.getItem('cart_couponType') || '', // 'percentage' ou 'fixed'
+        couponValue: parseFloat(localStorage.getItem('cart_couponValue') || '0'),
+        discountApplied: parseFloat(localStorage.getItem('cart_couponValue') || '0') > 0 ? 1 : 0, // mantido para compatibilidade visual
         couponError: '',
         couponSuccess: '',
+
+        // Inicializa o carrinho
+        init() {
+            if (this.couponCode && this.couponValue > 0) {
+                let descText = this.couponType === 'percentage' ? `${this.couponValue}% OFF` : `R$ ${this.couponValue.toFixed(2)} OFF`;
+                this.couponSuccess = `Cupom ativo: ${descText}`;
+            }
+        },
 
         // Salva o estado no localStorage
         save() {
@@ -31,11 +45,14 @@ function carrinhoGlobal() {
             localStorage.setItem('cart_deliveryMethod', this.deliveryMethod);
             localStorage.setItem('cart_address', this.address);
             localStorage.setItem('cart_paymentMethod', this.paymentMethod);
+            localStorage.setItem('cart_couponCode', this.couponCode);
+            localStorage.setItem('cart_couponType', this.couponType || '');
+            localStorage.setItem('cart_couponValue', String(this.couponValue || 0));
         },
 
-        // Adiciona um item ao carrinho
+        // Adiciona um item simples ao carrinho (card de compra rápida)
         addItem(product) {
-            const existing = this.items.find(i => i.id === product.id && i.note === '');
+            const existing = this.items.find(i => i.id === product.id && i.note === '' && !i.options_json);
             if (existing) {
                 existing.qty++;
             } else {
@@ -45,16 +62,17 @@ function carrinhoGlobal() {
                     price: product.price,
                     image: product.image || '',
                     qty: 1,
-                    note: ''
+                    note: '',
+                    options: {},
+                    options_json: '',
+                    options_text: ''
                 });
             }
             this.save();
             
-            // Animação de pulso no FAB
             this.justAdded = true;
             setTimeout(() => { this.justAdded = false; }, 500);
             
-            // Toast
             this.showToast('✅ ' + product.name + ' adicionado!');
         },
 
@@ -79,19 +97,17 @@ function carrinhoGlobal() {
 
         // Métodos de controle de quantidade reativa direta no card (sem abrir modal)
         getItemQty(productId) {
-            // Retorna a soma das quantidades do produto no carrinho
             return this.items
                 .filter(i => i.id === productId)
                 .reduce((sum, item) => sum + item.qty, 0);
         },
 
         updateCardQty(product, delta) {
-            // Busca o primeiro item do produto no carrinho (geralmente o sem observações)
-            const existing = this.items.find(i => i.id === product.id);
+            const existing = this.items.find(i => i.id === product.id && i.note === '' && !i.options_json);
             if (existing) {
                 existing.qty += delta;
                 if (existing.qty <= 0) {
-                    this.items = this.items.filter(i => i.id !== product.id);
+                    this.items = this.items.filter(i => !(i.id === product.id && i.note === '' && !i.options_json));
                 }
             } else if (delta > 0) {
                 this.items.push({
@@ -100,12 +116,14 @@ function carrinhoGlobal() {
                     price: product.price,
                     image: product.image || '',
                     qty: 1,
-                    note: ''
+                    note: '',
+                    options: {},
+                    options_json: '',
+                    options_text: ''
                 });
             }
             this.save();
             
-            // Feedback visual de pulso
             this.justAdded = true;
             setTimeout(() => { this.justAdded = false; }, 500);
         },
@@ -115,42 +133,75 @@ function carrinhoGlobal() {
             return this.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
         },
 
-        // Sistema de Cupons
+        // Sistema de Cupons Reais com Validação no Banco
         applyCoupon() {
             const code = this.couponCode.toUpperCase().trim();
             this.couponError = '';
             this.couponSuccess = '';
 
-            if (code === 'PROMO10') {
-                this.discountApplied = 0.10;
-                this.couponSuccess = 'Cupom de 10% aplicado com sucesso!';
-                this.showToast('🎟️ Cupom PROMO10 aplicado!');
-            } else if (code === 'FRETEGRATIS') {
-                this.discountApplied = 0.05; // 5% como simulação de frete grátis
-                this.couponSuccess = 'Desconto de Frete (5% OFF) aplicado!';
-                this.showToast('🎟️ Cupom FRETEGRATIS aplicado!');
-            } else if (code === '') {
+            if (code === '') {
                 this.couponError = 'Digite um cupom';
-            } else {
-                this.couponError = 'Cupom inválido!';
-                this.discountApplied = 0;
+                return;
             }
+
+            const slug = window.location.pathname.split('/').filter(Boolean).pop() || '';
+            if (!slug) {
+                this.couponError = 'Erro ao identificar a loja';
+                return;
+            }
+
+            fetch(`/${slug}/coupon/${code}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.valid) {
+                        this.couponType = data.type;
+                        this.couponValue = parseFloat(data.value);
+                        this.discountApplied = 1;
+
+                        let descText = data.type === 'percentage' ? `${data.value}% OFF` : `R$ ${data.value.toFixed(2)} OFF`;
+                        this.couponSuccess = `Cupom de desconto aplicado: ${descText}`;
+                        this.showToast(`🎟️ Cupom ${data.code} aplicado!`);
+                        this.save();
+                    } else {
+                        this.couponError = data.message || 'Cupom inválido!';
+                        this.couponType = '';
+                        this.couponValue = 0;
+                        this.discountApplied = 0;
+                        this.save();
+                    }
+                })
+                .catch(err => {
+                    this.couponError = 'Erro ao validar cupom';
+                    console.error(err);
+                });
         },
 
         removeCoupon() {
             this.couponCode = '';
+            this.couponType = '';
+            this.couponValue = 0;
             this.discountApplied = 0;
             this.couponError = '';
             this.couponSuccess = '';
+            this.save();
             this.showToast('Cupom removido');
         },
 
         getDiscount() {
-            return this.getTotal() * this.discountApplied;
+            if (this.couponType === 'percentage') {
+                return this.getTotal() * (this.couponValue / 100);
+            } else if (this.couponType === 'fixed') {
+                return this.couponValue;
+            }
+            return 0;
         },
 
         getFinalTotal() {
-            return this.getTotal() - this.getDiscount();
+            let total = this.getTotal() - this.getDiscount();
+            if (this.deliveryMethod === 'entrega') {
+                total += this.deliveryFee;
+            }
+            return Math.max(0, total);
         },
 
         // Conta total de itens
@@ -166,52 +217,7 @@ function carrinhoGlobal() {
             }).format(value);
         },
 
-        // Formata a mensagem para WhatsApp
-        formatWhatsAppMessage() {
-            let msg = '🛒 *NOVO PEDIDO*\n';
-            msg += '━━━━━━━━━━━━━━━\n\n';
-            
-            // Itens
-            this.items.forEach((item, idx) => {
-                msg += `*${idx + 1}.* ${item.name}\n`;
-                if (item.note) {
-                    msg += `   📝 _Obs: ${item.note}_\n`;
-                }
-                msg += `   Qtd: ${item.qty} x ${this.formatCurrency(item.price)}\n`;
-                msg += `   Subtotal: ${this.formatCurrency(item.price * item.qty)}\n\n`;
-            });
-            
-            msg += '━━━━━━━━━━━━━━━\n';
-            msg += `💰 *Subtotal:* ${this.formatCurrency(this.getTotal())}\n`;
-            if (this.discountApplied > 0) {
-                msg += `🎟️ *Desconto (${this.discountApplied * 100}%):* -${this.formatCurrency(this.getDiscount())}\n`;
-            }
-            msg += `✨ *TOTAL: ${this.formatCurrency(this.getFinalTotal())}*\n`;
-            msg += '━━━━━━━━━━━━━━━\n\n';
-            
-            // Dados do cliente
-            msg += `👤 *Nome:* ${this.customerName}\n`;
-            
-            if (this.deliveryMethod === 'entrega') {
-                msg += `🛵 *Método:* Entrega\n`;
-                if (this.address) {
-                    msg += `📍 *Endereço:* ${this.address}\n`;
-                }
-            } else {
-                msg += `🏪 *Método:* Retirada no local\n`;
-            }
-            
-            const paymentLabels = {
-                'pix': '💳 Pix',
-                'cartao': '💳 Cartão de Crédito/Débito',
-                'dinheiro': '💵 Dinheiro'
-            };
-            msg += `💳 *Pagamento:* ${paymentLabels[this.paymentMethod] || this.paymentMethod}\n`;
-            
-            return msg;
-        },
-
-        // Envia o pedido para o WhatsApp
+        // Envia o pedido para a Rota de Checkout Segura do Backend
         sendToWhatsApp(shopPhone) {
             if (!this.customerName) {
                 this.showToast('⚠️ Por favor, informe seu nome');
@@ -226,26 +232,70 @@ function carrinhoGlobal() {
                 return;
             }
 
-            const message = this.formatWhatsAppMessage();
-            const encodedMessage = encodeURIComponent(message);
-            const url = `https://wa.me/${shopPhone}?text=${encodedMessage}`;
-            
-            // Abre o WhatsApp
-            window.open(url, '_blank');
-            
-            // Limpa o carrinho após enviar
-            this.items = [];
-            this.customerName = '';
-            this.address = '';
-            this.paymentMethod = '';
-            this.couponCode = '';
-            this.discountApplied = 0;
-            this.couponSuccess = '';
-            this.couponError = '';
-            this.save();
-            this.isOpen = false;
-            
-            this.showToast('✅ Pedido enviado! Verifique o WhatsApp');
+            const slug = window.location.pathname.split('/').filter(Boolean).pop() || '';
+            if (!slug) {
+                this.showToast('⚠️ Erro ao identificar a loja');
+                return;
+            }
+
+            // Prepara payload formatado para a rota Go
+            const payload = {
+                customerName: this.customerName,
+                deliveryMethod: this.deliveryMethod,
+                address: this.address,
+                paymentMethod: this.paymentMethod,
+                couponCode: this.couponCode,
+                items: this.items.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    qty: item.qty,
+                    note: item.note,
+                    options: item.options_json || ''
+                }))
+            };
+
+            fetch(`/${slug}/checkout`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.message || 'Erro ao processar checkout'); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.whatsapp_url) {
+                    // Abre o WhatsApp com a URL formatada do backend
+                    window.open(data.whatsapp_url, '_blank');
+                    
+                    // Limpa o carrinho local
+                    this.items = [];
+                    this.customerName = '';
+                    this.address = '';
+                    this.paymentMethod = '';
+                    this.couponCode = '';
+                    this.couponType = '';
+                    this.couponValue = 0;
+                    this.discountApplied = 0;
+                    this.couponSuccess = '';
+                    this.couponError = '';
+                    this.save();
+                    this.isOpen = false;
+                    
+                    this.showToast('✅ Pedido criado com sucesso!');
+                } else {
+                    this.showToast('⚠️ Erro ao processar pedido');
+                }
+            })
+            .catch(err => {
+                this.showToast('❌ ' + err.message);
+                console.error(err);
+            });
         },
 
         // Mostra uma notificação toast
@@ -260,6 +310,8 @@ function carrinhoGlobal() {
         clearCart() {
             this.items = [];
             this.couponCode = '';
+            this.couponType = '';
+            this.couponValue = 0;
             this.discountApplied = 0;
             this.couponSuccess = '';
             this.couponError = '';
@@ -267,11 +319,20 @@ function carrinhoGlobal() {
             this.showToast('Carrinho limpo');
         },
 
-        // Modal de produto
-        openProductModal(product) {
-            this.selectedProduct = product;
+        // Modal de produto e opcionais
+        openProductModal(product, optionsAttr) {
+            let parsedOptions = [];
+            if (optionsAttr) {
+                try {
+                    parsedOptions = JSON.parse(optionsAttr);
+                } catch(e) {
+                    console.error("Erro ao processar opcionais do produto:", e);
+                }
+            }
+            this.selectedProduct = { ...product, options: parsedOptions };
             this.modalQty = 1;
             this.modalNote = '';
+            this.selectedChoices = {};
             this.productModalOpen = true;
         },
 
@@ -280,6 +341,7 @@ function carrinhoGlobal() {
             setTimeout(() => {
                 this.selectedProduct = null;
                 this.modalNote = '';
+                this.selectedChoices = {};
             }, 300);
         },
 
@@ -293,27 +355,112 @@ function carrinhoGlobal() {
             }
         },
 
+        toggleChoice(opt, choice) {
+            if (opt.multi) {
+                if (!this.selectedChoices[opt.name]) {
+                    this.selectedChoices[opt.name] = [];
+                }
+                const choicesList = this.selectedChoices[opt.name];
+                const idx = choicesList.findIndex(c => c.name === choice.name);
+                if (idx > -1) {
+                    choicesList.splice(idx, 1);
+                } else {
+                    choicesList.push({ name: choice.name, price_adjust: parseFloat(choice.price_adjust || 0) });
+                }
+            } else {
+                if (this.selectedChoices[opt.name] && this.selectedChoices[opt.name].name === choice.name) {
+                    if (!opt.required) {
+                        delete this.selectedChoices[opt.name];
+                    }
+                } else {
+                    this.selectedChoices[opt.name] = { name: choice.name, price_adjust: parseFloat(choice.price_adjust || 0) };
+                }
+            }
+        },
+
+        isChoiceSelected(optName, choiceName) {
+            const val = this.selectedChoices[optName];
+            if (!val) return false;
+            if (Array.isArray(val)) {
+                return val.some(c => c.name === choiceName);
+            }
+            return val.name === choiceName;
+        },
+
+        getModalItemPrice() {
+            if (!this.selectedProduct) return 0;
+            let price = this.selectedProduct.price;
+            Object.keys(this.selectedChoices).forEach(key => {
+                const val = this.selectedChoices[key];
+                if (Array.isArray(val)) {
+                    val.forEach(c => {
+                        price += (c.price_adjust || 0);
+                    });
+                } else if (val) {
+                    price += (val.price_adjust || 0);
+                }
+            });
+            return price;
+        },
+
+        getOptionsText() {
+            let parts = [];
+            Object.keys(this.selectedChoices).forEach(key => {
+                const val = this.selectedChoices[key];
+                if (Array.isArray(val)) {
+                    const names = val.map(c => c.name).join(', ');
+                    if (names) parts.push(`${key}: ${names}`);
+                } else if (val) {
+                    parts.push(`${key}: ${val.name}`);
+                }
+            });
+            return parts.join(' | ');
+        },
+
         addModalProductToCart() {
             if (!this.selectedProduct) return;
+
+            // Validação de opcionais obrigatórios
+            let missingRequired = [];
+            (this.selectedProduct.options || []).forEach(opt => {
+                if (opt.required && !this.selectedChoices[opt.name]) {
+                    missingRequired.push(opt.name);
+                }
+            });
+            if (missingRequired.length > 0) {
+                this.showToast('⚠️ Selecione: ' + missingRequired.join(', '));
+                return;
+            }
             
             const product = this.selectedProduct;
-            // Identifica se já existe o mesmo item com as mesmas observações
-            const existing = this.items.find(i => i.id === product.id && i.note === this.modalNote);
+            const itemPrice = this.getModalItemPrice();
+            const optionsText = this.getOptionsText();
+            const optionsJson = JSON.stringify(this.selectedChoices);
+
+            // Tenta encontrar item idêntico com as mesmas escolhas/obs no carrinho
+            const existing = this.items.find(i => 
+                i.id === product.id && 
+                i.note === this.modalNote.trim() && 
+                i.options_json === optionsJson
+            );
+
             if (existing) {
                 existing.qty += this.modalQty;
             } else {
                 this.items.push({
                     id: product.id,
                     name: product.name,
-                    price: product.price,
+                    price: itemPrice,
                     image: product.image || '',
                     qty: this.modalQty,
-                    note: this.modalNote.trim()
+                    note: this.modalNote.trim(),
+                    options: { ...this.selectedChoices },
+                    options_json: optionsJson,
+                    options_text: optionsText
                 });
             }
             this.save();
             
-            // Animação de pulso no FAB
             this.justAdded = true;
             setTimeout(() => { this.justAdded = false; }, 500);
             
@@ -331,3 +478,4 @@ function carrinhoGlobal() {
         }
     };
 }
+

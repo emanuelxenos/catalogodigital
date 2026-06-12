@@ -56,11 +56,13 @@ func (db *DB) GetUserByID(ctx context.Context, id int) (*User, error) {
 func (db *DB) GetShopBySlug(ctx context.Context, slug string) (*Shop, error) {
 	shop := &Shop{}
 	err := db.Pool.QueryRow(ctx,
-		`SELECT id, user_id, name, slug, whatsapp_number, logo_url, primary_color, is_active, created_at
+		`SELECT id, user_id, name, slug, whatsapp_number, logo_url, primary_color, is_active, created_at,
+		        banner_url, delivery_fee, business_hours
 		 FROM shops WHERE slug = $1 AND is_active = TRUE`,
 		slug,
 	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.WhatsappNumber,
-		&shop.LogoURL, &shop.PrimaryColor, &shop.IsActive, &shop.CreatedAt)
+		&shop.LogoURL, &shop.PrimaryColor, &shop.IsActive, &shop.CreatedAt,
+		&shop.BannerURL, &shop.DeliveryFee, &shop.BusinessHours)
 	if err != nil {
 		return nil, fmt.Errorf("loja não encontrada: %w", err)
 	}
@@ -71,11 +73,13 @@ func (db *DB) GetShopBySlug(ctx context.Context, slug string) (*Shop, error) {
 func (db *DB) GetShopByUserID(ctx context.Context, userID int) (*Shop, error) {
 	shop := &Shop{}
 	err := db.Pool.QueryRow(ctx,
-		`SELECT id, user_id, name, slug, whatsapp_number, logo_url, primary_color, is_active, created_at
+		`SELECT id, user_id, name, slug, whatsapp_number, logo_url, primary_color, is_active, created_at,
+		        banner_url, delivery_fee, business_hours
 		 FROM shops WHERE user_id = $1`,
 		userID,
 	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.WhatsappNumber,
-		&shop.LogoURL, &shop.PrimaryColor, &shop.IsActive, &shop.CreatedAt)
+		&shop.LogoURL, &shop.PrimaryColor, &shop.IsActive, &shop.CreatedAt,
+		&shop.BannerURL, &shop.DeliveryFee, &shop.BusinessHours)
 	if err != nil {
 		return nil, fmt.Errorf("loja não encontrada: %w", err)
 	}
@@ -85,9 +89,11 @@ func (db *DB) GetShopByUserID(ctx context.Context, userID int) (*Shop, error) {
 // UpdateShop atualiza os dados de uma loja
 func (db *DB) UpdateShop(ctx context.Context, shop *Shop) error {
 	_, err := db.Pool.Exec(ctx,
-		`UPDATE shops SET name = $1, slug = $2, whatsapp_number = $3, logo_url = $4, primary_color = $5
-		 WHERE id = $6`,
-		shop.Name, shop.Slug, shop.WhatsappNumber, shop.LogoURL, shop.PrimaryColor, shop.ID,
+		`UPDATE shops SET name = $1, slug = $2, whatsapp_number = $3, logo_url = $4, primary_color = $5,
+		                 banner_url = $6, delivery_fee = $7, business_hours = $8
+		 WHERE id = $9`,
+		shop.Name, shop.Slug, shop.WhatsappNumber, shop.LogoURL, shop.PrimaryColor,
+		shop.BannerURL, shop.DeliveryFee, shop.BusinessHours, shop.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("erro ao atualizar loja: %w", err)
@@ -98,9 +104,10 @@ func (db *DB) UpdateShop(ctx context.Context, shop *Shop) error {
 // CreateShop cria uma nova loja
 func (db *DB) CreateShop(ctx context.Context, shop *Shop) error {
 	err := db.Pool.QueryRow(ctx,
-		`INSERT INTO shops (user_id, name, slug, whatsapp_number, logo_url, primary_color)
-		 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at`,
+		`INSERT INTO shops (user_id, name, slug, whatsapp_number, logo_url, primary_color, banner_url, delivery_fee, business_hours)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, created_at`,
 		shop.UserID, shop.Name, shop.Slug, shop.WhatsappNumber, shop.LogoURL, shop.PrimaryColor,
+		shop.BannerURL, shop.DeliveryFee, shop.BusinessHours,
 	).Scan(&shop.ID, &shop.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("erro ao criar loja: %w", err)
@@ -164,11 +171,13 @@ func (db *DB) DeleteCategory(ctx context.Context, id, shopID int) error {
 
 // ==================== PRODUCTS ====================
 
+// ==================== PRODUCTS ====================
+
 // ListProductsByShop lista todos os produtos de uma loja
 func (db *DB) ListProductsByShop(ctx context.Context, shopID int) ([]Product, error) {
 	rows, err := db.Pool.Query(ctx,
 		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
-		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options
 		 FROM products p
 		 LEFT JOIN categories c ON p.category_id = c.id
 		 WHERE p.shop_id = $1
@@ -184,7 +193,7 @@ func (db *DB) ListProductsByShop(ctx context.Context, shopID int) ([]Product, er
 	for rows.Next() {
 		var p Product
 		if err := rows.Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
-			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName); err != nil {
+			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options); err != nil {
 			return nil, err
 		}
 		products = append(products, p)
@@ -196,7 +205,7 @@ func (db *DB) ListProductsByShop(ctx context.Context, shopID int) ([]Product, er
 func (db *DB) ListProductsByCategory(ctx context.Context, shopID, categoryID int) ([]Product, error) {
 	rows, err := db.Pool.Query(ctx,
 		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
-		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options
 		 FROM products p
 		 LEFT JOIN categories c ON p.category_id = c.id
 		 WHERE p.shop_id = $1 AND p.category_id = $2 AND p.is_available = TRUE
@@ -212,7 +221,7 @@ func (db *DB) ListProductsByCategory(ctx context.Context, shopID, categoryID int
 	for rows.Next() {
 		var p Product
 		if err := rows.Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
-			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName); err != nil {
+			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options); err != nil {
 			return nil, err
 		}
 		products = append(products, p)
@@ -224,7 +233,7 @@ func (db *DB) ListProductsByCategory(ctx context.Context, shopID, categoryID int
 func (db *DB) ListAvailableProductsByShop(ctx context.Context, shopID int) ([]Product, error) {
 	rows, err := db.Pool.Query(ctx,
 		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
-		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options
 		 FROM products p
 		 LEFT JOIN categories c ON p.category_id = c.id
 		 WHERE p.shop_id = $1 AND p.is_available = TRUE
@@ -240,7 +249,7 @@ func (db *DB) ListAvailableProductsByShop(ctx context.Context, shopID int) ([]Pr
 	for rows.Next() {
 		var p Product
 		if err := rows.Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
-			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName); err != nil {
+			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options); err != nil {
 			return nil, err
 		}
 		products = append(products, p)
@@ -251,10 +260,10 @@ func (db *DB) ListAvailableProductsByShop(ctx context.Context, shopID int) ([]Pr
 // CreateProduct cria um novo produto
 func (db *DB) CreateProduct(ctx context.Context, p *Product) error {
 	err := db.Pool.QueryRow(ctx,
-		`INSERT INTO products (shop_id, category_id, name, description, price, image_url, is_available)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`INSERT INTO products (shop_id, category_id, name, description, price, image_url, is_available, options)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		 RETURNING id, created_at`,
-		p.ShopID, p.CategoryID, p.Name, p.Description, p.Price, p.ImageURL, p.IsAvailable,
+		p.ShopID, p.CategoryID, p.Name, p.Description, p.Price, p.ImageURL, p.IsAvailable, p.Options,
 	).Scan(&p.ID, &p.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("erro ao criar produto: %w", err)
@@ -266,8 +275,8 @@ func (db *DB) CreateProduct(ctx context.Context, p *Product) error {
 func (db *DB) UpdateProduct(ctx context.Context, p *Product) error {
 	_, err := db.Pool.Exec(ctx,
 		`UPDATE products SET category_id = $1, name = $2, description = $3, price = $4,
-		 image_url = $5, is_available = $6 WHERE id = $7 AND shop_id = $8`,
-		p.CategoryID, p.Name, p.Description, p.Price, p.ImageURL, p.IsAvailable, p.ID, p.ShopID,
+		 image_url = $5, is_available = $6, options = $7 WHERE id = $8 AND shop_id = $9`,
+		p.CategoryID, p.Name, p.Description, p.Price, p.ImageURL, p.IsAvailable, p.Options, p.ID, p.ShopID,
 	)
 	if err != nil {
 		return fmt.Errorf("erro ao atualizar produto: %w", err)
@@ -296,10 +305,10 @@ func (db *DB) ToggleProductAvailability(ctx context.Context, id, shopID int) (*P
 	err := db.Pool.QueryRow(ctx,
 		`UPDATE products SET is_available = NOT is_available
 		 WHERE id = $1 AND shop_id = $2
-		 RETURNING id, shop_id, category_id, name, description, price, image_url, is_available, created_at`,
+		 RETURNING id, shop_id, category_id, name, description, price, image_url, is_available, created_at, options`,
 		id, shopID,
 	).Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
-		&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt)
+		&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.Options)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao alternar disponibilidade: %w", err)
 	}
@@ -311,13 +320,13 @@ func (db *DB) GetProduct(ctx context.Context, id, shopID int) (*Product, error) 
 	p := &Product{}
 	err := db.Pool.QueryRow(ctx,
 		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
-		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options
 		 FROM products p
 		 LEFT JOIN categories c ON p.category_id = c.id
 		 WHERE p.id = $1 AND p.shop_id = $2`,
 		id, shopID,
 	).Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
-		&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName)
+		&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options)
 	if err != nil {
 		return nil, fmt.Errorf("produto não encontrado: %w", err)
 	}
@@ -390,3 +399,226 @@ func (db *DB) CleanExpiredSessions(ctx context.Context) error {
 	_, err := db.Pool.Exec(ctx, `DELETE FROM sessions WHERE expires_at < NOW()`)
 	return err
 }
+
+// ==================== COUPONS ====================
+
+// CreateCoupon cria um novo cupom
+func (db *DB) CreateCoupon(ctx context.Context, c *Coupon) error {
+	err := db.Pool.QueryRow(ctx,
+		`INSERT INTO coupons (shop_id, code, type, value, is_active)
+		 VALUES ($1, UPPER($2), $3, $4, $5)
+		 RETURNING id, created_at`,
+		c.ShopID, c.Code, c.Type, c.Value, c.IsActive,
+	).Scan(&c.ID, &c.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("erro ao criar cupom: %w", err)
+	}
+	return nil
+}
+
+// ListCouponsByShop lista cupons de uma loja
+func (db *DB) ListCouponsByShop(ctx context.Context, shopID int) ([]Coupon, error) {
+	rows, err := db.Pool.Query(ctx,
+		`SELECT id, shop_id, code, type, value, is_active, created_at
+		 FROM coupons WHERE shop_id = $1 ORDER BY created_at DESC`,
+		shopID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao listar cupons: %w", err)
+	}
+	defer rows.Close()
+
+	var coupons []Coupon
+	for rows.Next() {
+		var c Coupon
+		if err := rows.Scan(&c.ID, &c.ShopID, &c.Code, &c.Type, &c.Value, &c.IsActive, &c.CreatedAt); err != nil {
+			return nil, err
+		}
+		coupons = append(coupons, c)
+	}
+	return coupons, nil
+}
+
+// GetCouponByCode busca cupom ativo pelo código
+func (db *DB) GetCouponByCode(ctx context.Context, shopID int, code string) (*Coupon, error) {
+	c := &Coupon{}
+	err := db.Pool.QueryRow(ctx,
+		`SELECT id, shop_id, code, type, value, is_active, created_at
+		 FROM coupons WHERE shop_id = $1 AND UPPER(code) = UPPER($2) AND is_active = TRUE`,
+		shopID, code,
+	).Scan(&c.ID, &c.ShopID, &c.Code, &c.Type, &c.Value, &c.IsActive, &c.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("cupom não encontrado ou inativo: %w", err)
+	}
+	return c, nil
+}
+
+// DeleteCoupon remove um cupom
+func (db *DB) DeleteCoupon(ctx context.Context, id, shopID int) error {
+	result, err := db.Pool.Exec(ctx,
+		`DELETE FROM coupons WHERE id = $1 AND shop_id = $2`,
+		id, shopID,
+	)
+	if err != nil {
+		return fmt.Errorf("erro ao deletar cupom: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("cupom não encontrado")
+	}
+	return nil
+}
+
+// ==================== ORDERS ====================
+
+// CreateOrder cria um pedido no banco de dados
+func (db *DB) CreateOrder(ctx context.Context, o *Order) error {
+	err := db.Pool.QueryRow(ctx,
+		`INSERT INTO orders (shop_id, customer_name, delivery_method, address, payment_method, coupon_code, discount, subtotal, total, status)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		 RETURNING id, created_at`,
+		o.ShopID, o.CustomerName, o.DeliveryMethod, o.Address, o.PaymentMethod, o.CouponCode, o.Discount, o.Subtotal, o.Total, o.Status,
+	).Scan(&o.ID, &o.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("erro ao salvar pedido no banco: %w", err)
+	}
+	return nil
+}
+
+// CreateOrderItem cria um item associado a um pedido
+func (db *DB) CreateOrderItem(ctx context.Context, item *OrderItem) error {
+	err := db.Pool.QueryRow(ctx,
+		`INSERT INTO order_items (order_id, product_id, name, price, qty, note, options)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		 RETURNING id`,
+		item.OrderID, item.ProductID, item.Name, item.Price, item.Qty, item.Note, item.Options,
+	).Scan(&item.ID)
+	if err != nil {
+		return fmt.Errorf("erro ao salvar item de pedido: %w", err)
+	}
+	return nil
+}
+
+// ListOrdersByShop lista os pedidos de uma loja
+func (db *DB) ListOrdersByShop(ctx context.Context, shopID int) ([]Order, error) {
+	rows, err := db.Pool.Query(ctx,
+		`SELECT id, shop_id, customer_name, delivery_method, address, payment_method, coupon_code, discount, subtotal, total, status, created_at
+		 FROM orders WHERE shop_id = $1 ORDER BY created_at DESC`,
+		shopID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao listar pedidos: %w", err)
+	}
+	defer rows.Close()
+
+	var orders []Order
+	for rows.Next() {
+		var o Order
+		if err := rows.Scan(&o.ID, &o.ShopID, &o.CustomerName, &o.DeliveryMethod, &o.Address, &o.PaymentMethod, &o.CouponCode, &o.Discount, &o.Subtotal, &o.Total, &o.Status, &o.CreatedAt); err != nil {
+			return nil, err
+		}
+		orders = append(orders, o)
+	}
+
+	// Carrega itens para cada pedido
+	for i := range orders {
+		items, err := db.ListOrderItems(ctx, orders[i].ID)
+		if err == nil {
+			orders[i].Items = items
+		}
+	}
+
+	return orders, nil
+}
+
+// ListOrderItems lista os itens de um pedido
+func (db *DB) ListOrderItems(ctx context.Context, orderID int) ([]OrderItem, error) {
+	rows, err := db.Pool.Query(ctx,
+		`SELECT id, order_id, product_id, name, price, qty, note, options
+		 FROM order_items WHERE order_id = $1 ORDER BY id ASC`,
+		orderID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao listar itens do pedido: %w", err)
+	}
+	defer rows.Close()
+
+	var items []OrderItem
+	for rows.Next() {
+		var item OrderItem
+		if err := rows.Scan(&item.ID, &item.OrderID, &item.ProductID, &item.Name, &item.Price, &item.Qty, &item.Note, &item.Options); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+// UpdateOrderStatus atualiza o status de um pedido
+func (db *DB) UpdateOrderStatus(ctx context.Context, id, shopID int, status string) error {
+	result, err := db.Pool.Exec(ctx,
+		`UPDATE orders SET status = $1 WHERE id = $2 AND shop_id = $3`,
+		status, id, shopID,
+	)
+	if err != nil {
+		return fmt.Errorf("erro ao atualizar status do pedido: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("pedido não encontrado")
+	}
+	return nil
+}
+
+// GetOrderMetrics retorna métricas consolidadas de vendas para o painel admin
+func (db *DB) GetOrderMetrics(ctx context.Context, shopID int) (map[string]float64, error) {
+	metrics := make(map[string]float64)
+
+	// Faturamento total deste mês
+	var faturamento float64
+	err := db.Pool.QueryRow(ctx,
+		`SELECT COALESCE(SUM(total), 0) FROM orders
+		 WHERE shop_id = $1 AND status != 'Cancelado'
+		 AND created_at >= date_trunc('month', CURRENT_TIMESTAMP)`,
+		shopID,
+	).Scan(&faturamento)
+	if err != nil {
+		return nil, err
+	}
+	metrics["revenue_month"] = faturamento
+
+	// Total de pedidos geral
+	var totalOrders float64
+	err = db.Pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM orders WHERE shop_id = $1`,
+		shopID,
+	).Scan(&totalOrders)
+	if err != nil {
+		return nil, err
+	}
+	metrics["total_orders"] = totalOrders
+
+	// Pedidos pendentes (Pendente, Preparando, Enviado)
+	var pendingOrders float64
+	err = db.Pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM orders WHERE shop_id = $1 AND status IN ('Pendente', 'Preparando', 'Enviado')`,
+		shopID,
+	).Scan(&pendingOrders)
+	if err != nil {
+		return nil, err
+	}
+	metrics["pending_orders"] = pendingOrders
+
+	// Ticket médio geral (desconsiderando cancelados)
+	var ticketMedio float64
+	err = db.Pool.QueryRow(ctx,
+		`SELECT COALESCE(AVG(total), 0) FROM orders
+		 WHERE shop_id = $1 AND status != 'Cancelado'`,
+		shopID,
+	).Scan(&ticketMedio)
+	if err != nil {
+		return nil, err
+	}
+	metrics["average_ticket"] = ticketMedio
+
+	return metrics, nil
+}
+

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -177,11 +178,23 @@ func (h *Handlers) HandleLogout(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) HandleDashboard(w http.ResponseWriter, r *http.Request) {
 	user := middleware.GetUserFromContext(r)
 	shop := middleware.GetShopFromContext(r)
+	if shop == nil {
+		http.Redirect(w, r, "/admin/config", http.StatusSeeOther)
+		return
+	}
 
-	var productCount, categoryCount int
-	if shop != nil {
-		productCount, _ = h.DB.CountProductsByShop(r.Context(), shop.ID)
-		categoryCount, _ = h.DB.CountCategoriesByShop(r.Context(), shop.ID)
+	productCount, _ := h.DB.CountProductsByShop(r.Context(), shop.ID)
+	categoryCount, _ := h.DB.CountCategoriesByShop(r.Context(), shop.ID)
+
+	metrics, err := h.DB.GetOrderMetrics(r.Context(), shop.ID)
+	if err != nil {
+		log.Printf("Erro ao obter métricas de pedidos: %v", err)
+		metrics = map[string]float64{
+			"revenue_month":  0,
+			"total_orders":   0,
+			"pending_orders": 0,
+			"average_ticket": 0,
+		}
 	}
 
 	data := map[string]interface{}{
@@ -189,6 +202,7 @@ func (h *Handlers) HandleDashboard(w http.ResponseWriter, r *http.Request) {
 		"Shop":          shop,
 		"ProductCount":  productCount,
 		"CategoryCount": categoryCount,
+		"Metrics":       metrics,
 	}
 
 	if err := h.Tmpl.Render(w, "admin", "admin/dashboard.html", data); err != nil {
@@ -250,6 +264,7 @@ func (h *Handlers) HandleCreateProduct(w http.ResponseWriter, r *http.Request) {
 	description := strings.TrimSpace(r.FormValue("description"))
 	priceStr := strings.TrimSpace(r.FormValue("price"))
 	categoryStr := r.FormValue("category_id")
+	optionsStr := strings.TrimSpace(r.FormValue("options"))
 
 	if name == "" || priceStr == "" {
 		http.Redirect(w, r, "/admin/produtos?error=Nome e preço são obrigatórios", http.StatusSeeOther)
@@ -272,6 +287,18 @@ func (h *Handlers) HandleCreateProduct(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Valida JSON de opções
+	var optPtr *string
+	if optionsStr != "" {
+		type valObj []interface{}
+		var js valObj
+		if err := json.Unmarshal([]byte(optionsStr), &js); err != nil {
+			http.Redirect(w, r, "/admin/produtos?error=JSON de opcionais inválido. Siga o exemplo.", http.StatusSeeOther)
+			return
+		}
+		optPtr = &optionsStr
+	}
+
 	// Upload de imagem
 	imageURL := ""
 	file, header, err := r.FormFile("image")
@@ -291,6 +318,7 @@ func (h *Handlers) HandleCreateProduct(w http.ResponseWriter, r *http.Request) {
 		Price:       price,
 		ImageURL:    imageURL,
 		IsAvailable: true,
+		Options:     optPtr,
 	}
 
 	if err := h.DB.CreateProduct(r.Context(), product); err != nil {
@@ -478,6 +506,7 @@ func (h *Handlers) HandleShopConfigPost(w http.ResponseWriter, r *http.Request) 
 	slug := strings.TrimSpace(r.FormValue("slug"))
 	whatsapp := strings.TrimSpace(r.FormValue("whatsapp"))
 	primaryColor := strings.TrimSpace(r.FormValue("primary_color"))
+	deliveryFeeStr := strings.TrimSpace(r.FormValue("delivery_fee"))
 
 	if name == "" || slug == "" || whatsapp == "" {
 		http.Redirect(w, r, "/admin/config?error=Preencha os campos obrigatórios", http.StatusSeeOther)
@@ -488,17 +517,55 @@ func (h *Handlers) HandleShopConfigPost(w http.ResponseWriter, r *http.Request) 
 		primaryColor = "#8B5CF6"
 	}
 
+	// Taxa de entrega
+	deliveryFeeStr = strings.Replace(deliveryFeeStr, ",", ".", 1)
+	deliveryFee, _ := strconv.ParseFloat(deliveryFeeStr, 64)
+
+	// Horários de funcionamento (constrói o JSON)
+	days := []string{"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
+	hoursMap := make(map[string]map[string]string)
+	for _, day := range days {
+		open := strings.TrimSpace(r.FormValue("hours_" + day + "_open"))
+		close := strings.TrimSpace(r.FormValue("hours_" + day + "_close"))
+		if open != "" && close != "" {
+			hoursMap[day] = map[string]string{
+				"open":  open,
+				"close": close,
+			}
+		}
+	}
+	var bhPtr *string
+	if len(hoursMap) > 0 {
+		bhBytes, _ := json.Marshal(hoursMap)
+		bhStr := string(bhBytes)
+		bhPtr = &bhStr
+	}
+
 	// Upload de logo
 	logoURL := ""
 	if shop != nil {
 		logoURL = shop.LogoURL
 	}
-	file, header, err := r.FormFile("logo")
+	logoFile, logoHeader, err := r.FormFile("logo")
 	if err == nil {
-		defer file.Close()
-		logoURL, err = saveUploadedFile(file, header.Filename)
+		defer logoFile.Close()
+		logoURL, err = saveUploadedFile(logoFile, logoHeader.Filename)
 		if err != nil {
 			log.Printf("Erro ao salvar logo: %v", err)
+		}
+	}
+
+	// Upload de banner (capa)
+	bannerURL := ""
+	if shop != nil {
+		bannerURL = shop.BannerURL
+	}
+	bannerFile, bannerHeader, err := r.FormFile("banner")
+	if err == nil {
+		defer bannerFile.Close()
+		bannerURL, err = saveUploadedFile(bannerFile, bannerHeader.Filename)
+		if err != nil {
+			log.Printf("Erro ao salvar banner: %v", err)
 		}
 	}
 
@@ -509,6 +576,9 @@ func (h *Handlers) HandleShopConfigPost(w http.ResponseWriter, r *http.Request) 
 		shop.WhatsappNumber = whatsapp
 		shop.PrimaryColor = primaryColor
 		shop.LogoURL = logoURL
+		shop.BannerURL = bannerURL
+		shop.DeliveryFee = deliveryFee
+		shop.BusinessHours = bhPtr
 
 		if err := h.DB.UpdateShop(r.Context(), shop); err != nil {
 			log.Printf("Erro ao atualizar loja: %v", err)
@@ -524,6 +594,9 @@ func (h *Handlers) HandleShopConfigPost(w http.ResponseWriter, r *http.Request) 
 			WhatsappNumber: whatsapp,
 			PrimaryColor:   primaryColor,
 			LogoURL:        logoURL,
+			BannerURL:      bannerURL,
+			DeliveryFee:    deliveryFee,
+			BusinessHours:  bhPtr,
 		}
 		if err := h.DB.CreateShop(r.Context(), newShop); err != nil {
 			log.Printf("Erro ao criar loja: %v", err)
@@ -603,3 +676,187 @@ func generateSlug(text string) string {
 	
 	return slug
 }
+
+// ==================== ADMIN ORDERS ====================
+
+// HandleOrders lista todos os pedidos recebidos pela loja
+func (h *Handlers) HandleOrders(w http.ResponseWriter, r *http.Request) {
+	user := middleware.GetUserFromContext(r)
+	shop := middleware.GetShopFromContext(r)
+	if shop == nil {
+		http.Redirect(w, r, "/admin/config", http.StatusSeeOther)
+		return
+	}
+
+	orders, err := h.DB.ListOrdersByShop(r.Context(), shop.ID)
+	if err != nil {
+		log.Printf("Erro ao listar pedidos: %v", err)
+	}
+
+	data := map[string]interface{}{
+		"User":   user,
+		"Shop":   shop,
+		"Orders": orders,
+	}
+
+	if err := h.Tmpl.Render(w, "admin", "admin/orders.html", data); err != nil {
+		log.Printf("Erro ao renderizar pedidos: %v", err)
+		http.Error(w, "Erro interno", http.StatusInternalServerError)
+	}
+}
+
+// HandleOrderStatusPost altera o status de um pedido via HTMX
+func (h *Handlers) HandleOrderStatusPost(w http.ResponseWriter, r *http.Request) {
+	shop := middleware.GetShopFromContext(r)
+	if shop == nil {
+		http.Error(w, "Loja não configurada", http.StatusBadRequest)
+		return
+	}
+
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	status := strings.TrimSpace(r.FormValue("status"))
+	validStatus := map[string]bool{
+		"Pendente":   true,
+		"Preparando": true,
+		"Enviado":    true,
+		"Concluido":  true,
+		"Cancelado":  true,
+	}
+
+	if !validStatus[status] {
+		http.Error(w, "Status inválido", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.DB.UpdateOrderStatus(r.Context(), id, shop.ID, status); err != nil {
+		log.Printf("Erro ao atualizar status: %v", err)
+		http.Error(w, "Erro ao atualizar status", http.StatusInternalServerError)
+		return
+	}
+
+	// Retorna o novo HTML do badge status com cores correspondentes
+	var badgeClass string
+	switch status {
+	case "Pendente":
+		badgeClass = "bg-amber-500/10 text-amber-400 border-amber-500/20"
+	case "Preparando":
+		badgeClass = "bg-blue-500/10 text-blue-400 border-blue-500/20"
+	case "Enviado":
+		badgeClass = "bg-violet-500/10 text-violet-400 border-violet-500/20"
+	case "Concluido":
+		badgeClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+	case "Cancelado":
+		badgeClass = "bg-red-500/10 text-red-400 border-red-500/20"
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintf(w, `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border %s">%s</span>`, badgeClass, status)
+}
+
+// ==================== COUPONS ADMIN ====================
+
+// HandleCoupons lista todos os cupons
+func (h *Handlers) HandleCoupons(w http.ResponseWriter, r *http.Request) {
+	user := middleware.GetUserFromContext(r)
+	shop := middleware.GetShopFromContext(r)
+	if shop == nil {
+		http.Redirect(w, r, "/admin/config", http.StatusSeeOther)
+		return
+	}
+
+	coupons, err := h.DB.ListCouponsByShop(r.Context(), shop.ID)
+	if err != nil {
+		log.Printf("Erro ao listar cupons: %v", err)
+	}
+
+	data := map[string]interface{}{
+		"User":    user,
+		"Shop":    shop,
+		"Coupons": coupons,
+		"Success": r.URL.Query().Get("success"),
+		"Error":   r.URL.Query().Get("error"),
+	}
+
+	if err := h.Tmpl.Render(w, "admin", "admin/coupons.html", data); err != nil {
+		log.Printf("Erro ao renderizar cupons: %v", err)
+		http.Error(w, "Erro interno", http.StatusInternalServerError)
+	}
+}
+
+// HandleCreateCoupon cria um cupom para a loja
+func (h *Handlers) HandleCreateCoupon(w http.ResponseWriter, r *http.Request) {
+	shop := middleware.GetShopFromContext(r)
+	if shop == nil {
+		http.Error(w, "Loja não configurada", http.StatusBadRequest)
+		return
+	}
+
+	code := strings.ToUpper(strings.TrimSpace(r.FormValue("code")))
+	couponType := strings.TrimSpace(r.FormValue("type"))
+	valueStr := strings.TrimSpace(r.FormValue("value"))
+
+	if code == "" || couponType == "" || valueStr == "" {
+		http.Redirect(w, r, "/admin/cupons?error=Preencha todos os campos obrigatórios", http.StatusSeeOther)
+		return
+	}
+
+	if couponType != "percentage" && couponType != "fixed" {
+		http.Redirect(w, r, "/admin/cupons?error=Tipo de cupom inválido", http.StatusSeeOther)
+		return
+	}
+
+	valueStr = strings.Replace(valueStr, ",", ".", 1)
+	value, err := strconv.ParseFloat(valueStr, 64)
+	if err != nil || value <= 0 {
+		http.Redirect(w, r, "/admin/cupons?error=Valor de desconto inválido", http.StatusSeeOther)
+		return
+	}
+
+	coupon := &database.Coupon{
+		ShopID:   shop.ID,
+		Code:     code,
+		Type:     couponType,
+		Value:    value,
+		IsActive: true,
+	}
+
+	if err := h.DB.CreateCoupon(r.Context(), coupon); err != nil {
+		log.Printf("Erro ao criar cupom: %v", err)
+		http.Redirect(w, r, "/admin/cupons?error=Este código de cupom já existe", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/admin/cupons?success=Cupom criado com sucesso!", http.StatusSeeOther)
+}
+
+// HandleDeleteCoupon remove um cupom (HTMX)
+func (h *Handlers) HandleDeleteCoupon(w http.ResponseWriter, r *http.Request) {
+	shop := middleware.GetShopFromContext(r)
+	if shop == nil {
+		http.Error(w, "Loja não configurada", http.StatusBadRequest)
+		return
+	}
+
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.DB.DeleteCoupon(r.Context(), id, shop.ID); err != nil {
+		log.Printf("Erro ao deletar cupom: %v", err)
+		http.Error(w, "Erro ao deletar cupom", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(""))
+}
+
