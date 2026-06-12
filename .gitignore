@@ -1,0 +1,27 @@
+# Binários
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/catalogo
+
+# Ambiente
+.env
+
+# Uploads de imagens
+public/uploads/*
+!public/uploads/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+vendor/

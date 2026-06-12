@@ -1,0 +1,82 @@
+{{define "content"}}
+<div class="space-y-8">
+    <!-- Page Header -->
+    <div>
+        <h1 class="text-2xl font-bold text-white">Dashboard</h1>
+        <p class="text-slate-400 mt-1">Visão geral da sua loja</p>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Products Count -->
+        <div class="glass-dark rounded-2xl p-6 hover:border-violet-500/30 transition-colors">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-3xl font-bold text-white">{{.ProductCount}}</p>
+                    <p class="text-sm text-slate-400">Produtos</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Categories Count -->
+        <div class="glass-dark rounded-2xl p-6 hover:border-indigo-500/30 transition-colors">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-3xl font-bold text-white">{{.CategoryCount}}</p>
+                    <p class="text-sm text-slate-400">Categorias</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Store Link -->
+        {{if .Shop}}
+        <div class="glass-dark rounded-2xl p-6 hover:border-emerald-500/30 transition-colors">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-white truncate">Link da loja</p>
+                    <a href="/{{.Shop.Slug}}" target="_blank" class="text-sm text-emerald-400 hover:text-emerald-300 transition-colors truncate block">/{{.Shop.Slug}}</a>
+                </div>
+            </div>
+        </div>
+        {{end}}
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <a href="/admin/produtos" class="glass-dark rounded-2xl p-6 flex items-center gap-4 hover:border-violet-500/30 transition-all duration-200 group">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            </div>
+            <div>
+                <p class="font-semibold text-white">Adicionar Produto</p>
+                <p class="text-sm text-slate-400">Cadastre novos itens ao catálogo</p>
+            </div>
+        </a>
+        
+        <a href="/admin/categorias" class="glass-dark rounded-2xl p-6 flex items-center gap-4 hover:border-indigo-500/30 transition-all duration-200 group">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+            </div>
+            <div>
+                <p class="font-semibold text-white">Gerenciar Categorias</p>
+                <p class="text-sm text-slate-400">Organize seus produtos</p>
+            </div>
+        </a>
+    </div>
+</div>
+{{end}}

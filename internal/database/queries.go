@@ -1,0 +1,392 @@
+package database
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
+	"time"
+)
+
+// ==================== USERS ====================
+
+// CreateUser cria um novo usuário no banco
+func (db *DB) CreateUser(ctx context.Context, name, email, passwordHash string) (*User, error) {
+	user := &User{}
+	err := db.Pool.QueryRow(ctx,
+		`INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3)
+		 RETURNING id, name, email, password_hash, created_at`,
+		name, email, passwordHash,
+	).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao criar usuário: %w", err)
+	}
+	return user, nil
+}
+
+// GetUserByEmail busca um usuário pelo email
+func (db *DB) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	user := &User{}
+	err := db.Pool.QueryRow(ctx,
+		`SELECT id, name, email, password_hash, created_at FROM users WHERE email = $1`,
+		email,
+	).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("usuário não encontrado: %w", err)
+	}
+	return user, nil
+}
+
+// GetUserByID busca um usuário pelo ID
+func (db *DB) GetUserByID(ctx context.Context, id int) (*User, error) {
+	user := &User{}
+	err := db.Pool.QueryRow(ctx,
+		`SELECT id, name, email, password_hash, created_at FROM users WHERE id = $1`,
+		id,
+	).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("usuário não encontrado: %w", err)
+	}
+	return user, nil
+}
+
+// ==================== SHOPS ====================
+
+// GetShopBySlug busca uma loja pelo slug (URL)
+func (db *DB) GetShopBySlug(ctx context.Context, slug string) (*Shop, error) {
+	shop := &Shop{}
+	err := db.Pool.QueryRow(ctx,
+		`SELECT id, user_id, name, slug, whatsapp_number, logo_url, primary_color, is_active, created_at
+		 FROM shops WHERE slug = $1 AND is_active = TRUE`,
+		slug,
+	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.WhatsappNumber,
+		&shop.LogoURL, &shop.PrimaryColor, &shop.IsActive, &shop.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("loja não encontrada: %w", err)
+	}
+	return shop, nil
+}
+
+// GetShopByUserID busca a loja de um usuário
+func (db *DB) GetShopByUserID(ctx context.Context, userID int) (*Shop, error) {
+	shop := &Shop{}
+	err := db.Pool.QueryRow(ctx,
+		`SELECT id, user_id, name, slug, whatsapp_number, logo_url, primary_color, is_active, created_at
+		 FROM shops WHERE user_id = $1`,
+		userID,
+	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.WhatsappNumber,
+		&shop.LogoURL, &shop.PrimaryColor, &shop.IsActive, &shop.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("loja não encontrada: %w", err)
+	}
+	return shop, nil
+}
+
+// UpdateShop atualiza os dados de uma loja
+func (db *DB) UpdateShop(ctx context.Context, shop *Shop) error {
+	_, err := db.Pool.Exec(ctx,
+		`UPDATE shops SET name = $1, slug = $2, whatsapp_number = $3, logo_url = $4, primary_color = $5
+		 WHERE id = $6`,
+		shop.Name, shop.Slug, shop.WhatsappNumber, shop.LogoURL, shop.PrimaryColor, shop.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("erro ao atualizar loja: %w", err)
+	}
+	return nil
+}
+
+// CreateShop cria uma nova loja
+func (db *DB) CreateShop(ctx context.Context, shop *Shop) error {
+	err := db.Pool.QueryRow(ctx,
+		`INSERT INTO shops (user_id, name, slug, whatsapp_number, logo_url, primary_color)
+		 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at`,
+		shop.UserID, shop.Name, shop.Slug, shop.WhatsappNumber, shop.LogoURL, shop.PrimaryColor,
+	).Scan(&shop.ID, &shop.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("erro ao criar loja: %w", err)
+	}
+	return nil
+}
+
+// ==================== CATEGORIES ====================
+
+// ListCategoriesByShop lista todas as categorias de uma loja ordenadas por posição
+func (db *DB) ListCategoriesByShop(ctx context.Context, shopID int) ([]Category, error) {
+	rows, err := db.Pool.Query(ctx,
+		`SELECT id, shop_id, name, position, created_at
+		 FROM categories WHERE shop_id = $1 ORDER BY position ASC, name ASC`,
+		shopID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao listar categorias: %w", err)
+	}
+	defer rows.Close()
+
+	var categories []Category
+	for rows.Next() {
+		var c Category
+		if err := rows.Scan(&c.ID, &c.ShopID, &c.Name, &c.Position, &c.CreatedAt); err != nil {
+			return nil, err
+		}
+		categories = append(categories, c)
+	}
+	return categories, nil
+}
+
+// CreateCategory cria uma nova categoria
+func (db *DB) CreateCategory(ctx context.Context, shopID int, name string, position int) (*Category, error) {
+	cat := &Category{}
+	err := db.Pool.QueryRow(ctx,
+		`INSERT INTO categories (shop_id, name, position) VALUES ($1, $2, $3)
+		 RETURNING id, shop_id, name, position, created_at`,
+		shopID, name, position,
+	).Scan(&cat.ID, &cat.ShopID, &cat.Name, &cat.Position, &cat.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao criar categoria: %w", err)
+	}
+	return cat, nil
+}
+
+// DeleteCategory deleta uma categoria
+func (db *DB) DeleteCategory(ctx context.Context, id, shopID int) error {
+	result, err := db.Pool.Exec(ctx,
+		`DELETE FROM categories WHERE id = $1 AND shop_id = $2`,
+		id, shopID,
+	)
+	if err != nil {
+		return fmt.Errorf("erro ao deletar categoria: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("categoria não encontrada")
+	}
+	return nil
+}
+
+// ==================== PRODUCTS ====================
+
+// ListProductsByShop lista todos os produtos de uma loja
+func (db *DB) ListProductsByShop(ctx context.Context, shopID int) ([]Product, error) {
+	rows, err := db.Pool.Query(ctx,
+		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name
+		 FROM products p
+		 LEFT JOIN categories c ON p.category_id = c.id
+		 WHERE p.shop_id = $1
+		 ORDER BY p.created_at DESC`,
+		shopID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao listar produtos: %w", err)
+	}
+	defer rows.Close()
+
+	var products []Product
+	for rows.Next() {
+		var p Product
+		if err := rows.Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
+			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName); err != nil {
+			return nil, err
+		}
+		products = append(products, p)
+	}
+	return products, nil
+}
+
+// ListProductsByCategory lista produtos filtrados por categoria (para HTMX)
+func (db *DB) ListProductsByCategory(ctx context.Context, shopID, categoryID int) ([]Product, error) {
+	rows, err := db.Pool.Query(ctx,
+		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name
+		 FROM products p
+		 LEFT JOIN categories c ON p.category_id = c.id
+		 WHERE p.shop_id = $1 AND p.category_id = $2 AND p.is_available = TRUE
+		 ORDER BY p.name ASC`,
+		shopID, categoryID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao listar produtos por categoria: %w", err)
+	}
+	defer rows.Close()
+
+	var products []Product
+	for rows.Next() {
+		var p Product
+		if err := rows.Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
+			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName); err != nil {
+			return nil, err
+		}
+		products = append(products, p)
+	}
+	return products, nil
+}
+
+// ListAvailableProductsByShop lista produtos disponíveis de uma loja (catálogo público)
+func (db *DB) ListAvailableProductsByShop(ctx context.Context, shopID int) ([]Product, error) {
+	rows, err := db.Pool.Query(ctx,
+		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name
+		 FROM products p
+		 LEFT JOIN categories c ON p.category_id = c.id
+		 WHERE p.shop_id = $1 AND p.is_available = TRUE
+		 ORDER BY c.position ASC, p.name ASC`,
+		shopID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao listar produtos disponíveis: %w", err)
+	}
+	defer rows.Close()
+
+	var products []Product
+	for rows.Next() {
+		var p Product
+		if err := rows.Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
+			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName); err != nil {
+			return nil, err
+		}
+		products = append(products, p)
+	}
+	return products, nil
+}
+
+// CreateProduct cria um novo produto
+func (db *DB) CreateProduct(ctx context.Context, p *Product) error {
+	err := db.Pool.QueryRow(ctx,
+		`INSERT INTO products (shop_id, category_id, name, description, price, image_url, is_available)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		 RETURNING id, created_at`,
+		p.ShopID, p.CategoryID, p.Name, p.Description, p.Price, p.ImageURL, p.IsAvailable,
+	).Scan(&p.ID, &p.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("erro ao criar produto: %w", err)
+	}
+	return nil
+}
+
+// UpdateProduct atualiza um produto existente
+func (db *DB) UpdateProduct(ctx context.Context, p *Product) error {
+	_, err := db.Pool.Exec(ctx,
+		`UPDATE products SET category_id = $1, name = $2, description = $3, price = $4,
+		 image_url = $5, is_available = $6 WHERE id = $7 AND shop_id = $8`,
+		p.CategoryID, p.Name, p.Description, p.Price, p.ImageURL, p.IsAvailable, p.ID, p.ShopID,
+	)
+	if err != nil {
+		return fmt.Errorf("erro ao atualizar produto: %w", err)
+	}
+	return nil
+}
+
+// DeleteProduct deleta um produto
+func (db *DB) DeleteProduct(ctx context.Context, id, shopID int) error {
+	result, err := db.Pool.Exec(ctx,
+		`DELETE FROM products WHERE id = $1 AND shop_id = $2`,
+		id, shopID,
+	)
+	if err != nil {
+		return fmt.Errorf("erro ao deletar produto: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("produto não encontrado")
+	}
+	return nil
+}
+
+// ToggleProductAvailability alterna a disponibilidade de um produto
+func (db *DB) ToggleProductAvailability(ctx context.Context, id, shopID int) (*Product, error) {
+	p := &Product{}
+	err := db.Pool.QueryRow(ctx,
+		`UPDATE products SET is_available = NOT is_available
+		 WHERE id = $1 AND shop_id = $2
+		 RETURNING id, shop_id, category_id, name, description, price, image_url, is_available, created_at`,
+		id, shopID,
+	).Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
+		&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao alternar disponibilidade: %w", err)
+	}
+	return p, nil
+}
+
+// GetProduct busca um produto pelo ID
+func (db *DB) GetProduct(ctx context.Context, id, shopID int) (*Product, error) {
+	p := &Product{}
+	err := db.Pool.QueryRow(ctx,
+		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name
+		 FROM products p
+		 LEFT JOIN categories c ON p.category_id = c.id
+		 WHERE p.id = $1 AND p.shop_id = $2`,
+		id, shopID,
+	).Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
+		&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName)
+	if err != nil {
+		return nil, fmt.Errorf("produto não encontrado: %w", err)
+	}
+	return p, nil
+}
+
+// CountProductsByShop conta o total de produtos de uma loja
+func (db *DB) CountProductsByShop(ctx context.Context, shopID int) (int, error) {
+	var count int
+	err := db.Pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM products WHERE shop_id = $1`, shopID,
+	).Scan(&count)
+	return count, err
+}
+
+// CountCategoriesByShop conta o total de categorias de uma loja
+func (db *DB) CountCategoriesByShop(ctx context.Context, shopID int) (int, error) {
+	var count int
+	err := db.Pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM categories WHERE shop_id = $1`, shopID,
+	).Scan(&count)
+	return count, err
+}
+
+// ==================== SESSIONS ====================
+
+// CreateSession cria uma nova sessão de autenticação
+func (db *DB) CreateSession(ctx context.Context, userID int) (*Session, error) {
+	// Gera um ID aleatório de 32 bytes (64 chars hex)
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return nil, fmt.Errorf("erro ao gerar ID de sessão: %w", err)
+	}
+	sessionID := hex.EncodeToString(bytes)
+
+	session := &Session{}
+	err := db.Pool.QueryRow(ctx,
+		`INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, $3)
+		 RETURNING id, user_id, created_at, expires_at`,
+		sessionID, userID, time.Now().Add(24*time.Hour*7), // Expira em 7 dias
+	).Scan(&session.ID, &session.UserID, &session.CreatedAt, &session.ExpiresAt)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao criar sessão: %w", err)
+	}
+	return session, nil
+}
+
+// GetSession busca uma sessão válida pelo ID
+func (db *DB) GetSession(ctx context.Context, sessionID string) (*Session, error) {
+	session := &Session{}
+	err := db.Pool.QueryRow(ctx,
+		`SELECT id, user_id, created_at, expires_at FROM sessions
+		 WHERE id = $1 AND expires_at > NOW()`,
+		sessionID,
+	).Scan(&session.ID, &session.UserID, &session.CreatedAt, &session.ExpiresAt)
+	if err != nil {
+		return nil, fmt.Errorf("sessão não encontrada ou expirada: %w", err)
+	}
+	return session, nil
+}
+
+// DeleteSession deleta uma sessão (logout)
+func (db *DB) DeleteSession(ctx context.Context, sessionID string) error {
+	_, err := db.Pool.Exec(ctx, `DELETE FROM sessions WHERE id = $1`, sessionID)
+	return err
+}
+
+// CleanExpiredSessions remove sessões expiradas
+func (db *DB) CleanExpiredSessions(ctx context.Context) error {
+	_, err := db.Pool.Exec(ctx, `DELETE FROM sessions WHERE expires_at < NOW()`)
+	return err
+}

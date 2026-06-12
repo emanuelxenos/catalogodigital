@@ -1,0 +1,172 @@
+package handlers
+
+import (
+	"fmt"
+	"html/template"
+	"net/http"
+	"path/filepath"
+	"strings"
+	"sync"
+
+	"catalogo/internal/database"
+)
+
+// TemplateEngine gerencia o carregamento e cache de templates
+type TemplateEngine struct {
+	templates map[string]*template.Template
+	mu        sync.RWMutex
+	baseDir   string
+	funcMap   template.FuncMap
+}
+
+// Handlers encapsula as dependências compartilhadas entre todos os handlers
+type Handlers struct {
+	DB       *database.DB
+	Tmpl     *TemplateEngine
+}
+
+// NewHandlers cria uma nova instância de Handlers
+func NewHandlers(db *database.DB) *Handlers {
+	tmpl := NewTemplateEngine("templates")
+	return &Handlers{
+		DB:   db,
+		Tmpl: tmpl,
+	}
+}
+
+// NewTemplateEngine cria uma nova instância do motor de templates
+func NewTemplateEngine(baseDir string) *TemplateEngine {
+	funcMap := template.FuncMap{
+		"formatPrice": func(price float64) string {
+			// Formato brasileiro: R$ 1.234,56
+			intPart := int(price)
+			decPart := int((price - float64(intPart)) * 100)
+			
+			// Formata com separador de milhares
+			str := fmt.Sprintf("%d", intPart)
+			if len(str) > 3 {
+				var result []string
+				for i := len(str); i > 0; i -= 3 {
+					start := i - 3
+					if start < 0 {
+						start = 0
+					}
+					result = append([]string{str[start:i]}, result...)
+				}
+				str = strings.Join(result, ".")
+			}
+			return fmt.Sprintf("R$ %s,%02d", str, decPart)
+		},
+		"formatPriceRaw": func(price float64) string {
+			return fmt.Sprintf("%.2f", price)
+		},
+		"safeHTML": func(s string) template.HTML {
+			return template.HTML(s)
+		},
+		"seq": func(n int) []int {
+			s := make([]int, n)
+			for i := range s {
+				s[i] = i
+			}
+			return s
+		},
+		"add": func(a, b int) int {
+			return a + b
+		},
+		"sub": func(a, b int) int {
+			return a - b
+		},
+		"derefInt": func(p *int) int {
+			if p == nil {
+				return 0
+			}
+			return *p
+		},
+		"isNil": func(p *int) bool {
+			return p == nil
+		},
+	}
+
+	return &TemplateEngine{
+		templates: make(map[string]*template.Template),
+		baseDir:   baseDir,
+		funcMap:   funcMap,
+	}
+}
+
+// Render renderiza um template com layout
+func (te *TemplateEngine) Render(w http.ResponseWriter, layout, name string, data interface{}) error {
+	te.mu.RLock()
+	tmpl, exists := te.templates[layout+":"+name]
+	te.mu.RUnlock()
+
+	if !exists {
+		var err error
+		tmpl, err = te.loadTemplate(layout, name)
+		if err != nil {
+			return fmt.Errorf("erro ao carregar template %s: %w", name, err)
+		}
+
+		te.mu.Lock()
+		te.templates[layout+":"+name] = tmpl
+		te.mu.Unlock()
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	return tmpl.ExecuteTemplate(w, "layout", data)
+}
+
+// RenderPartial renderiza um template parcial (sem layout, para HTMX)
+func (te *TemplateEngine) RenderPartial(w http.ResponseWriter, name string, data interface{}) error {
+	te.mu.RLock()
+	tmpl, exists := te.templates["partial:"+name]
+	te.mu.RUnlock()
+
+	if !exists {
+		path := filepath.Join(te.baseDir, name)
+		var err error
+		tmpl, err = template.New(filepath.Base(name)).Funcs(te.funcMap).ParseFiles(path)
+		if err != nil {
+			return fmt.Errorf("erro ao carregar partial %s: %w", name, err)
+		}
+
+		te.mu.Lock()
+		te.templates["partial:"+name] = tmpl
+		te.mu.Unlock()
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	return tmpl.Execute(w, data)
+}
+
+// RenderPage renderiza um template standalone (sem layout)
+func (te *TemplateEngine) RenderPage(w http.ResponseWriter, name string, data interface{}) error {
+	path := filepath.Join(te.baseDir, name)
+	tmpl, err := template.New(filepath.Base(name)).Funcs(te.funcMap).ParseFiles(path)
+	if err != nil {
+		return fmt.Errorf("erro ao carregar página %s: %w", name, err)
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	return tmpl.Execute(w, data)
+}
+
+// loadTemplate carrega um template com seu layout
+func (te *TemplateEngine) loadTemplate(layout, name string) (*template.Template, error) {
+	layoutPath := filepath.Join(te.baseDir, "layouts", layout+".html")
+	pagePath := filepath.Join(te.baseDir, name)
+
+	tmpl, err := template.New(filepath.Base(layoutPath)).Funcs(te.funcMap).ParseFiles(layoutPath, pagePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return tmpl, nil
+}
+
+// ReloadTemplates limpa o cache de templates (útil em desenvolvimento)
+func (te *TemplateEngine) ReloadTemplates() {
+	te.mu.Lock()
+	te.templates = make(map[string]*template.Template)
+	te.mu.Unlock()
+}

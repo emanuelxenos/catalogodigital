@@ -1,0 +1,321 @@
+{{define "content"}}
+<div class="min-h-screen bg-slate-50" x-data="carrinhoGlobal()">
+    <!-- Shop Header -->
+    <header class="sticky top-0 z-20 glass border-b border-slate-200/60">
+        <div class="max-w-4xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    {{if .Shop.LogoURL}}
+                    <img src="{{.Shop.LogoURL}}" alt="{{.Shop.Name}}" class="w-10 h-10 rounded-xl object-cover shadow-sm">
+                    {{else}}
+                    <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-sm">
+                        <span class="text-white font-bold text-lg">{{slice .Shop.Name 0 1}}</span>
+                    </div>
+                    {{end}}
+                    <div>
+                        <h1 class="text-lg font-bold text-slate-900">{{.Shop.Name}}</h1>
+                        <p class="text-xs text-slate-500">Catálogo Digital</p>
+                    </div>
+                </div>
+                
+                <!-- Search (optional future) -->
+                <div class="flex items-center gap-2">
+                    <a href="https://wa.me/{{.Shop.WhatsappNumber}}" target="_blank" class="w-10 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center text-white transition-colors shadow-sm">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Categories Carousel -->
+    {{if .Categories}}
+    <div class="sticky top-[73px] z-10 bg-white/80 backdrop-blur-lg border-b border-slate-200/40">
+        <div class="max-w-4xl mx-auto px-4 py-3">
+            <div class="category-scroll flex gap-2">
+                <button 
+                    hx-get="/{{.Shop.Slug}}/produtos?categoria=0"
+                    hx-target="#products-grid"
+                    hx-indicator="#loading-indicator"
+                    class="category-btn flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium bg-primary text-white shadow-sm transition-all duration-200"
+                    onclick="document.querySelectorAll('.category-btn').forEach(b => { b.classList.remove('bg-primary','text-white','shadow-sm'); b.classList.add('bg-slate-100','text-slate-600'); }); this.classList.remove('bg-slate-100','text-slate-600'); this.classList.add('bg-primary','text-white','shadow-sm');"
+                >
+                    Todos
+                </button>
+                {{range .Categories}}
+                <button 
+                    hx-get="/{{$.Shop.Slug}}/produtos?categoria={{.ID}}"
+                    hx-target="#products-grid"
+                    hx-indicator="#loading-indicator"
+                    class="category-btn flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all duration-200"
+                    onclick="document.querySelectorAll('.category-btn').forEach(b => { b.classList.remove('bg-primary','text-white','shadow-sm'); b.classList.add('bg-slate-100','text-slate-600'); }); this.classList.remove('bg-slate-100','text-slate-600'); this.classList.add('bg-primary','text-white','shadow-sm');"
+                >
+                    {{.Name}}
+                </button>
+                {{end}}
+            </div>
+        </div>
+    </div>
+    {{end}}
+    
+    <!-- Loading Indicator -->
+    <div id="loading-indicator" class="htmx-indicator flex justify-center py-8">
+        <div class="spinner border-violet-500 border-t-transparent"></div>
+    </div>
+    
+    <!-- Products Grid -->
+    <div class="max-w-4xl mx-auto px-4 py-6 pb-28">
+        <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 stagger-children">
+            {{range .Products}}
+            <div class="product-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden cursor-pointer"
+                 @click="$dispatch('show-product', { id: {{.ID}}, name: '{{.Name}}', description: '{{.Description}}', price: {{.Price}}, image: '{{.ImageURL}}', categoryName: '{{.CategoryName}}' })">
+                <!-- Product Image -->
+                <div class="aspect-square bg-slate-100 overflow-hidden relative">
+                    {{if .ImageURL}}
+                    <img src="{{.ImageURL}}" alt="{{.Name}}" class="product-image w-full h-full object-cover" loading="lazy">
+                    {{else}}
+                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+                        <svg class="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    {{end}}
+                    {{if not .IsAvailable}}
+                    <div class="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <span class="text-white text-xs font-medium px-3 py-1 bg-red-500 rounded-full">Indisponível</span>
+                    </div>
+                    {{end}}
+                </div>
+                
+                <!-- Product Info -->
+                <div class="p-3">
+                    <h3 class="text-sm font-semibold text-slate-900 line-clamp-2 leading-tight mb-1">{{.Name}}</h3>
+                    {{if .CategoryName}}
+                    <p class="text-xs text-slate-400 mb-2">{{.CategoryName}}</p>
+                    {{end}}
+                    <div class="flex items-center justify-between">
+                        <span class="text-base font-bold text-primary">{{formatPrice .Price}}</span>
+                        {{if .IsAvailable}}
+                        <button 
+                            @click.stop="addItem({id: {{.ID}}, name: '{{.Name}}', price: {{.Price}}, image: '{{.ImageURL}}'})"
+                            class="w-8 h-8 rounded-xl btn-primary flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 shadow-sm"
+                            id="add-product-{{.ID}}"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                        </button>
+                        {{end}}
+                    </div>
+                </div>
+            </div>
+            {{end}}
+            
+            {{if not .Products}}
+            <div class="col-span-full text-center py-16">
+                <svg class="w-16 h-16 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+                <h3 class="text-lg font-semibold text-slate-400 mb-1">Nenhum produto encontrado</h3>
+                <p class="text-sm text-slate-400">Esta loja ainda não cadastrou produtos.</p>
+            </div>
+            {{end}}
+        </div>
+    </div>
+    
+    <!-- Cart FAB (Floating Action Button) -->
+    <button 
+        @click="isOpen = true"
+        x-show="getTotalItems() > 0"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 scale-75"
+        x-transition:enter-end="opacity-100 scale-100"
+        class="fixed bottom-6 right-6 z-30 w-16 h-16 rounded-2xl btn-primary shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200"
+        :class="{ 'animate-cart-pulse': justAdded }"
+        id="cart-fab"
+    >
+        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"></path>
+        </svg>
+        <!-- Badge -->
+        <span class="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-sm" x-text="getTotalItems()"></span>
+    </button>
+    
+    <!-- Cart Drawer Overlay -->
+    <div 
+        x-show="isOpen"
+        x-transition:enter="transition-opacity ease-linear duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity ease-linear duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+        @click="isOpen = false"
+    ></div>
+    
+    <!-- Cart Drawer -->
+    <div 
+        x-show="isOpen"
+        x-transition:enter="transition ease-out duration-300 transform"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition ease-in duration-200 transform"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl flex flex-col"
+        id="cart-drawer"
+    >
+        <!-- Drawer Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"></path></svg>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Seu Pedido</h2>
+                    <p class="text-xs text-slate-500" x-text="getTotalItems() + ' item(ns)'"></p>
+                </div>
+            </div>
+            <button @click="isOpen = false" class="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <!-- Cart Items -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar px-6 py-4">
+            <template x-if="items.length === 0">
+                <div class="text-center py-12">
+                    <svg class="w-16 h-16 text-slate-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"></path>
+                    </svg>
+                    <p class="text-slate-400 font-medium">Seu carrinho está vazio</p>
+                    <p class="text-sm text-slate-400 mt-1">Adicione produtos para montar seu pedido</p>
+                </div>
+            </template>
+            
+            <template x-for="item in items" :key="item.id">
+                <div class="flex gap-3 py-3 border-b border-slate-100 last:border-0">
+                    <!-- Item Image -->
+                    <div class="w-16 h-16 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0">
+                        <template x-if="item.image">
+                            <img :src="item.image" :alt="item.name" class="w-full h-full object-cover">
+                        </template>
+                        <template x-if="!item.image">
+                            <div class="w-full h-full flex items-center justify-center">
+                                <svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <!-- Item Details -->
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-sm font-semibold text-slate-900 truncate" x-text="item.name"></h4>
+                        <p class="text-sm font-bold text-primary mt-0.5" x-text="formatCurrency(item.price * item.qty)"></p>
+                        
+                        <!-- Quantity Controls -->
+                        <div class="flex items-center gap-2 mt-2">
+                            <button @click="updateQty(item.id, -1)" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 12H4"></path></svg>
+                            </button>
+                            <span class="text-sm font-semibold text-slate-700 w-6 text-center" x-text="item.qty"></span>
+                            <button @click="updateQty(item.id, 1)" class="w-7 h-7 rounded-lg bg-primary/10 hover:bg-primary/20 flex items-center justify-center text-primary transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Remove -->
+                    <button @click="removeItem(item.id)" class="self-start w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-slate-300 hover:text-red-500 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>
+            </template>
+        </div>
+        
+        <!-- Checkout Form -->
+        <div x-show="items.length > 0" class="border-t border-slate-100 px-6 py-4 space-y-4 bg-slate-50/50">
+            <!-- Total -->
+            <div class="flex items-center justify-between py-2">
+                <span class="text-base font-semibold text-slate-700">Total</span>
+                <span class="text-xl font-bold text-primary" x-text="formatCurrency(getTotal())"></span>
+            </div>
+            
+            <!-- Customer Info -->
+            <div class="space-y-3">
+                <input 
+                    type="text" 
+                    x-model="customerName" 
+                    placeholder="Seu nome"
+                    class="form-input w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-primary focus:ring-2 ring-primary/10 transition-all"
+                    id="customer-name"
+                >
+                
+                <!-- Delivery Method -->
+                <div class="flex gap-2">
+                    <button 
+                        @click="deliveryMethod = 'entrega'"
+                        :class="deliveryMethod === 'entrega' ? 'btn-primary shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'"
+                        class="flex-1 py-3 rounded-xl text-sm font-medium transition-all duration-200"
+                    >
+                        🛵 Entrega
+                    </button>
+                    <button 
+                        @click="deliveryMethod = 'retirada'"
+                        :class="deliveryMethod === 'retirada' ? 'btn-primary shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'"
+                        class="flex-1 py-3 rounded-xl text-sm font-medium transition-all duration-200"
+                    >
+                        🏪 Retirada
+                    </button>
+                </div>
+                
+                <!-- Address (if delivery) -->
+                <div x-show="deliveryMethod === 'entrega'" x-transition>
+                    <textarea 
+                        x-model="address" 
+                        placeholder="Endereço completo (Rua, número, bairro, referência)"
+                        rows="2"
+                        class="form-input w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-primary focus:ring-2 ring-primary/10 transition-all resize-none"
+                        id="customer-address"
+                    ></textarea>
+                </div>
+                
+                <!-- Payment Method -->
+                <select 
+                    x-model="paymentMethod"
+                    class="form-input w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-primary focus:ring-2 ring-primary/10 transition-all appearance-none"
+                    id="payment-method"
+                >
+                    <option value="">Forma de pagamento</option>
+                    <option value="pix">💳 Pix</option>
+                    <option value="cartao">💳 Cartão</option>
+                    <option value="dinheiro">💵 Dinheiro</option>
+                </select>
+            </div>
+            
+            <!-- WhatsApp Button -->
+            <button 
+                @click="sendToWhatsApp('{{.Shop.WhatsappNumber}}')"
+                :disabled="!customerName || !paymentMethod"
+                :class="(!customerName || !paymentMethod) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'"
+                class="whatsapp-btn w-full py-4 rounded-2xl text-white font-semibold flex items-center justify-center gap-3 text-base"
+                id="send-whatsapp"
+            >
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                Enviar Pedido via WhatsApp
+            </button>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div 
+        x-show="toastMessage"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-y-4"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 translate-y-0"
+        x-transition:leave-end="opacity-0 translate-y-4"
+        class="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 px-6 py-3 rounded-2xl bg-slate-900 text-white text-sm font-medium shadow-xl"
+        x-text="toastMessage"
+    ></div>
+</div>
+{{end}}
