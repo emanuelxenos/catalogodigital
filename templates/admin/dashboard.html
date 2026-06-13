@@ -92,7 +92,138 @@
                 </div>
             </div>
         </div>
-        {{end}}
+    </div>
+
+    <!-- Desempenho de Vendas (Gráficos Analíticos) -->
+    <div x-data="chartData({{.DailySalesJSON}})" class="space-y-6">
+        <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-white">Desempenho de Vendas</h2>
+            <span class="text-xs text-slate-400 font-medium">Últimos 7 dias</span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Gráfico 1: Faturamento Diário -->
+            <div class="glass-dark rounded-3xl p-6 hover:border-violet-500/20 transition-all flex flex-col space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-white">Faturamento Diário</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Vendas concluídas ou ativas</p>
+                    </div>
+                    <span class="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-full" x-text="formatCurrency(totalRevenue)"></span>
+                </div>
+                
+                <!-- SVG Line Chart Area -->
+                <div class="relative h-64 w-full flex items-center justify-center">
+                    <svg class="w-full h-full" viewBox="0 0 500 220" preserveAspectRatio="none">
+                        <!-- Grid Lines -->
+                        <line x1="40" y1="20" x2="480" y2="20" stroke="#1e293b" stroke-dasharray="4" />
+                        <line x1="40" y1="70" x2="480" y2="70" stroke="#1e293b" stroke-dasharray="4" />
+                        <line x1="40" y1="120" x2="480" y2="120" stroke="#1e293b" stroke-dasharray="4" />
+                        <line x1="40" y1="170" x2="480" y2="170" stroke="#334155" stroke-width="1.5" />
+                        
+                        <!-- Y-Axis -->
+                        <line x1="40" y1="20" x2="40" y2="170" stroke="#334155" stroke-width="1.5" />
+                        
+                        <!-- Gradient definitions -->
+                        <defs>
+                            <linearGradient id="rev-grad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.4" />
+                                <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0" />
+                            </linearGradient>
+                        </defs>
+                        
+                        <!-- Filled Area -->
+                        <path :d="revenueAreaPath" fill="url(#rev-grad)" />
+                        
+                        <!-- Trend Line -->
+                        <path :d="revenueLinePath" fill="none" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                        
+                        <!-- Interaction Points -->
+                        <template x-for="(pt, idx) in points" :key="idx">
+                            <g class="cursor-pointer">
+                                <circle :cx="pt.x" :cy="pt.y" r="8" fill="#8B5CF6" fill-opacity="0" class="hover:fill-opacity-25 transition-all duration-200" @mouseenter="hoveredIndex = idx; hoveredType = 'revenue'" @mouseleave="hoveredIndex = null" />
+                                <circle :cx="pt.x" :cy="pt.y" r="3.5" fill="#ffffff" stroke="#8B5CF6" stroke-width="2.5" />
+                            </g>
+                        </template>
+                    </svg>
+                    
+                    <!-- Tooltip -->
+                    <template x-if="hoveredIndex !== null && hoveredType === 'revenue'">
+                        <div class="absolute bg-slate-950/95 border border-slate-800 text-white text-[11px] font-semibold px-3 py-2 rounded-xl shadow-2xl pointer-events-none z-20 flex flex-col items-center"
+                             :style="`left: ${points[hoveredIndex].x / 500 * 100}%; top: ${(points[hoveredIndex].y - 40) / 220 * 100}%; transform: translateX(-50%);`">
+                            <span class="text-[9px] text-slate-400 font-bold" x-text="salesData[hoveredIndex].day_name"></span>
+                            <span class="text-white font-extrabold" x-text="formatCurrency(salesData[hoveredIndex].total_sales)"></span>
+                        </div>
+                    </template>
+                </div>
+                
+                <!-- X-Axis Labels -->
+                <div class="flex justify-between pl-8 pr-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    <template x-for="item in salesData" :key="item.day_name">
+                        <span class="w-12 text-center" x-text="item.day_name"></span>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Gráfico 2: Pedidos Recebidos -->
+            <div class="glass-dark rounded-3xl p-6 hover:border-indigo-500/20 transition-all flex flex-col space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-white">Pedidos Recebidos</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Volume diário de pedidos</p>
+                    </div>
+                    <span class="text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/25 px-2.5 py-1 rounded-full" x-text="totalOrders + ' pedido(s)'"></span>
+                </div>
+                
+                <!-- SVG Bar Chart Area -->
+                <div class="relative h-64 w-full flex items-center justify-center">
+                    <svg class="w-full h-full" viewBox="0 0 500 220" preserveAspectRatio="none">
+                        <!-- Grid Lines -->
+                        <line x1="40" y1="20" x2="480" y2="20" stroke="#1e293b" stroke-dasharray="4" />
+                        <line x1="40" y1="70" x2="480" y2="70" stroke="#1e293b" stroke-dasharray="4" />
+                        <line x1="40" y1="120" x2="480" y2="120" stroke="#1e293b" stroke-dasharray="4" />
+                        <line x1="40" y1="170" x2="480" y2="170" stroke="#334155" stroke-width="1.5" />
+                        
+                        <!-- Y-Axis -->
+                        <line x1="40" y1="20" x2="40" y2="170" stroke="#334155" stroke-width="1.5" />
+                        
+                        <!-- Bar Gradients -->
+                        <defs>
+                            <linearGradient id="bar-gradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#818CF8" />
+                                <stop offset="100%" stop-color="#4F46E5" />
+                            </linearGradient>
+                        </defs>
+                        
+                        <!-- Draw Bars -->
+                        <template x-for="(bar, idx) in bars" :key="idx">
+                            <g class="cursor-pointer" @mouseenter="hoveredIndex = idx; hoveredType = 'orders'" @mouseleave="hoveredIndex = null">
+                                <!-- Visible Bar -->
+                                <rect :x="bar.x" :y="bar.y" :width="bar.w" :height="bar.h" rx="5" fill="url(#bar-gradient)" class="hover:opacity-85 transition-opacity duration-200" />
+                                <!-- Invisible taller bar for hover helper -->
+                                <rect :x="bar.x - 6" y="20" :width="bar.w + 12" height="150" fill="transparent" />
+                            </g>
+                        </template>
+                    </svg>
+                    
+                    <!-- Tooltip -->
+                    <template x-if="hoveredIndex !== null && hoveredType === 'orders'">
+                        <div class="absolute bg-slate-950/95 border border-slate-800 text-white text-[11px] font-semibold px-3 py-2 rounded-xl shadow-2xl pointer-events-none z-20 flex flex-col items-center"
+                             :style="`left: ${(bars[hoveredIndex].x + bars[hoveredIndex].w/2) / 500 * 100}%; top: ${(bars[hoveredIndex].y - 40) / 220 * 100}%; transform: translateX(-50%);`">
+                            <span class="text-[9px] text-slate-400 font-bold" x-text="salesData[hoveredIndex].day_name"></span>
+                            <span class="text-white font-extrabold" x-text="salesData[hoveredIndex].order_count + ' pedido(s)'"></span>
+                        </div>
+                    </template>
+                </div>
+                
+                <!-- X-Axis Labels -->
+                <div class="flex justify-between pl-8 pr-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    <template x-for="item in salesData" :key="item.day_name">
+                        <span class="w-12 text-center" x-text="item.day_name"></span>
+                    </template>
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- Quick Actions -->
@@ -118,4 +249,93 @@
         </a>
     </div>
 </div>
+
+<script>
+function chartData(salesData) {
+    salesData = salesData || [];
+    
+    // Se não houver dados válidos, inicializa array de 7 dias com zeros
+    if (salesData.length === 0) {
+        salesData = Array.from({length: 7}, (_, i) => {
+            let d = new Date();
+            d.setDate(d.getDate() - (6 - i));
+            return {
+                day_name: d.toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'}),
+                total_sales: 0,
+                order_count: 0
+            };
+        });
+    }
+
+    const totalRevenue = salesData.reduce((sum, item) => sum + item.total_sales, 0);
+    const totalOrders = salesData.reduce((sum, item) => sum + item.order_count, 0);
+
+    // Configurações e paddings do SVG Viewbox
+    const width = 500;
+    const height = 220;
+    const paddingLeft = 40;
+    const paddingRight = 20;
+    const paddingTop = 20;
+    const paddingBottom = 50;
+
+    const chartWidth = width - paddingLeft - paddingRight;
+    const chartHeight = height - paddingTop - paddingBottom; // 150px
+    const zeroY = height - paddingBottom; // 170px
+
+    // Encontra valores máximos para escalar
+    const maxSales = Math.max(...salesData.map(item => item.total_sales), 100); 
+    const maxOrders = Math.max(...salesData.map(item => item.order_count), 5); 
+
+    // Calcula coordenadas dos pontos (Faturamento)
+    const points = salesData.map((item, idx) => {
+        const x = paddingLeft + (idx * (chartWidth / (salesData.length - 1)));
+        const y = zeroY - ((item.total_sales / maxSales) * chartHeight);
+        return { x, y };
+    });
+
+    // Path da linha
+    let revenueLinePath = '';
+    if (points.length > 0) {
+        revenueLinePath = `M ${points[0].x} ${points[0].y}`;
+        for (let i = 1; i < points.length; i++) {
+            revenueLinePath += ` L ${points[i].x} ${points[i].y}`;
+        }
+    }
+
+    // Path da máscara da área (fecha no zeroY)
+    let revenueAreaPath = '';
+    if (points.length > 0) {
+        revenueAreaPath = `${revenueLinePath} L ${points[points.length - 1].x} ${zeroY} L ${points[0].x} ${zeroY} Z`;
+    }
+
+    // Calcula coordenadas das barras (Pedidos)
+    const bars = salesData.map((item, idx) => {
+        const barWidth = 22;
+        const spacing = chartWidth / salesData.length;
+        const x = paddingLeft + (idx * spacing) + (spacing - barWidth) / 2;
+        const h = (item.order_count / maxOrders) * chartHeight;
+        const y = zeroY - h;
+        return { x, y, w: barWidth, h: Math.max(h, 3) }; // garante ao menos 3px de altura para cliques e hover
+    });
+
+    return {
+        salesData,
+        totalRevenue,
+        totalOrders,
+        points,
+        revenueLinePath,
+        revenueAreaPath,
+        bars,
+        hoveredIndex: null,
+        hoveredType: null,
+
+        formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(value);
+        }
+    };
+}
+</script>
 {{end}}

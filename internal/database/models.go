@@ -102,3 +102,12 @@ type OrderItem struct {
 	Options   *string `json:"options"` // JSON string
 }
 
+// DailySales representa dados consolidados diários para gráficos
+type DailySales struct {
+	Date       time.Time `json:"date"`
+	DayName    string    `json:"day_name"`
+	TotalSales float64   `json:"total_sales"`
+	OrderCount int       `json:"order_count"`
+}
+
+

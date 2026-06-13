@@ -622,3 +622,40 @@ func (db *DB) GetOrderMetrics(ctx context.Context, shopID int) (map[string]float
 	return metrics, nil
 }
 
+// GetDailySalesLast7Days busca o faturamento e número de pedidos diários dos últimos 7 dias
+func (db *DB) GetDailySalesLast7Days(ctx context.Context, shopID int) ([]DailySales, error) {
+	query := `
+		SELECT 
+			d.date::date as sales_date,
+			to_char(d.date, 'DD/MM') as day_name,
+			COALESCE(SUM(o.total), 0) as total_sales,
+			COUNT(o.id)::int as order_count
+		FROM (
+			SELECT generate_series(
+				CURRENT_DATE - INTERVAL '6 days',
+				CURRENT_DATE,
+				'1 day'::interval
+			)::date as date
+		) d
+		LEFT JOIN orders o ON o.shop_id = $1 AND o.created_at::date = d.date AND o.status != 'Cancelado'
+		GROUP BY d.date
+		ORDER BY d.date ASC
+	`
+	rows, err := db.Pool.Query(ctx, query, shopID)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar vendas diarias: %w", err)
+	}
+	defer rows.Close()
+
+	var sales []DailySales
+	for rows.Next() {
+		var s DailySales
+		if err := rows.Scan(&s.Date, &s.DayName, &s.TotalSales, &s.OrderCount); err != nil {
+			return nil, err
+		}
+		sales = append(sales, s)
+	}
+	return sales, nil
+}
+
+

@@ -197,12 +197,27 @@ func (h *Handlers) HandleDashboard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Busca faturamento e volume diário dos últimos 7 dias
+	dailySales, err := h.DB.GetDailySalesLast7Days(r.Context(), shop.ID)
+	if err != nil {
+		log.Printf("Erro ao obter faturamento diário: %v", err)
+		dailySales = []database.DailySales{}
+	}
+
+	// Serializa para passar como JSON estruturado para o Alpine.js no template
+	dailySalesJSONBytes, err := json.Marshal(dailySales)
+	dailySalesJSON := "[]"
+	if err == nil {
+		dailySalesJSON = string(dailySalesJSONBytes)
+	}
+
 	data := map[string]interface{}{
-		"User":          user,
-		"Shop":          shop,
-		"ProductCount":  productCount,
-		"CategoryCount": categoryCount,
-		"Metrics":       metrics,
+		"User":           user,
+		"Shop":           shop,
+		"ProductCount":   productCount,
+		"CategoryCount":  categoryCount,
+		"Metrics":        metrics,
+		"DailySalesJSON": dailySalesJSON,
 	}
 
 	if err := h.Tmpl.Render(w, "admin", "admin/dashboard.html", data); err != nil {
