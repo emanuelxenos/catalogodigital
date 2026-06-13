@@ -51,6 +51,7 @@ type Product struct {
 	CreatedAt    time.Time `json:"created_at"`
 	CategoryName string    `json:"category_name,omitempty"` // JOIN auxiliar
 	Options      *string   `json:"options"`                 // JSON string
+	Images       *string   `json:"images"`                  // JSON string contendo array de URLs
 }
 
 // Session representa uma sessão de autenticação

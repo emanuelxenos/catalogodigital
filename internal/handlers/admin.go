@@ -299,14 +299,36 @@ func (h *Handlers) HandleCreateProduct(w http.ResponseWriter, r *http.Request) {
 		optPtr = &optionsStr
 	}
 
-	// Upload de imagem
+	// Upload de múltiplas imagens
+	var imagesList []string
 	imageURL := ""
-	file, header, err := r.FormFile("image")
-	if err == nil {
-		defer file.Close()
-		imageURL, err = saveUploadedFile(file, header.Filename)
-		if err != nil {
-			log.Printf("Erro ao salvar imagem: %v", err)
+
+	if r.MultipartForm != nil && r.MultipartForm.File != nil {
+		files := r.MultipartForm.File["images"]
+		for _, fileHeader := range files {
+			f, err := fileHeader.Open()
+			if err != nil {
+				log.Printf("Erro ao abrir arquivo enviado: %v", err)
+				continue
+			}
+			uploadedURL, err := saveUploadedFile(f, fileHeader.Filename)
+			f.Close()
+			if err != nil {
+				log.Printf("Erro ao salvar imagem: %v", err)
+				continue
+			}
+			imagesList = append(imagesList, uploadedURL)
+		}
+	}
+
+	// Se houver imagens carregadas
+	var imgPtr *string
+	if len(imagesList) > 0 {
+		imageURL = imagesList[0] // A primeira imagem é a de capa/principal
+		imgBytes, err := json.Marshal(imagesList)
+		if err == nil {
+			imgStr := string(imgBytes)
+			imgPtr = &imgStr
 		}
 	}
 
@@ -319,6 +341,7 @@ func (h *Handlers) HandleCreateProduct(w http.ResponseWriter, r *http.Request) {
 		ImageURL:    imageURL,
 		IsAvailable: true,
 		Options:     optPtr,
+		Images:      imgPtr,
 	}
 
 	if err := h.DB.CreateProduct(r.Context(), product); err != nil {

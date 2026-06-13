@@ -177,7 +177,7 @@ func (db *DB) DeleteCategory(ctx context.Context, id, shopID int) error {
 func (db *DB) ListProductsByShop(ctx context.Context, shopID int) ([]Product, error) {
 	rows, err := db.Pool.Query(ctx,
 		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
-		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options, p.images
 		 FROM products p
 		 LEFT JOIN categories c ON p.category_id = c.id
 		 WHERE p.shop_id = $1
@@ -193,7 +193,7 @@ func (db *DB) ListProductsByShop(ctx context.Context, shopID int) ([]Product, er
 	for rows.Next() {
 		var p Product
 		if err := rows.Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
-			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options); err != nil {
+			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options, &p.Images); err != nil {
 			return nil, err
 		}
 		products = append(products, p)
@@ -205,7 +205,7 @@ func (db *DB) ListProductsByShop(ctx context.Context, shopID int) ([]Product, er
 func (db *DB) ListProductsByCategory(ctx context.Context, shopID, categoryID int) ([]Product, error) {
 	rows, err := db.Pool.Query(ctx,
 		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
-		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options, p.images
 		 FROM products p
 		 LEFT JOIN categories c ON p.category_id = c.id
 		 WHERE p.shop_id = $1 AND p.category_id = $2 AND p.is_available = TRUE
@@ -221,7 +221,7 @@ func (db *DB) ListProductsByCategory(ctx context.Context, shopID, categoryID int
 	for rows.Next() {
 		var p Product
 		if err := rows.Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
-			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options); err != nil {
+			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options, &p.Images); err != nil {
 			return nil, err
 		}
 		products = append(products, p)
@@ -233,7 +233,7 @@ func (db *DB) ListProductsByCategory(ctx context.Context, shopID, categoryID int
 func (db *DB) ListAvailableProductsByShop(ctx context.Context, shopID int) ([]Product, error) {
 	rows, err := db.Pool.Query(ctx,
 		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
-		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options, p.images
 		 FROM products p
 		 LEFT JOIN categories c ON p.category_id = c.id
 		 WHERE p.shop_id = $1 AND p.is_available = TRUE
@@ -249,7 +249,7 @@ func (db *DB) ListAvailableProductsByShop(ctx context.Context, shopID int) ([]Pr
 	for rows.Next() {
 		var p Product
 		if err := rows.Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
-			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options); err != nil {
+			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options, &p.Images); err != nil {
 			return nil, err
 		}
 		products = append(products, p)
@@ -260,10 +260,10 @@ func (db *DB) ListAvailableProductsByShop(ctx context.Context, shopID int) ([]Pr
 // CreateProduct cria um novo produto
 func (db *DB) CreateProduct(ctx context.Context, p *Product) error {
 	err := db.Pool.QueryRow(ctx,
-		`INSERT INTO products (shop_id, category_id, name, description, price, image_url, is_available, options)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		`INSERT INTO products (shop_id, category_id, name, description, price, image_url, is_available, options, images)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		 RETURNING id, created_at`,
-		p.ShopID, p.CategoryID, p.Name, p.Description, p.Price, p.ImageURL, p.IsAvailable, p.Options,
+		p.ShopID, p.CategoryID, p.Name, p.Description, p.Price, p.ImageURL, p.IsAvailable, p.Options, p.Images,
 	).Scan(&p.ID, &p.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("erro ao criar produto: %w", err)
@@ -275,8 +275,8 @@ func (db *DB) CreateProduct(ctx context.Context, p *Product) error {
 func (db *DB) UpdateProduct(ctx context.Context, p *Product) error {
 	_, err := db.Pool.Exec(ctx,
 		`UPDATE products SET category_id = $1, name = $2, description = $3, price = $4,
-		 image_url = $5, is_available = $6, options = $7 WHERE id = $8 AND shop_id = $9`,
-		p.CategoryID, p.Name, p.Description, p.Price, p.ImageURL, p.IsAvailable, p.Options, p.ID, p.ShopID,
+		 image_url = $5, is_available = $6, options = $7, images = $8 WHERE id = $9 AND shop_id = $10`,
+		p.CategoryID, p.Name, p.Description, p.Price, p.ImageURL, p.IsAvailable, p.Options, p.Images, p.ID, p.ShopID,
 	)
 	if err != nil {
 		return fmt.Errorf("erro ao atualizar produto: %w", err)
@@ -305,10 +305,10 @@ func (db *DB) ToggleProductAvailability(ctx context.Context, id, shopID int) (*P
 	err := db.Pool.QueryRow(ctx,
 		`UPDATE products SET is_available = NOT is_available
 		 WHERE id = $1 AND shop_id = $2
-		 RETURNING id, shop_id, category_id, name, description, price, image_url, is_available, created_at, options`,
+		 RETURNING id, shop_id, category_id, name, description, price, image_url, is_available, created_at, options, images`,
 		id, shopID,
 	).Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
-		&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.Options)
+		&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.Options, &p.Images)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao alternar disponibilidade: %w", err)
 	}
@@ -320,13 +320,13 @@ func (db *DB) GetProduct(ctx context.Context, id, shopID int) (*Product, error) 
 	p := &Product{}
 	err := db.Pool.QueryRow(ctx,
 		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
-		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options, p.images
 		 FROM products p
 		 LEFT JOIN categories c ON p.category_id = c.id
 		 WHERE p.id = $1 AND p.shop_id = $2`,
 		id, shopID,
 	).Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
-		&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options)
+		&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options, &p.Images)
 	if err != nil {
 		return nil, fmt.Errorf("produto não encontrado: %w", err)
 	}

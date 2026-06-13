@@ -18,6 +18,7 @@ function carrinhoGlobal(deliveryFee = 0) {
         selectedProduct: null,
         modalQty: 1,
         modalNote: '',
+        activeImageIdx: 0,
 
         // Sistema de opcionais selecionados
         selectedChoices: {}, // mapeia { "NomeOpcao": {name: "M", price_adjust: 5.0} } ou array se multi-escolha
@@ -320,7 +321,7 @@ function carrinhoGlobal(deliveryFee = 0) {
         },
 
         // Modal de produto e opcionais
-        openProductModal(product, optionsAttr) {
+        openProductModal(product, optionsAttr, imagesAttr) {
             let parsedOptions = [];
             if (optionsAttr) {
                 try {
@@ -329,11 +330,35 @@ function carrinhoGlobal(deliveryFee = 0) {
                     console.error("Erro ao processar opcionais do produto:", e);
                 }
             }
-            this.selectedProduct = { ...product, options: parsedOptions };
+            let parsedImages = [];
+            if (imagesAttr) {
+                try {
+                    parsedImages = JSON.parse(imagesAttr);
+                } catch(e) {
+                    console.error("Erro ao processar imagens do produto:", e);
+                }
+            }
+            if (parsedImages.length === 0 && product.image) {
+                parsedImages = [product.image];
+            }
+            this.selectedProduct = { ...product, options: parsedOptions, images: parsedImages };
+            this.activeImageIdx = 0;
             this.modalQty = 1;
             this.modalNote = '';
             this.selectedChoices = {};
             this.productModalOpen = true;
+        },
+
+        nextImage() {
+            if (this.selectedProduct && this.selectedProduct.images) {
+                this.activeImageIdx = (this.activeImageIdx + 1) % this.selectedProduct.images.length;
+            }
+        },
+
+        prevImage() {
+            if (this.selectedProduct && this.selectedProduct.images) {
+                this.activeImageIdx = (this.activeImageIdx - 1 + this.selectedProduct.images.length) % this.selectedProduct.images.length;
+            }
         },
 
         closeProductModal() {

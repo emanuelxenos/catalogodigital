@@ -6,7 +6,8 @@
     x-transition:enter-start="opacity-0 scale-95"
     x-transition:enter-end="opacity-100 scale-100"
     data-options="{{if .Options}}{{.Options}}{{else}}[]{{end}}"
-    @click="openProductModal({ id: {{.ID}}, name: '{{.Name}}', description: '{{.Description}}', price: {{.Price}}, image: '{{.ImageURL}}', categoryName: '{{.CategoryName}}', isAvailable: {{.IsAvailable}} }, $el.getAttribute('data-options'))"
+    data-images="{{if .Images}}{{.Images}}{{else}}[]{{end}}"
+    @click="openProductModal({ id: {{.ID}}, name: '{{.Name}}', description: '{{.Description}}', price: {{.Price}}, image: '{{.ImageURL}}', categoryName: '{{.CategoryName}}', isAvailable: {{.IsAvailable}} }, $el.getAttribute('data-options'), $el.getAttribute('data-images'))"
 >
     <!-- Product image container -->
     <div class="aspect-square bg-slate-50 overflow-hidden relative flex-shrink-0">

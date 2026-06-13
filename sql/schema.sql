@@ -123,3 +123,7 @@ CREATE INDEX IF NOT EXISTS idx_coupons_shop_id ON coupons(shop_id);
 CREATE INDEX IF NOT EXISTS idx_orders_shop_id ON orders(shop_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 
+-- Suporte a múltiplas fotos de produtos
+ALTER TABLE products ADD COLUMN IF NOT EXISTS images JSONB DEFAULT NULL;
+
+
