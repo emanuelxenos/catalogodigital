@@ -139,20 +139,10 @@ func NewTemplateEngine(baseDir string) *TemplateEngine {
 
 // Render renderiza um template com layout
 func (te *TemplateEngine) Render(w http.ResponseWriter, layout, name string, data interface{}) error {
-	te.mu.RLock()
-	tmpl, exists := te.templates[layout+":"+name]
-	te.mu.RUnlock()
-
-	if !exists {
-		var err error
-		tmpl, err = te.loadTemplate(layout, name)
-		if err != nil {
-			return fmt.Errorf("erro ao carregar template %s: %w", name, err)
-		}
-
-		te.mu.Lock()
-		te.templates[layout+":"+name] = tmpl
-		te.mu.Unlock()
+	// Em desenvolvimento, sempre recarrega do disco para evitar cache
+	tmpl, err := te.loadTemplate(layout, name)
+	if err != nil {
+		return fmt.Errorf("erro ao carregar template %s: %w", name, err)
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -161,21 +151,11 @@ func (te *TemplateEngine) Render(w http.ResponseWriter, layout, name string, dat
 
 // RenderPartial renderiza um template parcial (sem layout, para HTMX)
 func (te *TemplateEngine) RenderPartial(w http.ResponseWriter, name string, data interface{}) error {
-	te.mu.RLock()
-	tmpl, exists := te.templates["partial:"+name]
-	te.mu.RUnlock()
-
-	if !exists {
-		path := filepath.Join(te.baseDir, name)
-		var err error
-		tmpl, err = template.New(filepath.Base(name)).Funcs(te.funcMap).ParseFiles(path)
-		if err != nil {
-			return fmt.Errorf("erro ao carregar partial %s: %w", name, err)
-		}
-
-		te.mu.Lock()
-		te.templates["partial:"+name] = tmpl
-		te.mu.Unlock()
+	// Em desenvolvimento, sempre recarrega do disco para evitar cache
+	path := filepath.Join(te.baseDir, name)
+	tmpl, err := template.New(filepath.Base(name)).Funcs(te.funcMap).ParseFiles(path)
+	if err != nil {
+		return fmt.Errorf("erro ao carregar partial %s: %w", name, err)
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

@@ -82,21 +82,14 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <button 
-                                @click="let opts = []; 
-                                try { 
-                                    opts = JSON.parse($el.getAttribute('data-options') || '[]'); 
-                                } catch(e) { 
-                                    console.error(e); 
-                                }
-                                editProduct = {
+                                @click="editProduct = {
                                     id: {{.ID}},
                                     name: $el.getAttribute('data-name'),
                                     description: $el.getAttribute('data-desc'),
                                     price: '{{.Price}}',
                                     category_id: {{if .CategoryID}}{{.CategoryID}}{{else}}0{{end}},
-                                    options: $el.getAttribute('data-options'),
-                                    images: JSON.parse($el.getAttribute('data-images') || '[]'),
-                                    optionsList: opts
+                                    images: parseJSON($el.getAttribute('data-images'), []),
+                                    optionsList: parseJSON($el.getAttribute('data-options'), [])
                                 }; showEditModal = true;"
                                 data-name="{{.Name}}"
                                 data-desc="{{.Description}}"
@@ -414,4 +407,14 @@
         </div>
     </div>
 </div>
+
+<script>
+    function parseJSON(val, fallback) {
+        try {
+            return val ? JSON.parse(val) : fallback;
+        } catch(e) {
+            return fallback;
+        }
+    }
+</script>
 {{end}}
