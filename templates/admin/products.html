@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="space-y-8" x-data="{ showModal: false, showEditModal: false, editProduct: { id: 0, name: '', description: '', price: '', category_id: 0, options: '', images: [] } }">
+<div class="space-y-8" x-data="{ showModal: false, showEditModal: false, optionsList: [], editProduct: { id: 0, name: '', description: '', price: '', category_id: 0, options: '', images: [], optionsList: [] } }">
     <!-- Page Header -->
     <div class="flex items-center justify-between">
         <div>
@@ -82,14 +82,21 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <button 
-                                @click="editProduct = {
+                                @click="let opts = []; 
+                                try { 
+                                    opts = JSON.parse($el.getAttribute('data-options') || '[]'); 
+                                } catch(e) { 
+                                    console.error(e); 
+                                }
+                                editProduct = {
                                     id: {{.ID}},
                                     name: $el.getAttribute('data-name'),
                                     description: $el.getAttribute('data-desc'),
                                     price: '{{.Price}}',
                                     category_id: {{if .CategoryID}}{{.CategoryID}}{{else}}0{{end}},
                                     options: $el.getAttribute('data-options'),
-                                    images: JSON.parse($el.getAttribute('data-images') || '[]')
+                                    images: JSON.parse($el.getAttribute('data-images') || '[]'),
+                                    optionsList: opts
                                 }; showEditModal = true;"
                                 data-name="{{.Name}}"
                                 data-desc="{{.Description}}"
@@ -172,10 +179,77 @@
                     <input type="file" name="images" accept="image/*" multiple class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-violet-500/20 file:text-violet-300 hover:file:bg-violet-500/30 transition-all text-sm">
                 </div>
                 
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Opções / Variações (Array JSON)</label>
-                    <textarea name="options" rows="3" placeholder='[{"name": "Tamanho", "required": true, "choices": [{"name": "P", "price_adjust": 0}, {"name": "M", "price_adjust": 5}]}]' class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 font-mono focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all text-xs resize-none"></textarea>
-                    <p class="text-[10px] text-slate-500 mt-1">Defina opcionais ou adicionais. Deixe em branco se não houver.</p>
+                <!-- Construtor Visual de Opcionais -->
+                <input type="hidden" name="options" :value="JSON.stringify(optionsList)">
+                
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-sm font-medium text-slate-300">Opções e Variações (Tamanho, Cor, Voltagem, etc.)</label>
+                        <button type="button" @click="optionsList.push({ name: '', required: false, choices: [{ name: '', price_adjust: 0 }] })" class="px-3 py-1.5 rounded-lg bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 font-semibold text-xs transition-colors flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                            Adicionar Grupo
+                        </button>
+                    </div>
+
+                    <!-- Lista de Grupos -->
+                    <div class="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                        <template x-for="(group, groupIdx) in optionsList" :key="groupIdx">
+                            <div class="p-4 rounded-2xl bg-slate-850 border border-slate-800/60 space-y-3 relative">
+                                <!-- Grupo Header -->
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="flex-grow">
+                                        <input type="text" x-model="group.name" required placeholder="Nome do Grupo (ex: Tamanho, Cor, Voltagem)" class="w-full px-3 py-2 rounded-lg bg-slate-900/50 border border-slate-700/30 text-white placeholder-slate-650 text-xs focus:outline-none focus:border-violet-500 transition-all">
+                                    </div>
+                                    
+                                    <!-- Obrigatório Toggle -->
+                                    <div class="flex items-center gap-1.5 flex-shrink-0 mt-2">
+                                        <label class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Obrigatório</label>
+                                        <input type="checkbox" x-model="group.required" class="w-4 h-4 rounded border-slate-700/50 text-violet-600 bg-slate-800/50 focus:ring-violet-500/20 cursor-pointer">
+                                    </div>
+
+                                    <!-- Deletar Grupo -->
+                                    <button type="button" @click="optionsList = optionsList.filter((_, i) => i !== groupIdx)" class="w-8 h-8 rounded-lg hover:bg-red-500/10 text-slate-500 hover:text-red-400 flex items-center justify-center transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                </div>
+
+                                <!-- Escolhas do Grupo -->
+                                <div class="space-y-2 pl-2 border-l border-slate-800">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Opções de Escolha / Variações</label>
+                                    
+                                    <div class="space-y-1.5">
+                                        <template x-for="(choice, choiceIdx) in group.choices" :key="choiceIdx">
+                                            <div class="flex items-center gap-2">
+                                                <!-- Nome da Escolha -->
+                                                <input type="text" x-model="choice.name" required placeholder="ex: P, Azul, 220V" class="flex-grow px-3 py-1.5 rounded-lg bg-slate-900/50 border border-slate-700/30 text-white placeholder-slate-650 text-xs focus:outline-none focus:border-violet-500 transition-all">
+                                                
+                                                <!-- Ajuste de Preço -->
+                                                <div class="flex items-center bg-slate-900/50 border border-slate-700/30 rounded-lg px-2 w-28">
+                                                    <span class="text-[9px] text-slate-550 font-bold mr-1">+R$</span>
+                                                    <input type="number" step="0.01" x-model.number="choice.price_adjust" placeholder="0.00" class="w-full bg-transparent border-0 text-white text-xs focus:ring-0 focus:outline-none p-1">
+                                                </div>
+
+                                                <!-- Deletar Escolha -->
+                                                <button type="button" @click="group.choices = group.choices.filter((_, i) => i !== choiceIdx)" class="w-7 h-7 rounded-lg hover:bg-red-500/10 text-slate-500 hover:text-red-400 flex items-center justify-center transition-colors">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                </button>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <!-- Adicionar Escolha -->
+                                    <button type="button" @click="group.choices.push({ name: '', price_adjust: 0 })" class="text-[10px] font-bold text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-0.5 pt-1">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        Adicionar Opção
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                        
+                        <template x-if="optionsList.length === 0">
+                            <p class="text-xs text-slate-500 italic py-1">Nenhum grupo de opções cadastrado. O produto será vendido com preço padrão.</p>
+                        </template>
+                    </div>
                 </div>
                 
                 <div class="flex gap-3 pt-2">
@@ -255,10 +329,77 @@
                     <input type="file" name="images" accept="image/*" multiple class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-violet-500/20 file:text-violet-300 hover:file:bg-violet-500/30 transition-all text-sm">
                 </div>
                 
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Opções / Variações (Array JSON)</label>
-                    <textarea name="options" x-model="editProduct.options" rows="3" placeholder='[{"name": "Tamanho", "required": true, "choices": [{"name": "P", "price_adjust": 0}, {"name": "M", "price_adjust": 5}]}]' class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 font-mono focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all text-xs resize-none"></textarea>
-                    <p class="text-[10px] text-slate-500 mt-1">Defina opcionais ou adicionais. Deixe em branco se não houver.</p>
+                <!-- Construtor Visual de Opcionais (Edição) -->
+                <input type="hidden" name="options" :value="JSON.stringify(editProduct.optionsList)">
+                
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-sm font-medium text-slate-300">Opções e Variações (Tamanho, Cor, Voltagem, etc.)</label>
+                        <button type="button" @click="editProduct.optionsList.push({ name: '', required: false, choices: [{ name: '', price_adjust: 0 }] })" class="px-3 py-1.5 rounded-lg bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 font-semibold text-xs transition-colors flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                            Adicionar Grupo
+                        </button>
+                    </div>
+
+                    <!-- Lista de Grupos -->
+                    <div class="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                        <template x-for="(group, groupIdx) in editProduct.optionsList" :key="groupIdx">
+                            <div class="p-4 rounded-2xl bg-slate-850 border border-slate-800/60 space-y-3 relative">
+                                <!-- Grupo Header -->
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="flex-grow">
+                                        <input type="text" x-model="group.name" required placeholder="Nome do Grupo (ex: Tamanho, Cor, Voltagem)" class="w-full px-3 py-2 rounded-lg bg-slate-900/50 border border-slate-700/30 text-white placeholder-slate-650 text-xs focus:outline-none focus:border-violet-500 transition-all">
+                                    </div>
+                                    
+                                    <!-- Obrigatório Toggle -->
+                                    <div class="flex items-center gap-1.5 flex-shrink-0 mt-2">
+                                        <label class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Obrigatório</label>
+                                        <input type="checkbox" x-model="group.required" class="w-4 h-4 rounded border-slate-700/50 text-violet-600 bg-slate-800/50 focus:ring-violet-500/20 cursor-pointer">
+                                    </div>
+
+                                    <!-- Deletar Grupo -->
+                                    <button type="button" @click="editProduct.optionsList = editProduct.optionsList.filter((_, i) => i !== groupIdx)" class="w-8 h-8 rounded-lg hover:bg-red-500/10 text-slate-500 hover:text-red-400 flex items-center justify-center transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                </div>
+
+                                <!-- Escolhas do Grupo -->
+                                <div class="space-y-2 pl-2 border-l border-slate-800">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Opções de Escolha / Variações</label>
+                                    
+                                    <div class="space-y-1.5">
+                                        <template x-for="(choice, choiceIdx) in group.choices" :key="choiceIdx">
+                                            <div class="flex items-center gap-2">
+                                                <!-- Nome da Escolha -->
+                                                <input type="text" x-model="choice.name" required placeholder="ex: P, Azul, 220V" class="flex-grow px-3 py-1.5 rounded-lg bg-slate-900/50 border border-slate-700/30 text-white placeholder-slate-650 text-xs focus:outline-none focus:border-violet-500 transition-all">
+                                                
+                                                <!-- Ajuste de Preço -->
+                                                <div class="flex items-center bg-slate-900/50 border border-slate-700/30 rounded-lg px-2 w-28">
+                                                    <span class="text-[9px] text-slate-550 font-bold mr-1">+R$</span>
+                                                    <input type="number" step="0.01" x-model.number="choice.price_adjust" placeholder="0.00" class="w-full bg-transparent border-0 text-white text-xs focus:ring-0 focus:outline-none p-1">
+                                                </div>
+
+                                                <!-- Deletar Escolha -->
+                                                <button type="button" @click="group.choices = group.choices.filter((_, i) => i !== choiceIdx)" class="w-7 h-7 rounded-lg hover:bg-red-500/10 text-slate-500 hover:text-red-400 flex items-center justify-center transition-colors">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                </button>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <!-- Adicionar Escolha -->
+                                    <button type="button" @click="group.choices.push({ name: '', price_adjust: 0 })" class="text-[10px] font-bold text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-0.5 pt-1">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        Adicionar Opção
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                        
+                        <template x-if="!editProduct.optionsList || editProduct.optionsList.length === 0">
+                            <p class="text-xs text-slate-500 italic py-1">Nenhum grupo de opções cadastrado. O produto será vendido com preço padrão.</p>
+                        </template>
+                    </div>
                 </div>
                 
                 <div class="flex gap-3 pt-2">
