@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="space-y-8" x-data="{ showModal: false }">
+<div class="space-y-8" x-data="{ showModal: false, showEditModal: false, editProduct: { id: 0, name: '', description: '', price: '', category_id: 0, options: '', images: [] } }">
     <!-- Page Header -->
     <div class="flex items-center justify-between">
         <div>
@@ -82,11 +82,31 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <button 
+                                @click="editProduct = {
+                                    id: {{.ID}},
+                                    name: $el.getAttribute('data-name'),
+                                    description: $el.getAttribute('data-desc'),
+                                    price: '{{.Price}}',
+                                    category_id: {{if .CategoryID}}{{.CategoryID}}{{else}}0{{end}},
+                                    options: $el.getAttribute('data-options'),
+                                    images: JSON.parse($el.getAttribute('data-images') || '[]')
+                                }; showEditModal = true;"
+                                data-name="{{.Name}}"
+                                data-desc="{{.Description}}"
+                                data-options="{{if .Options}}{{.Options}}{{else}}[]{{end}}"
+                                data-images="{{if .Images}}{{.Images}}{{else}}[]{{end}}"
+                                class="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors mr-2"
+                                title="Editar Produto"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </button>
+                            <button 
                                 hx-delete="/admin/produtos/{{.ID}}"
                                 hx-target="#product-row-{{.ID}}"
                                 hx-swap="outerHTML"
                                 hx-confirm="Tem certeza que deseja excluir este produto?"
                                 class="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors"
+                                title="Excluir Produto"
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </button>
@@ -164,6 +184,89 @@
                     </button>
                     <button type="submit" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-lg shadow-violet-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm">
                         Salvar Produto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div x-show="showEditModal" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="showEditModal = false">
+        <div x-show="showEditModal" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="w-full max-w-lg bg-slate-900 rounded-3xl border border-slate-800/50 shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800/50">
+                <h3 class="text-lg font-bold text-white">Editar Produto</h3>
+                <button @click="showEditModal = false" class="w-8 h-8 rounded-lg hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <form method="POST" :action="'/admin/produtos/' + editProduct.id" enctype="multipart/form-data" class="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                <!-- Imagens Existentes Ocultas -->
+                <input type="hidden" name="existing_images" :value="JSON.stringify(editProduct.images)">
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Nome do produto *</label>
+                    <input type="text" name="name" x-model="editProduct.name" required placeholder="Ex: Pizza Margherita" class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all text-sm">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Descrição</label>
+                    <textarea name="description" x-model="editProduct.description" rows="2" placeholder="Descrição breve do produto" class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all text-sm resize-none"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Preço *</label>
+                        <input type="text" name="price" x-model="editProduct.price" required placeholder="29.90" class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Categoria</label>
+                        <select name="category_id" x-model="editProduct.category_id" class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all text-sm">
+                            <option value="0">Sem categoria</option>
+                            {{range .Categories}}
+                            <option value="{{.ID}}">{{.Name}}</option>
+                            {{end}}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Gerenciamento de Fotos Existentes -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Fotos Atuais (Clique no X para excluir)</label>
+                    <div class="flex flex-wrap gap-2">
+                        <template x-for="(img, idx) in editProduct.images" :key="idx">
+                            <div class="w-20 h-20 rounded-xl bg-slate-800 border border-slate-700/50 overflow-hidden relative group">
+                                <img :src="img" class="w-full h-full object-cover">
+                                <button type="button" @click="editProduct.images = editProduct.images.filter((_, i) => i !== idx)" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-md transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+                        </template>
+                        <template x-if="!editProduct.images || editProduct.images.length === 0">
+                            <p class="text-xs text-slate-500 py-2">Nenhuma imagem cadastrada no produto.</p>
+                        </template>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Adicionar novas imagens</label>
+                    <input type="file" name="images" accept="image/*" multiple class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-violet-500/20 file:text-violet-300 hover:file:bg-violet-500/30 transition-all text-sm">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Opções / Variações (Array JSON)</label>
+                    <textarea name="options" x-model="editProduct.options" rows="3" placeholder='[{"name": "Tamanho", "required": true, "choices": [{"name": "P", "price_adjust": 0}, {"name": "M", "price_adjust": 5}]}]' class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 font-mono focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all text-xs resize-none"></textarea>
+                    <p class="text-[10px] text-slate-500 mt-1">Defina opcionais ou adicionais. Deixe em branco se não houver.</p>
+                </div>
+                
+                <div class="flex gap-3 pt-2">
+                    <button type="button" @click="showEditModal = false" class="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 font-medium hover:bg-slate-700 transition-colors text-sm">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-lg shadow-violet-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm">
+                        Salvar Alterações
                     </button>
                 </div>
             </form>

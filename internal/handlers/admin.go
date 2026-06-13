@@ -353,6 +353,135 @@ func (h *Handlers) HandleCreateProduct(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/produtos?success=Produto criado com sucesso!", http.StatusSeeOther)
 }
 
+// HandleUpdateProduct atualiza um produto existente
+func (h *Handlers) HandleUpdateProduct(w http.ResponseWriter, r *http.Request) {
+	shop := middleware.GetShopFromContext(r)
+	if shop == nil {
+		http.Error(w, "Loja não configurada", http.StatusBadRequest)
+		return
+	}
+
+	idStr := chi.URLParam(r, "id")
+	productID, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Redirect(w, r, "/admin/produtos?error=ID de produto inválido", http.StatusSeeOther)
+		return
+	}
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10MB max
+		http.Redirect(w, r, "/admin/produtos?error=Erro ao processar formulário", http.StatusSeeOther)
+		return
+	}
+
+	name := strings.TrimSpace(r.FormValue("name"))
+	description := strings.TrimSpace(r.FormValue("description"))
+	priceStr := strings.TrimSpace(r.FormValue("price"))
+	categoryStr := r.FormValue("category_id")
+	optionsStr := strings.TrimSpace(r.FormValue("options"))
+	existingImagesStr := strings.TrimSpace(r.FormValue("existing_images"))
+
+	if name == "" || priceStr == "" {
+		http.Redirect(w, r, "/admin/produtos?error=Nome e preço são obrigatórios", http.StatusSeeOther)
+		return
+	}
+
+	// Parse price (aceita vírgula como decimal)
+	priceStr = strings.Replace(priceStr, ",", ".", 1)
+	price, err := strconv.ParseFloat(priceStr, 64)
+	if err != nil {
+		http.Redirect(w, r, "/admin/produtos?error=Preço inválido", http.StatusSeeOther)
+		return
+	}
+
+	var categoryID *int
+	if categoryStr != "" && categoryStr != "0" {
+		catID, err := strconv.Atoi(categoryStr)
+		if err == nil {
+			categoryID = &catID
+		}
+	}
+
+	// Valida JSON de opções
+	var optPtr *string
+	if optionsStr != "" {
+		type valObj []interface{}
+		var js valObj
+		if err := json.Unmarshal([]byte(optionsStr), &js); err != nil {
+			http.Redirect(w, r, "/admin/produtos?error=JSON de opcionais inválido. Siga o exemplo.", http.StatusSeeOther)
+			return
+		}
+		optPtr = &optionsStr
+	}
+
+	// Imagens mantidas/existentes
+	var imagesList []string
+	if existingImagesStr != "" {
+		if err := json.Unmarshal([]byte(existingImagesStr), &imagesList); err != nil {
+			log.Printf("Erro ao fazer parse das imagens existentes: %v", err)
+		}
+	}
+
+	// Upload de novas imagens
+	if r.MultipartForm != nil && r.MultipartForm.File != nil {
+		files := r.MultipartForm.File["images"]
+		for _, fileHeader := range files {
+			f, err := fileHeader.Open()
+			if err != nil {
+				log.Printf("Erro ao abrir arquivo enviado: %v", err)
+				continue
+			}
+			uploadedURL, err := saveUploadedFile(f, fileHeader.Filename)
+			f.Close()
+			if err != nil {
+				log.Printf("Erro ao salvar imagem: %v", err)
+				continue
+			}
+			imagesList = append(imagesList, uploadedURL)
+		}
+	}
+
+	// Se houver imagens combinadas
+	imageURL := ""
+	var imgPtr *string
+	if len(imagesList) > 0 {
+		imageURL = imagesList[0] // A primeira imagem é a de capa/principal
+		imgBytes, err := json.Marshal(imagesList)
+		if err == nil {
+			imgStr := string(imgBytes)
+			imgPtr = &imgStr
+		}
+	}
+
+	// Obter produto existente para certificar que pertence à loja
+	existingProduct, err := h.DB.GetProduct(r.Context(), productID, shop.ID)
+	if err != nil {
+		log.Printf("Erro ao obter produto existente: %v", err)
+		http.Redirect(w, r, "/admin/produtos?error=Produto não encontrado", http.StatusSeeOther)
+		return
+	}
+
+	product := &database.Product{
+		ID:          existingProduct.ID,
+		ShopID:      shop.ID,
+		CategoryID:  categoryID,
+		Name:        name,
+		Description: description,
+		Price:       price,
+		ImageURL:    imageURL,
+		IsAvailable: existingProduct.IsAvailable, // Mantém status de disponibilidade
+		Options:     optPtr,
+		Images:      imgPtr,
+	}
+
+	if err := h.DB.UpdateProduct(r.Context(), product); err != nil {
+		log.Printf("Erro ao atualizar produto: %v", err)
+		http.Redirect(w, r, "/admin/produtos?error=Erro ao atualizar produto", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/admin/produtos?success=Produto atualizado com sucesso!", http.StatusSeeOther)
+}
+
 // HandleDeleteProduct deleta um produto (HTMX)
 func (h *Handlers) HandleDeleteProduct(w http.ResponseWriter, r *http.Request) {
 	shop := middleware.GetShopFromContext(r)

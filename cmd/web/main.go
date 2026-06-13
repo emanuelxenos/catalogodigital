@@ -79,6 +79,7 @@ func main() {
 		// Produtos
 		r.Get("/admin/produtos", h.HandleProducts)
 		r.Post("/admin/produtos", h.HandleCreateProduct)
+		r.Post("/admin/produtos/{id}", h.HandleUpdateProduct)
 		r.Delete("/admin/produtos/{id}", h.HandleDeleteProduct)
 		r.Patch("/admin/produtos/{id}/toggle", h.HandleToggleProduct)
 
