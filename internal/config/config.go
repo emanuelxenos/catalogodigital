@@ -12,6 +12,7 @@ type Config struct {
 	DatabaseURL   string
 	Port          string
 	SessionSecret string
+	DevMode       bool
 }
 
 // Load carrega as variáveis de ambiente do .env e retorna a configuração
@@ -23,6 +24,7 @@ func Load() (*Config, error) {
 		DatabaseURL:   getEnv("DATABASE_URL", "postgres://postgres:admin123@localhost:5432/catalogo?sslmode=disable"),
 		Port:          getEnv("PORT", "8080"),
 		SessionSecret: getEnv("SESSION_SECRET", "catalogo-secret-key-default"),
+		DevMode:       getEnv("DEV_MODE", "false") == "true",
 	}
 
 	if cfg.DatabaseURL == "" {

@@ -40,7 +40,7 @@ func main() {
 	log.Println("✅ Migrações executadas com sucesso")
 
 	// Inicializa handlers
-	h := handlers.NewHandlers(db)
+	h := handlers.NewHandlers(db, cfg.DevMode)
 
 	// Cria roteador
 	r := chi.NewRouter()

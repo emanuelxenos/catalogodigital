@@ -18,6 +18,7 @@ type TemplateEngine struct {
 	mu        sync.RWMutex
 	baseDir   string
 	funcMap   template.FuncMap
+	devMode   bool
 }
 
 // Handlers encapsula as dependências compartilhadas entre todos os handlers
@@ -27,8 +28,8 @@ type Handlers struct {
 }
 
 // NewHandlers cria uma nova instância de Handlers
-func NewHandlers(db *database.DB) *Handlers {
-	tmpl := NewTemplateEngine("templates")
+func NewHandlers(db *database.DB, devMode bool) *Handlers {
+	tmpl := NewTemplateEngine("templates", devMode)
 	return &Handlers{
 		DB:   db,
 		Tmpl: tmpl,
@@ -36,7 +37,7 @@ func NewHandlers(db *database.DB) *Handlers {
 }
 
 // NewTemplateEngine cria uma nova instância do motor de templates
-func NewTemplateEngine(baseDir string) *TemplateEngine {
+func NewTemplateEngine(baseDir string, devMode bool) *TemplateEngine {
 	funcMap := template.FuncMap{
 		"formatPrice": func(price float64) string {
 			// Formato brasileiro: R$ 1.234,56
@@ -134,15 +135,36 @@ func NewTemplateEngine(baseDir string) *TemplateEngine {
 		templates: make(map[string]*template.Template),
 		baseDir:   baseDir,
 		funcMap:   funcMap,
+		devMode:   devMode,
 	}
 }
 
 // Render renderiza um template com layout
 func (te *TemplateEngine) Render(w http.ResponseWriter, layout, name string, data interface{}) error {
-	// Em desenvolvimento, sempre recarrega do disco para evitar cache
-	tmpl, err := te.loadTemplate(layout, name)
-	if err != nil {
-		return fmt.Errorf("erro ao carregar template %s: %w", name, err)
+	if te.devMode {
+		// Em desenvolvimento, sempre recarrega do disco para evitar cache
+		tmpl, err := te.loadTemplate(layout, name)
+		if err != nil {
+			return fmt.Errorf("erro ao carregar template %s: %w", name, err)
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		return tmpl.ExecuteTemplate(w, "layout", data)
+	}
+
+	te.mu.RLock()
+	tmpl, exists := te.templates[layout+":"+name]
+	te.mu.RUnlock()
+
+	if !exists {
+		var err error
+		tmpl, err = te.loadTemplate(layout, name)
+		if err != nil {
+			return fmt.Errorf("erro ao carregar template %s: %w", name, err)
+		}
+
+		te.mu.Lock()
+		te.templates[layout+":"+name] = tmpl
+		te.mu.Unlock()
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -151,11 +173,32 @@ func (te *TemplateEngine) Render(w http.ResponseWriter, layout, name string, dat
 
 // RenderPartial renderiza um template parcial (sem layout, para HTMX)
 func (te *TemplateEngine) RenderPartial(w http.ResponseWriter, name string, data interface{}) error {
-	// Em desenvolvimento, sempre recarrega do disco para evitar cache
-	path := filepath.Join(te.baseDir, name)
-	tmpl, err := template.New(filepath.Base(name)).Funcs(te.funcMap).ParseFiles(path)
-	if err != nil {
-		return fmt.Errorf("erro ao carregar partial %s: %w", name, err)
+	if te.devMode {
+		// Em desenvolvimento, sempre recarrega do disco para evitar cache
+		path := filepath.Join(te.baseDir, name)
+		tmpl, err := template.New(filepath.Base(name)).Funcs(te.funcMap).ParseFiles(path)
+		if err != nil {
+			return fmt.Errorf("erro ao carregar partial %s: %w", name, err)
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		return tmpl.Execute(w, data)
+	}
+
+	te.mu.RLock()
+	tmpl, exists := te.templates["partial:"+name]
+	te.mu.RUnlock()
+
+	if !exists {
+		path := filepath.Join(te.baseDir, name)
+		var err error
+		tmpl, err = template.New(filepath.Base(name)).Funcs(te.funcMap).ParseFiles(path)
+		if err != nil {
+			return fmt.Errorf("erro ao carregar partial %s: %w", name, err)
+		}
+
+		te.mu.Lock()
+		te.templates["partial:"+name] = tmpl
+		te.mu.Unlock()
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
