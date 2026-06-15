@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"catalogo/internal/database"
 	"catalogo/internal/middleware"
@@ -47,6 +48,12 @@ func (h *Handlers) HandleShopBilling(w http.ResponseWriter, r *http.Request) {
 		currentPlan = &database.Plan{Name: "Bronze (Grátis)"}
 	}
 
+	isExpired := shop.PlanExpiresAt != nil && time.Now().After(*shop.PlanExpiresAt)
+	if isExpired {
+		currentPlan.MaxProducts = 5
+		currentPlan.MaxCategories = 1
+	}
+
 	data := map[string]interface{}{
 		"User":              user,
 		"Shop":              shop,
@@ -54,6 +61,7 @@ func (h *Handlers) HandleShopBilling(w http.ResponseWriter, r *http.Request) {
 		"CurrentPlan":       currentPlan,
 		"CurrentProducts":   currentProducts,
 		"CurrentCategories": currentCategories,
+		"IsExpired":         isExpired,
 		"Success":           r.URL.Query().Get("success"),
 		"Error":             r.URL.Query().Get("error"),
 	}

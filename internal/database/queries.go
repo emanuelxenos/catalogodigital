@@ -104,11 +104,11 @@ func (db *DB) UpdateShop(ctx context.Context, shop *Shop) error {
 // CreateShop cria uma nova loja
 func (db *DB) CreateShop(ctx context.Context, shop *Shop) error {
 	err := db.Pool.QueryRow(ctx,
-		`INSERT INTO shops (user_id, name, slug, whatsapp_number, logo_url, primary_color, banner_url, delivery_fee, business_hours)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, created_at`,
+		`INSERT INTO shops (user_id, name, slug, whatsapp_number, logo_url, primary_color, banner_url, delivery_fee, business_hours, plan_expires_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP + INTERVAL '7 days') RETURNING id, created_at, plan_expires_at`,
 		shop.UserID, shop.Name, shop.Slug, shop.WhatsappNumber, shop.LogoURL, shop.PrimaryColor,
 		shop.BannerURL, shop.DeliveryFee, shop.BusinessHours,
-	).Scan(&shop.ID, &shop.CreatedAt)
+	).Scan(&shop.ID, &shop.CreatedAt, &shop.PlanExpiresAt)
 	if err != nil {
 		return fmt.Errorf("erro ao criar loja: %w", err)
 	}

@@ -136,6 +136,12 @@ func NewTemplateEngine(baseDir string, devMode bool) *TemplateEngine {
 			}
 			return localTime.Format("02/01/2006 às 15:04")
 		},
+		"isExpired": func(t *time.Time) bool {
+			if t == nil {
+				return false
+			}
+			return time.Now().After(*t)
+		},
 		"percent": func(current, max int) int {
 			if max <= 0 {
 				return 0

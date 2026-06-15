@@ -271,11 +271,25 @@ func (h *Handlers) HandleCreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	// Verifica limites do plano para quantidade de produtos
 	plan, err := h.DB.GetPlanByID(r.Context(), shop.PlanID)
-	if err == nil && plan.MaxProducts >= 0 {
-		currentProducts, _, errUsage := h.DB.GetShopUsage(r.Context(), shop.ID)
-		if errUsage == nil && currentProducts >= plan.MaxProducts {
-			http.Redirect(w, r, "/admin/produtos?error=Limite de produtos atingido para seu plano ("+strconv.Itoa(plan.MaxProducts)+"). Faça um upgrade!", http.StatusSeeOther)
-			return
+	if err == nil {
+		maxProducts := plan.MaxProducts
+		isExpired := shop.PlanExpiresAt != nil && time.Now().After(*shop.PlanExpiresAt)
+		if isExpired {
+			maxProducts = 5
+		}
+		
+		if maxProducts >= 0 {
+			currentProducts, _, errUsage := h.DB.GetShopUsage(r.Context(), shop.ID)
+			if errUsage == nil && currentProducts >= maxProducts {
+				errMsg := "Limite de produtos atingido para seu plano (" + strconv.Itoa(maxProducts) + ")."
+				if isExpired {
+					errMsg = "Sua assinatura/período de testes expirou. O limite de produtos foi reduzido para 5. Faça um upgrade ou renovação!"
+				} else {
+					errMsg += " Faça um upgrade!"
+				}
+				http.Redirect(w, r, "/admin/produtos?error=" + errMsg, http.StatusSeeOther)
+				return
+			}
 		}
 	}
 
@@ -603,11 +617,25 @@ func (h *Handlers) HandleCreateCategory(w http.ResponseWriter, r *http.Request) 
 
 	// Verifica limites do plano para quantidade de categorias
 	plan, err := h.DB.GetPlanByID(r.Context(), shop.PlanID)
-	if err == nil && plan.MaxCategories >= 0 {
-		_, currentCategories, errUsage := h.DB.GetShopUsage(r.Context(), shop.ID)
-		if errUsage == nil && currentCategories >= plan.MaxCategories {
-			http.Redirect(w, r, "/admin/categorias?error=Limite de categorias atingido para seu plano ("+strconv.Itoa(plan.MaxCategories)+"). Faça um upgrade!", http.StatusSeeOther)
-			return
+	if err == nil {
+		maxCategories := plan.MaxCategories
+		isExpired := shop.PlanExpiresAt != nil && time.Now().After(*shop.PlanExpiresAt)
+		if isExpired {
+			maxCategories = 1
+		}
+		
+		if maxCategories >= 0 {
+			_, currentCategories, errUsage := h.DB.GetShopUsage(r.Context(), shop.ID)
+			if errUsage == nil && currentCategories >= maxCategories {
+				errMsg := "Limite de categorias atingido para seu plano (" + strconv.Itoa(maxCategories) + ")."
+				if isExpired {
+					errMsg = "Sua assinatura/período de testes expirou. O limite de categorias foi reduzido para 1. Faça um upgrade ou renovação!"
+				} else {
+					errMsg += " Faça um upgrade!"
+				}
+				http.Redirect(w, r, "/admin/categorias?error=" + errMsg, http.StatusSeeOther)
+				return
+			}
 		}
 	}
 

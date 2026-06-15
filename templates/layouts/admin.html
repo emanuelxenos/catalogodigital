@@ -186,6 +186,22 @@
             
             <!-- Page Content -->
             <main class="p-6">
+                {{if .Shop}}
+                    {{if isExpired .Shop.PlanExpiresAt}}
+                    <div class="mb-6 px-4 py-3.5 rounded-2xl bg-red-500/10 border border-red-500/25 text-red-300 text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg shadow-red-500/5">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-lg">⚠️</span>
+                            <div>
+                                <p class="font-bold text-white">Sua assinatura/período de testes expirou!</p>
+                                <p class="text-[11px] text-red-450/90 mt-0.5">Seus limites foram reduzidos para 5 produtos e 1 categoria. Regularize sua conta para normalizar.</p>
+                            </div>
+                        </div>
+                        <a href="/admin/plano" class="px-4 py-2 rounded-xl bg-red-650 hover:bg-red-550 text-white font-bold text-xs uppercase tracking-wider transition-all active:scale-[0.98] text-center shrink-0">
+                            Renovar Plano
+                        </a>
+                    </div>
+                    {{end}}
+                {{end}}
                 {{template "content" .}}
             </main>
         </div>
