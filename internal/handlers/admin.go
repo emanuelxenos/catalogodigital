@@ -262,12 +262,21 @@ func (h *Handlers) HandleProducts(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleCreateProduct cria um novo produto
 func (h *Handlers) HandleCreateProduct(w http.ResponseWriter, r *http.Request) {
 	shop := middleware.GetShopFromContext(r)
 	if shop == nil {
 		http.Error(w, "Loja não configurada", http.StatusBadRequest)
 		return
+	}
+
+	// Verifica limites do plano para quantidade de produtos
+	plan, err := h.DB.GetPlanByID(r.Context(), shop.PlanID)
+	if err == nil && plan.MaxProducts >= 0 {
+		currentProducts, _, errUsage := h.DB.GetShopUsage(r.Context(), shop.ID)
+		if errUsage == nil && currentProducts >= plan.MaxProducts {
+			http.Redirect(w, r, "/admin/produtos?error=Limite de produtos atingido para seu plano ("+strconv.Itoa(plan.MaxProducts)+"). Faça um upgrade!", http.StatusSeeOther)
+			return
+		}
 	}
 
 	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10MB max
@@ -585,12 +594,21 @@ func (h *Handlers) HandleCategories(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleCreateCategory cria uma nova categoria
 func (h *Handlers) HandleCreateCategory(w http.ResponseWriter, r *http.Request) {
 	shop := middleware.GetShopFromContext(r)
 	if shop == nil {
 		http.Error(w, "Loja não configurada", http.StatusBadRequest)
 		return
+	}
+
+	// Verifica limites do plano para quantidade de categorias
+	plan, err := h.DB.GetPlanByID(r.Context(), shop.PlanID)
+	if err == nil && plan.MaxCategories >= 0 {
+		_, currentCategories, errUsage := h.DB.GetShopUsage(r.Context(), shop.ID)
+		if errUsage == nil && currentCategories >= plan.MaxCategories {
+			http.Redirect(w, r, "/admin/categorias?error=Limite de categorias atingido para seu plano ("+strconv.Itoa(plan.MaxCategories)+"). Faça um upgrade!", http.StatusSeeOther)
+			return
+		}
 	}
 
 	name := strings.TrimSpace(r.FormValue("name"))
@@ -953,6 +971,12 @@ func (h *Handlers) HandleCoupons(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Restringe cupons no plano Bronze (ID 1)
+	if shop.PlanID == 1 {
+		http.Redirect(w, r, "/admin?error=Cupons de desconto não estão disponíveis no plano Bronze. Faça um upgrade!", http.StatusSeeOther)
+		return
+	}
+
 	coupons, err := h.DB.ListCouponsByShop(r.Context(), shop.ID)
 	if err != nil {
 		log.Printf("Erro ao listar cupons: %v", err)
@@ -977,6 +1001,12 @@ func (h *Handlers) HandleCreateCoupon(w http.ResponseWriter, r *http.Request) {
 	shop := middleware.GetShopFromContext(r)
 	if shop == nil {
 		http.Error(w, "Loja não configurada", http.StatusBadRequest)
+		return
+	}
+
+	// Impede criação se plano for Bronze (ID 1)
+	if shop.PlanID == 1 {
+		http.Redirect(w, r, "/admin/cupons?error=Seu plano atual não suporta cupons.", http.StatusSeeOther)
 		return
 	}
 

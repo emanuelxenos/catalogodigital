@@ -16,18 +16,20 @@ type User struct {
 
 // Shop representa uma loja (tenant)
 type Shop struct {
-	ID             int       `json:"id"`
-	UserID         int       `json:"user_id"`
-	Name           string    `json:"name"`
-	Slug           string    `json:"slug"`
-	WhatsappNumber string    `json:"whatsapp_number"`
-	LogoURL        string    `json:"logo_url"`
-	PrimaryColor   string    `json:"primary_color"`
-	IsActive       bool      `json:"is_active"`
-	CreatedAt      time.Time `json:"created_at"`
-	BannerURL      string    `json:"banner_url"`
-	DeliveryFee    float64   `json:"delivery_fee"`
-	BusinessHours  *string   `json:"business_hours"` // JSON string
+	ID             int        `json:"id"`
+	UserID         int        `json:"user_id"`
+	Name           string     `json:"name"`
+	Slug           string     `json:"slug"`
+	WhatsappNumber string     `json:"whatsapp_number"`
+	LogoURL        string     `json:"logo_url"`
+	PrimaryColor   string     `json:"primary_color"`
+	IsActive       bool       `json:"is_active"`
+	CreatedAt      time.Time  `json:"created_at"`
+	BannerURL      string     `json:"banner_url"`
+	DeliveryFee    float64    `json:"delivery_fee"`
+	BusinessHours  *string    `json:"business_hours"` // JSON string
+	PlanID         int        `json:"plan_id"`
+	PlanExpiresAt  *time.Time `json:"plan_expires_at"`
 }
 
 // Category representa uma categoria de produtos
@@ -113,16 +115,19 @@ type DailySales struct {
 
 // ShopWithOwner representa os dados da loja mesclados com dados do usuário dono
 type ShopWithOwner struct {
-	ID             int       `json:"id"`
-	UserID         int       `json:"user_id"`
-	Name           string    `json:"name"`
-	Slug           string    `json:"slug"`
-	WhatsappNumber string    `json:"whatsapp_number"`
-	LogoURL        string    `json:"logo_url"`
-	IsActive       bool      `json:"is_active"`
-	CreatedAt      time.Time `json:"created_at"`
-	OwnerName      string    `json:"owner_name"`
-	OwnerEmail     string    `json:"owner_email"`
+	ID             int        `json:"id"`
+	UserID         int        `json:"user_id"`
+	Name           string     `json:"name"`
+	Slug           string     `json:"slug"`
+	WhatsappNumber string     `json:"whatsapp_number"`
+	LogoURL        string     `json:"logo_url"`
+	IsActive       bool       `json:"is_active"`
+	CreatedAt      time.Time  `json:"created_at"`
+	OwnerName      string     `json:"owner_name"`
+	OwnerEmail     string     `json:"owner_email"`
+	PlanID         int        `json:"plan_id"`
+	PlanExpiresAt  *time.Time `json:"plan_expires_at"`
+	PlanName       string     `json:"plan_name"` // JOIN auxiliar
 }
 
 // PlatformConfig representa uma configuração global do SaaS
@@ -138,6 +143,16 @@ type PlatformAuditLog struct {
 	Action    string    `json:"action"`
 	Details   string    `json:"details"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+// Plan representa um plano de assinatura do SaaS
+type Plan struct {
+	ID            int     `json:"id"`
+	Name          string  `json:"name"`
+	Price         float64 `json:"price"`
+	MaxProducts   int     `json:"max_products"`
+	MaxCategories int     `json:"max_categories"`
+	Features      *string `json:"features"` // JSON string
 }
 
 

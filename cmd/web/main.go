@@ -101,6 +101,9 @@ func main() {
 		r.Post("/admin/cupons", h.HandleCreateCoupon)
 		r.Delete("/admin/cupons/{id}", h.HandleDeleteCoupon)
 
+		// Assinatura e Faturamento
+		r.Get("/admin/plano", h.HandleShopBilling)
+		r.Post("/admin/plano/upgrade", h.HandleUpgradeSimulatorPost)
 	})
 
 	// ==================== ROTAS MASTER ADMIN (SaaS Subsystem) ====================
@@ -113,6 +116,7 @@ func main() {
 
 		r.Get("/master", h.HandleMasterDashboard)
 		r.Post("/master/shops/{id}/toggle", h.HandleMasterToggleShop)
+		r.Post("/master/shops/{id}/plan", h.HandleMasterChangePlan)
 		r.Post("/master/configs", h.HandleMasterUpdateConfigs)
 	})
 

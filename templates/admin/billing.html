@@ -1,0 +1,424 @@
+{{define "content"}}
+<div class="space-y-8" x-data="{ 
+    showModal: false, 
+    selectedPlanId: null, 
+    selectedPlanName: '', 
+    selectedPlanPrice: '', 
+    paymentMethod: 'pix',
+    copied: false,
+    copyPix() {
+        navigator.clipboard.writeText('00020101021226830014br.gov.bcb.pix2561api.pix.plataforma.com/v2/cobv/864e43ab051410bfb72a5078a6358dbb5e78');
+        this.copied = true;
+        setTimeout(() => this.copied = false, 2000);
+    }
+}">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-white">Meu Plano & Faturamento</h1>
+            <p class="text-slate-400 mt-1">Gerencie sua assinatura, consulte seus limites e faça upgrade da sua conta</p>
+        </div>
+        
+        <!-- Status Badge -->
+        <div class="glass-dark px-4 py-3 rounded-2xl border border-slate-800 flex items-center gap-3">
+            <span class="relative flex h-3.5 w-3.5">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-violet-500"></span>
+            </span>
+            <div>
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Plano Ativo</p>
+                <p class="text-sm font-semibold text-white">{{.CurrentPlan.Name}}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    {{if .Success}}
+    <div class="px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-350 text-sm flex items-center gap-2">
+        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        {{.Success}}
+    </div>
+    {{end}}
+    {{if .Error}}
+    <div class="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-355 text-sm flex items-center gap-2">
+        <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        {{.Error}}
+    </div>
+    {{end}}
+
+    <!-- Usage Statistics & Limits -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Products Limit -->
+        <div class="glass-dark p-6 rounded-2xl border border-slate-800/80 relative overflow-hidden group">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Limite de Produtos</span>
+                    <h3 class="text-3xl font-extrabold text-white mt-1">
+                        {{.CurrentProducts}} 
+                        <span class="text-sm font-normal text-slate-500">
+                            / {{if eq .CurrentPlan.MaxProducts -1}}Ilimitado{{else}}{{.CurrentPlan.MaxProducts}}{{end}}
+                        </span>
+                    </h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-lg text-violet-400">
+                    📦
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            {{if ne .CurrentPlan.MaxProducts -1}}
+            <div class="w-full bg-slate-950 rounded-full h-2">
+                <!-- Calcular a porcentagem com segurança -->
+                <div class="bg-gradient-to-r from-violet-600 to-indigo-500 h-2 rounded-full" 
+                     style="width: {{percent .CurrentProducts .CurrentPlan.MaxProducts}}%"></div>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">Você utilizou {{percent .CurrentProducts .CurrentPlan.MaxProducts}}% da sua cota de produtos.</p>
+            {{else}}
+            <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden">
+                <div class="bg-gradient-to-r from-violet-600 to-indigo-500 h-2 rounded-full w-full"></div>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">Plano Premium: Crie quantos produtos desejar sem travas!</p>
+            {{end}}
+        </div>
+
+        <!-- Categories Limit -->
+        <div class="glass-dark p-6 rounded-2xl border border-slate-800/80 relative overflow-hidden group">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Limite de Categorias</span>
+                    <h3 class="text-3xl font-extrabold text-white mt-1">
+                        {{.CurrentCategories}} 
+                        <span class="text-sm font-normal text-slate-500">
+                            / {{if eq .CurrentPlan.MaxCategories -1}}Ilimitado{{else}}{{.CurrentPlan.MaxCategories}}{{end}}
+                        </span>
+                    </h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-lg text-indigo-400">
+                    🏷️
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            {{if ne .CurrentPlan.MaxCategories -1}}
+            <div class="w-full bg-slate-950 rounded-full h-2">
+                <div class="bg-gradient-to-r from-indigo-600 to-violet-500 h-2 rounded-full" 
+                     style="width: {{percent .CurrentCategories .CurrentPlan.MaxCategories}}%"></div>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">Você utilizou {{percent .CurrentCategories .CurrentPlan.MaxCategories}}% da sua cota de categorias.</p>
+            {{else}}
+            <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden">
+                <div class="bg-gradient-to-r from-indigo-600 to-violet-500 h-2 rounded-full w-full"></div>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">Plano Premium: Crie categorias ilimitadas para organizar sua loja.</p>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Active Subscription Details -->
+    <div class="glass-dark p-6 rounded-3xl border border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+            <h3 class="text-lg font-bold text-white">Informações da Assinatura</h3>
+            <p class="text-xs text-slate-400 mt-1">Sua loja está licenciada sob os seguintes termos de faturamento:</p>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6">
+                <div>
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Plano</span>
+                    <p class="text-sm font-semibold text-white mt-0.5">{{.CurrentPlan.Name}}</p>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor Mensal</span>
+                    <p class="text-sm font-semibold text-white mt-0.5">{{formatPrice .CurrentPlan.Price}}</p>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Data de Expiração</span>
+                    <p class="text-sm font-semibold text-violet-400 mt-0.5">
+                        {{if eq .Shop.PlanID 1}}
+                            Sem Expiração (Grátis)
+                        {{else}}
+                            {{formatTimePtr .Shop.PlanExpiresAt}}
+                        {{end}}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        {{if eq .Shop.PlanID 1}}
+        <div class="bg-violet-650/15 border border-violet-500/20 p-4 rounded-2xl max-w-sm">
+            <p class="text-xs text-violet-300 font-medium leading-relaxed">
+                🚀 **Libere recursos premium!** Migre para um plano pago hoje para habilitar Cupons de Desconto, Horários de Funcionamento e maiores cotas de produtos.
+            </p>
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Plans Comparative Grid -->
+    <div>
+        <div class="text-center max-w-xl mx-auto mb-8">
+            <h2 class="text-xl font-bold text-white">Nossos Planos</h2>
+            <p class="text-slate-400 text-sm mt-1">Escolha a opção ideal para o tamanho e a necessidade do seu negócio</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {{range .Plans}}
+            <div class="glass-dark rounded-3xl border {{if eq $.Shop.PlanID .ID}}border-violet-500 shadow-xl shadow-violet-500/5{{else}}border-slate-800/80{{end}} p-6 flex flex-col justify-between relative overflow-hidden group hover:border-slate-700 transition-all duration-300">
+                <!-- Current Plan Tag -->
+                {{if eq $.Shop.PlanID .ID}}
+                <span class="absolute top-4 right-4 bg-violet-600 text-white font-extrabold text-[9px] px-2.5 py-1 rounded-full uppercase tracking-wider">
+                    Plano Ativo
+                </span>
+                {{end}}
+                
+                <div>
+                    <h3 class="text-lg font-bold text-white">{{.Name}}</h3>
+                    
+                    <!-- Price -->
+                    <div class="flex items-baseline gap-1 mt-4">
+                        <span class="text-3xl font-black text-white">{{formatPrice .Price}}</span>
+                        <span class="text-xs text-slate-500">/mês</span>
+                    </div>
+                    
+                    <p class="text-slate-450 text-xs mt-3 leading-relaxed">
+                        {{if eq .ID 1}}
+                        Ideal para quem está começando a testar o catálogo e as vendas online.
+                        {{else if eq .ID 2}}
+                        O melhor custo-benefício para comércios locais e delivery estruturado.
+                        {{else}}
+                        Para grandes negócios que necessitam de escala e controle sem limites.
+                        {{end}}
+                    </p>
+                    
+                    <!-- Features List -->
+                    <ul class="space-y-3 mt-6 text-xs text-slate-300 border-t border-slate-800/60 pt-6">
+                        <li class="flex items-center gap-2">
+                            <span class="text-violet-400">✔</span>
+                            <span>
+                                {{if eq .MaxProducts -1}}Produtos Ilimitados{{else}}Até <strong>{{.MaxProducts}}</strong> Produtos{{end}}
+                            </span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-violet-400">✔</span>
+                            <span>
+                                {{if eq .MaxCategories -1}}Categorias Ilimitadas{{else}}Até <strong>{{.MaxCategories}}</strong> Categorias{{end}}
+                            </span>
+                        </li>
+                        
+                        {{if eq .ID 1}}
+                        <li class="flex items-center gap-2 text-slate-550 line-through">
+                            <span>❌</span>
+                            <span>Cupons de Desconto</span>
+                        </li>
+                        <li class="flex items-center gap-2 text-slate-550 line-through">
+                            <span>❌</span>
+                            <span>Controle de Horário comercial</span>
+                        </li>
+                        <li class="flex items-center gap-2 text-slate-550 line-through">
+                            <span>❌</span>
+                            <span>Suporte Premium</span>
+                        </li>
+                        {{else}}
+                        <li class="flex items-center gap-2">
+                            <span class="text-violet-400">✔</span>
+                            <span>Cupons de Desconto</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-violet-400">✔</span>
+                            <span>Horários de Funcionamento</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-violet-400">✔</span>
+                            <span>
+                                {{if eq .ID 3}}Suporte 24/7 VIP{{else}}Suporte Prioritário{{end}}
+                            </span>
+                        </li>
+                        {{end}}
+                    </ul>
+                </div>
+                
+                <!-- Action Button -->
+                <div class="mt-8">
+                    {{if eq $.Shop.PlanID .ID}}
+                    <button disabled class="w-full py-3 rounded-xl bg-slate-800 text-slate-500 font-bold text-xs uppercase tracking-wider cursor-not-allowed">
+                        Plano Atual
+                    </button>
+                    {{else if eq .ID 1}}
+                    <!-- Downgrade/Voltar para grátis -->
+                    <button 
+                        @click="showModal = true; selectedPlanId = {{.ID}}; selectedPlanName = '{{.Name}}'; selectedPlanPrice = '{{formatPrice .Price}}'; paymentMethod = 'gratis'" 
+                        class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider transition-colors active:scale-[0.98]">
+                        Mudar para Grátis
+                    </button>
+                    {{else}}
+                    <!-- Upgrade -->
+                    <button 
+                        @click="showModal = true; selectedPlanId = {{.ID}}; selectedPlanName = '{{.Name}}'; selectedPlanPrice = '{{formatPrice .Price}}'; paymentMethod = 'pix'"
+                        class="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-violet-600/10 active:scale-[0.98] transition-all">
+                        Assinar Agora
+                    </button>
+                    {{end}}
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Premium Simulated Checkout Modal -->
+    <div x-show="showModal" 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         style="display: none;">
+         
+         <div class="glass-dark rounded-3xl border border-slate-800 shadow-2xl max-w-lg w-full overflow-hidden"
+              @click.away="showModal = false">
+              <!-- Modal Header -->
+              <div class="px-6 py-4 border-b border-slate-800/60 bg-slate-950/40 flex justify-between items-center">
+                  <div>
+                      <h3 class="text-base font-bold text-white">Checkout Simulado</h3>
+                      <p class="text-xs text-slate-400">Assinatura do Plano: <strong x-text="selectedPlanName" class="text-violet-400"></strong></p>
+                  </div>
+                  <button @click="showModal = false" class="text-slate-400 hover:text-white transition-colors">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                  </button>
+              </div>
+              
+              <!-- Modal Body -->
+              <div class="p-6 space-y-6">
+                  <!-- Order Summary -->
+                  <div class="p-4 rounded-2xl bg-slate-950/50 border border-slate-900 flex justify-between items-center">
+                      <div>
+                          <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Resumo</p>
+                          <p class="text-sm font-semibold text-white mt-0.5" x-text="selectedPlanName"></p>
+                          <p class="text-xs text-slate-400">Validade de 30 dias (renovável)</p>
+                      </div>
+                      <div class="text-right">
+                          <p class="text-lg font-black text-white" x-text="selectedPlanPrice"></p>
+                          <span class="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Simulado</span>
+                      </div>
+                  </div>
+
+                  <!-- Free Plan Change Confirmation -->
+                  <template x-if="paymentMethod === 'gratis'">
+                      <div class="space-y-4 text-center py-4">
+                          <div class="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-2xl">
+                              🔄
+                          </div>
+                          <h4 class="text-sm font-bold text-white">Deseja migrar para o plano Grátis?</h4>
+                          <p class="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                              Sua conta voltará para os limites do plano Bronze (Max 10 produtos e 3 categorias, sem cupons ou horários). Os excedentes continuarão salvos, mas não serão listados no catálogo.
+                          </p>
+                          
+                          <form hx-post="/admin/plano/upgrade" hx-swap="none" class="pt-4">
+                              <input type="hidden" name="plan_id" :value="selectedPlanId">
+                              <button type="submit" 
+                                      class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider transition-colors">
+                                  Confirmar Mudança
+                              </button>
+                          </form>
+                      </div>
+                  </template>
+
+                  <!-- Paid Plan Payment Tabs -->
+                  <template x-if="paymentMethod !== 'gratis'">
+                      <div>
+                          <!-- Navigation Tabs -->
+                          <div class="flex rounded-xl bg-slate-950 p-1 border border-slate-900">
+                              <button @click="paymentMethod = 'pix'"
+                                      :class="paymentMethod === 'pix' ? 'bg-slate-900 text-white border-slate-800' : 'text-slate-450 hover:text-slate-200'"
+                                      class="flex-1 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider border border-transparent transition-all">
+                                  Pix Instantâneo
+                              </button>
+                              <button @click="paymentMethod = 'card'"
+                                      :class="paymentMethod === 'card' ? 'bg-slate-900 text-white border-slate-800' : 'text-slate-450 hover:text-slate-200'"
+                                      class="flex-1 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider border border-transparent transition-all">
+                                  Cartão de Crédito
+                              </button>
+                          </div>
+
+                          <!-- Tab Content: Pix -->
+                          <div x-show="paymentMethod === 'pix'" class="space-y-5 mt-6 animate-fadeIn">
+                              <div class="flex flex-col sm:flex-row items-center gap-6 p-4 bg-slate-950/30 rounded-2xl border border-slate-900/60">
+                                  <!-- QR Code Placeholder -->
+                                  <div class="w-32 h-32 bg-white rounded-xl p-2 shadow-inner flex-shrink-0 flex items-center justify-center">
+                                      <!-- Simple SVG simulating QR Code -->
+                                      <svg class="w-full h-full text-slate-950" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="8">
+                                          <path d="M10 10h20v20H10zM70 10h20v20H70zM10 70h20v20H10zM50 50h10v10H50z" fill="currentColor"/>
+                                          <path d="M40 10h10M40 25h15M10 40h20M50 30h10M70 40h15M10 50h5M40 70h10M65 70h15M70 85h20M55 85h5" stroke="currentColor"/>
+                                          <path d="M16 16h8v8h-8zM76 16h8v8h-8zM16 76h8v8h-8z" fill="currentColor"/>
+                                      </svg>
+                                  </div>
+                                  <div class="flex-1 space-y-3">
+                                      <h4 class="text-xs font-bold text-white uppercase tracking-wider">Instruções Pix</h4>
+                                      <ol class="list-decimal pl-4 text-slate-450 text-[11px] space-y-1">
+                                          <li>Abra o app do seu banco e escolha a opção Pix.</li>
+                                          <li>Aponte a câmera para o QR Code ao lado.</li>
+                                          <li>Ou clique em copiar chave Pix abaixo.</li>
+                                      </ol>
+                                      
+                                      <button @click="copyPix" 
+                                              class="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-900 transition-colors w-full">
+                                          <span x-text="copied ? 'Chave Copiada! ✅' : 'Copiar Chave Pix 📋'"></span>
+                                      </button>
+                                  </div>
+                              </div>
+                              
+                              <!-- Confirm Action -->
+                              <form hx-post="/admin/plano/upgrade" hx-swap="none">
+                                  <input type="hidden" name="plan_id" :value="selectedPlanId">
+                                  <button type="submit" 
+                                          class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/10 active:scale-[0.98] transition-all">
+                                      Confirmar Pagamento Pix (Simulado)
+                                  </button>
+                              </form>
+                          </div>
+
+                          <!-- Tab Content: Credit Card -->
+                          <div x-show="paymentMethod === 'card'" class="space-y-4 mt-6 animate-fadeIn">
+                              <form hx-post="/admin/plano/upgrade" hx-swap="none" class="space-y-4">
+                                  <input type="hidden" name="plan_id" :value="selectedPlanId">
+                                  
+                                  <div>
+                                      <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Número do Cartão</label>
+                                      <input type="text" placeholder="4444 5555 6666 7777" required
+                                             class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all">
+                                  </div>
+                                  <div>
+                                      <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Nome impresso no Cartão</label>
+                                      <input type="text" placeholder="SEU NOME COMPLETO" required
+                                             class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all">
+                                  </div>
+                                  <div class="grid grid-cols-2 gap-4">
+                                      <div>
+                                          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Validade</label>
+                                          <input type="text" placeholder="MM/AA" required
+                                                 class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all text-center">
+                                      </div>
+                                      <div>
+                                          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">CVV</label>
+                                          <input type="text" placeholder="123" required
+                                                 class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all text-center">
+                                      </div>
+                                  </div>
+                                  
+                                  <button type="submit" 
+                                          class="w-full py-3.5 mt-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-violet-600/10 active:scale-[0.98] transition-all">
+                                      Pagar e Ativar Plano (Simulado)
+                                  </button>
+                              </form>
+                          </div>
+                      </div>
+                  </template>
+              </div>
+         </div>
+    </div>
+</div>
+{{end}}

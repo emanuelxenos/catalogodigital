@@ -159,6 +159,35 @@ INSERT INTO platform_configs (key, value) VALUES
 INSERT INTO platform_configs (key, value) VALUES 
 ('support_whatsapp', '5511999999999') ON CONFLICT DO NOTHING;
 
+-- =============================================================
+-- SaaS Subscription Plans
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS plans (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    price DECIMAL(10, 2) NOT NULL,
+    max_products INTEGER NOT NULL,    -- -1 para ilimitado
+    max_categories INTEGER NOT NULL,  -- -1 para ilimitado
+    features JSONB DEFAULT NULL       -- Ex: {"coupons": true, "business_hours": true}
+);
+
+-- Popula os planos iniciais
+INSERT INTO plans (id, name, price, max_products, max_categories, features) VALUES
+(1, 'Bronze (Grátis)', 0.00, 10, 3, '{"coupons": false, "business_hours": false}'),
+(2, 'Prata (Profissional)', 49.90, 100, 10, '{"coupons": true, "business_hours": true}'),
+(3, 'Ouro (Ilimitado)', 89.90, -1, -1, '{"coupons": true, "business_hours": true}')
+ON CONFLICT (id) DO UPDATE SET 
+    price = EXCLUDED.price, 
+    max_products = EXCLUDED.max_products, 
+    max_categories = EXCLUDED.max_categories, 
+    features = EXCLUDED.features;
+
+-- Associa plano e data de expiração à tabela de shops
+ALTER TABLE shops ADD COLUMN IF NOT EXISTS plan_id INTEGER REFERENCES plans(id) DEFAULT 1;
+ALTER TABLE shops ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+
+
 
 
 

@@ -56,8 +56,11 @@ func (h *Handlers) HandleCatalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verifica se a loja está aberta
-	isOpen := IsShopOpen(shop.BusinessHours)
+	// Verifica se a loja está aberta (apenas para planos diferentes de Bronze/1)
+	isOpen := true
+	if shop.PlanID != 1 {
+		isOpen = IsShopOpen(shop.BusinessHours)
+	}
 
 	var parsedHours map[string]map[string]string
 	if shop.BusinessHours != nil && *shop.BusinessHours != "" && *shop.BusinessHours != "null" {
@@ -173,6 +176,16 @@ func (h *Handlers) HandleValidateCoupon(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Bloqueia cupons no plano Bronze (ID 1)
+	if shop.PlanID == 1 {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"valid":   false,
+			"message": "Cupons de desconto não são aceitos nesta loja.",
+		})
+		return
+	}
+
 	coupon, err := h.DB.GetCouponByCode(r.Context(), shop.ID, code)
 	if err != nil {
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -237,8 +250,8 @@ func (h *Handlers) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Valida se a loja está aberta
-	if !IsShopOpen(shop.BusinessHours) {
+	// 1. Valida se a loja está aberta (apenas para planos diferentes de Bronze/1)
+	if shop.PlanID != 1 && !IsShopOpen(shop.BusinessHours) {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
@@ -348,9 +361,9 @@ func (h *Handlers) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// 3. Aplica cupom de desconto
+	// 3. Aplica cupom de desconto (apenas para planos diferentes de Bronze/1)
 	var discount float64
-	if req.CouponCode != "" {
+	if req.CouponCode != "" && shop.PlanID != 1 {
 		coupon, err := h.DB.GetCouponByCode(r.Context(), shop.ID, req.CouponCode)
 		if err == nil {
 			if coupon.Type == "percentage" {

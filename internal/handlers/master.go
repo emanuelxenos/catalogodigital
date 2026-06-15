@@ -263,3 +263,59 @@ func (h *Handlers) HandleMasterUpdateConfigs(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("HX-Refresh", "true")
 	w.WriteHeader(http.StatusOK)
 }
+
+// HandleMasterChangePlan força a alteração manual do plano e validade de uma loja
+func (h *Handlers) HandleMasterChangePlan(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	shopID, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	planIDStr := r.FormValue("plan_id")
+	planID, err := strconv.Atoi(planIDStr)
+	if err != nil {
+		http.Error(w, "Plano inválido", http.StatusBadRequest)
+		return
+	}
+
+	// 1. Busca detalhes do plano
+	plan, err := h.DB.GetPlanByID(r.Context(), planID)
+	if err != nil {
+		http.Error(w, "Plano não encontrado", http.StatusNotFound)
+		return
+	}
+
+	// 2. Busca informações da loja
+	var shopName string
+	err = h.DB.Pool.QueryRow(r.Context(), "SELECT name FROM shops WHERE id = $1", shopID).Scan(&shopName)
+	if err != nil {
+		log.Printf("[MASTER] Erro ao buscar nome da loja %d: %v", shopID, err)
+		shopName = fmt.Sprintf("ID #%d", shopID)
+	}
+
+	// 3. Define validade (30 dias para pagos, indefinido para Bronze/Grátis)
+	days := 30
+	if planID == 1 {
+		days = 0
+	}
+
+	// 4. Aplica alteração no banco
+	if err := h.DB.UpgradeShopPlan(r.Context(), shopID, planID, days); err != nil {
+		log.Printf("[MASTER] Erro ao forçar alteração de plano da loja %d: %v", shopID, err)
+		http.Error(w, "Erro ao processar alteração", http.StatusInternalServerError)
+		return
+	}
+
+	// 5. Registra ação no Audit Log SaaS
+	details := fmt.Sprintf("Alteração manual de plano executada pelo Admin Mestre. Loja: %s (ID %d). Novo Plano: %s.", 
+		shopName, shopID, plan.Name)
+	if err := h.DB.CreatePlatformAuditLog(r.Context(), "PLAN_CHANGE_FORCED", details); err != nil {
+		log.Printf("[MASTER] Erro ao criar log de auditoria SaaS: %v", err)
+	}
+
+	// Força recarregamento total da página master para atualizar os dados
+	w.Header().Set("HX-Refresh", "true")
+	w.WriteHeader(http.StatusOK)
+}

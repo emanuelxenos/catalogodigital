@@ -57,12 +57,12 @@ func (db *DB) GetShopBySlug(ctx context.Context, slug string) (*Shop, error) {
 	shop := &Shop{}
 	err := db.Pool.QueryRow(ctx,
 		`SELECT id, user_id, name, slug, whatsapp_number, logo_url, primary_color, is_active, created_at,
-		        banner_url, delivery_fee, business_hours
+		        banner_url, delivery_fee, business_hours, plan_id, plan_expires_at
 		 FROM shops WHERE slug = $1`,
 		slug,
 	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.WhatsappNumber,
 		&shop.LogoURL, &shop.PrimaryColor, &shop.IsActive, &shop.CreatedAt,
-		&shop.BannerURL, &shop.DeliveryFee, &shop.BusinessHours)
+		&shop.BannerURL, &shop.DeliveryFee, &shop.BusinessHours, &shop.PlanID, &shop.PlanExpiresAt)
 	if err != nil {
 		return nil, fmt.Errorf("loja não encontrada: %w", err)
 	}
@@ -74,12 +74,12 @@ func (db *DB) GetShopByUserID(ctx context.Context, userID int) (*Shop, error) {
 	shop := &Shop{}
 	err := db.Pool.QueryRow(ctx,
 		`SELECT id, user_id, name, slug, whatsapp_number, logo_url, primary_color, is_active, created_at,
-		        banner_url, delivery_fee, business_hours
+		        banner_url, delivery_fee, business_hours, plan_id, plan_expires_at
 		 FROM shops WHERE user_id = $1`,
 		userID,
 	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.WhatsappNumber,
 		&shop.LogoURL, &shop.PrimaryColor, &shop.IsActive, &shop.CreatedAt,
-		&shop.BannerURL, &shop.DeliveryFee, &shop.BusinessHours)
+		&shop.BannerURL, &shop.DeliveryFee, &shop.BusinessHours, &shop.PlanID, &shop.PlanExpiresAt)
 	if err != nil {
 		return nil, fmt.Errorf("loja não encontrada: %w", err)
 	}
@@ -701,9 +701,10 @@ func (db *DB) GetPlatformMetrics(ctx context.Context) (map[string]interface{}, e
 func (db *DB) ListShopsWithOwners(ctx context.Context) ([]ShopWithOwner, error) {
 	query := `
 		SELECT s.id, s.user_id, s.name, s.slug, s.whatsapp_number, s.logo_url, s.is_active, s.created_at,
-		       u.name as owner_name, u.email as owner_email
+		       u.name as owner_name, u.email as owner_email, s.plan_id, s.plan_expires_at, p.name as plan_name
 		FROM shops s
 		JOIN users u ON s.user_id = u.id
+		JOIN plans p ON s.plan_id = p.id
 		ORDER BY s.created_at DESC
 	`
 	rows, err := db.Pool.Query(ctx, query)
@@ -717,7 +718,7 @@ func (db *DB) ListShopsWithOwners(ctx context.Context) ([]ShopWithOwner, error) 
 		var sw ShopWithOwner
 		err := rows.Scan(
 			&sw.ID, &sw.UserID, &sw.Name, &sw.Slug, &sw.WhatsappNumber, &sw.LogoURL, &sw.IsActive, &sw.CreatedAt,
-			&sw.OwnerName, &sw.OwnerEmail,
+			&sw.OwnerName, &sw.OwnerEmail, &sw.PlanID, &sw.PlanExpiresAt, &sw.PlanName,
 		)
 		if err != nil {
 			return nil, err
@@ -738,6 +739,52 @@ func (db *DB) ToggleShopActive(ctx context.Context, shopID int) (bool, error) {
 		return false, fmt.Errorf("erro ao alternar status da loja: %w", err)
 	}
 	return active, nil
+}
+
+// UpgradeShopPlan altera o plano de uma loja e define a data de expiração (dias a partir de agora)
+func (db *DB) UpgradeShopPlan(ctx context.Context, shopID, planID int, days int) error {
+	var err error
+	if days <= 0 {
+		// Sem expiração (ex: plano grátis)
+		_, err = db.Pool.Exec(ctx,
+			`UPDATE shops SET plan_id = $1, plan_expires_at = NULL WHERE id = $2`,
+			planID, shopID)
+	} else {
+		_, err = db.Pool.Exec(ctx,
+			`UPDATE shops SET plan_id = $1, plan_expires_at = CURRENT_TIMESTAMP + ($2 * INTERVAL '1 day') WHERE id = $3`,
+			planID, days, shopID)
+	}
+	if err != nil {
+		return fmt.Errorf("erro ao fazer upgrade do plano: %w", err)
+	}
+	return nil
+}
+
+// GetPlanByID retorna os detalhes e limites de um plano
+func (db *DB) GetPlanByID(ctx context.Context, planID int) (*Plan, error) {
+	p := &Plan{}
+	err := db.Pool.QueryRow(ctx,
+		`SELECT id, name, price, max_products, max_categories, features::text FROM plans WHERE id = $1`,
+		planID,
+	).Scan(&p.ID, &p.Name, &p.Price, &p.MaxProducts, &p.MaxCategories, &p.Features)
+	if err != nil {
+		return nil, fmt.Errorf("plano não encontrado: %w", err)
+	}
+	return p, nil
+}
+
+// GetShopUsage retorna a quantidade atual de produtos e categorias cadastradas na loja
+func (db *DB) GetShopUsage(ctx context.Context, shopID int) (currentProducts int, currentCategories int, err error) {
+	err = db.Pool.QueryRow(ctx,
+		`SELECT 
+			(SELECT COUNT(*) FROM products WHERE shop_id = $1) as products_count,
+			(SELECT COUNT(*) FROM categories WHERE shop_id = $1) as categories_count`,
+		shopID,
+	).Scan(&currentProducts, &currentCategories)
+	if err != nil {
+		return 0, 0, fmt.Errorf("erro ao calcular uso da loja: %w", err)
+	}
+	return currentProducts, currentCategories, nil
 }
 
 

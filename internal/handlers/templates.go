@@ -123,6 +123,25 @@ func NewTemplateEngine(baseDir string, devMode bool) *TemplateEngine {
 			}
 			return t.Format("02/01/2006 às 15:04")
 		},
+		"formatTimePtr": func(t *time.Time) string {
+			if t == nil {
+				return "Vitalício"
+			}
+			loc, err := time.LoadLocation("America/Sao_Paulo")
+			var localTime time.Time
+			if err == nil {
+				localTime = t.In(loc)
+			} else {
+				localTime = *t
+			}
+			return localTime.Format("02/01/2006 às 15:04")
+		},
+		"percent": func(current, max int) int {
+			if max <= 0 {
+				return 0
+			}
+			return int((float64(current) / float64(max)) * 100)
+		},
 		"multiply": func(price float64, qty int) float64 {
 			return price * float64(qty)
 		},
