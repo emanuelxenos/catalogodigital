@@ -100,6 +100,20 @@ func main() {
 		r.Get("/admin/cupons", h.HandleCoupons)
 		r.Post("/admin/cupons", h.HandleCreateCoupon)
 		r.Delete("/admin/cupons/{id}", h.HandleDeleteCoupon)
+
+	})
+
+	// ==================== ROTAS MASTER ADMIN (SaaS Subsystem) ====================
+	r.Get("/master/login", h.HandleMasterLoginPage)
+	r.Post("/master/login", h.HandleMasterLoginPost)
+	r.Get("/master/logout", h.HandleMasterLogout)
+
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.RequireMasterAuth(db))
+
+		r.Get("/master", h.HandleMasterDashboard)
+		r.Post("/master/shops/{id}/toggle", h.HandleMasterToggleShop)
+		r.Post("/master/configs", h.HandleMasterUpdateConfigs)
 	})
 
 	// ==================== ROTAS CATÁLOGO PÚBLICO ====================

@@ -80,3 +80,63 @@ func GetShopFromContext(r *http.Request) *database.Shop {
 	}
 	return shop
 }
+
+// RequireSuperAdmin garante que o usuário autenticado é um Super Admin da plataforma
+func RequireSuperAdmin() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			user := GetUserFromContext(r)
+			if user == nil || !user.IsSuperAdmin {
+				http.Error(w, "Acesso Negado: Área restrita ao administrador do sistema", http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// RequireMasterAuth garante que o administrador mestre está logado via cookie exclusivo do SaaS
+func RequireMasterAuth(db *database.DB) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			cookie, err := r.Cookie("master_session_id")
+			if err != nil {
+				http.Redirect(w, r, "/master/login", http.StatusSeeOther)
+				return
+			}
+
+			session, err := db.GetSession(r.Context(), cookie.Value)
+			if err != nil {
+				// Limpa o cookie inválido
+				http.SetCookie(w, &http.Cookie{
+					Name:     "master_session_id",
+					Value:    "",
+					Path:     "/",
+					MaxAge:   -1,
+					HttpOnly: true,
+				})
+				http.Redirect(w, r, "/master/login", http.StatusSeeOther)
+				return
+			}
+
+			user, err := db.GetUserByID(r.Context(), session.UserID)
+			if err != nil || !user.IsSuperAdmin {
+				// Usuário inválido ou não autorizado
+				http.SetCookie(w, &http.Cookie{
+					Name:     "master_session_id",
+					Value:    "",
+					Path:     "/",
+					MaxAge:   -1,
+					HttpOnly: true,
+				})
+				http.Redirect(w, r, "/master/login", http.StatusSeeOther)
+				return
+			}
+
+			// Injeta user no contexto
+			ctx := context.WithValue(r.Context(), UserContextKey, user)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+

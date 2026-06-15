@@ -1,0 +1,276 @@
+{{define "content"}}
+<div class="space-y-10 relative">
+
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 border-b border-slate-900 pb-8">
+        <div>
+            <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded bg-gradient-to-r from-pink-500 to-violet-600 text-[10px] font-black tracking-widest text-white uppercase neon-border">
+                    SYSTEM CONTROL
+                </span>
+            </div>
+            <h1 class="text-4xl font-extrabold tracking-tight text-white mt-3 bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+                SaaS Command Center
+            </h1>
+            <p class="text-slate-400 mt-1.5 text-sm font-medium">Controle global e configurações mestre da plataforma digital</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="inline-flex items-center px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-350 text-xs font-semibold">
+                Versão Core: <strong class="text-violet-400 ml-1">v2.1.0-master</strong>
+            </span>
+        </div>
+    </div>
+
+    <!-- Platform Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Global Revenue -->
+        <div class="glass-super rounded-3xl p-6 border border-slate-900 shadow-2xl relative overflow-hidden group hover:border-emerald-500/20 transition-all duration-300">
+            <div class="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-emerald-500/5 blur-xl group-hover:bg-emerald-500/10 transition-all"></div>
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xl shadow-lg shadow-emerald-500/5 text-emerald-400 font-bold">
+                    R$
+                </div>
+                <div>
+                    <p class="text-3xl font-black text-white tracking-tight">{{formatPrice (index .Metrics "global_revenue")}}</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Receita Consolidada</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Stores -->
+        <div class="glass-super rounded-3xl p-6 border border-slate-900 shadow-2xl relative overflow-hidden group hover:border-violet-500/20 transition-all duration-300">
+            <div class="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-violet-500/5 blur-xl group-hover:bg-violet-500/10 transition-all"></div>
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="w-12 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-xl shadow-lg shadow-violet-500/5 text-violet-400">
+                    🏪
+                </div>
+                <div>
+                    <p class="text-3xl font-black text-white tracking-tight">{{index .Metrics "total_shops"}}</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Lojas Ativas</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Orders -->
+        <div class="glass-super rounded-3xl p-6 border border-slate-900 shadow-2xl relative overflow-hidden group hover:border-blue-500/20 transition-all duration-300">
+            <div class="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-blue-500/5 blur-xl group-hover:bg-blue-500/10 transition-all"></div>
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-xl shadow-lg shadow-blue-500/5 text-blue-450">
+                    📋
+                </div>
+                <div>
+                    <p class="text-3xl font-black text-white tracking-tight">{{index .Metrics "total_orders"}}</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Pedidos Totais</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Lojistas -->
+        <div class="glass-super rounded-3xl p-6 border border-slate-900 shadow-2xl relative overflow-hidden group hover:border-pink-500/20 transition-all duration-300">
+            <div class="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-pink-500/5 blur-xl group-hover:bg-pink-500/10 transition-all"></div>
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="w-12 h-12 rounded-2xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-xl shadow-lg shadow-pink-500/5 text-pink-400">
+                    👥
+                </div>
+                <div>
+                    <p class="text-3xl font-black text-white tracking-tight">{{index .Metrics "total_users"}}</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Lojistas Totais</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Split Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Column 1: Configs Form -->
+        <div class="lg:col-span-1 glass-super rounded-3xl border border-slate-900 p-6 flex flex-col justify-between shadow-2xl">
+            <div>
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="text-violet-400 text-lg">⚙️</span>
+                    <h2 class="text-lg font-bold text-white tracking-tight">Configurações SaaS</h2>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed mb-6">Controle as definições globais da sua plataforma de catálogo digital.</p>
+                
+                <form hx-post="/master/configs" hx-swap="none" class="space-y-5">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Nome da Plataforma</label>
+                        <input type="text" name="platform_name" value="{{index .Configs "platform_name"}}" 
+                               class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-sm font-semibold focus:outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Mensalidade Padrão (R$)</label>
+                        <input type="number" step="0.01" name="global_subscription_fee" value="{{index .Configs "global_subscription_fee"}}" 
+                               class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-sm font-semibold focus:outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">WhatsApp de Suporte</label>
+                        <input type="text" name="support_whatsapp" value="{{index .Configs "support_whatsapp"}}" 
+                               class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-sm font-semibold focus:outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Modo Manutenção</label>
+                        <div class="flex items-center gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-900">
+                            <input type="checkbox" name="maintenance_mode" value="true" {{if eq (index .Configs "maintenance_mode") "true"}}checked{{end}} 
+                                   class="w-4.5 h-4.5 rounded bg-slate-950 border-slate-900 text-violet-600 focus:ring-violet-500/40">
+                            <span class="text-xs text-slate-400 font-semibold">Ativar Modo Manutenção</span>
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-violet-600/10 active:scale-[0.98] transition-all">
+                        Salvar Configurações
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Column 2: Audit Logs -->
+        <div class="lg:col-span-2 glass-super rounded-3xl border border-slate-900 p-6 flex flex-col justify-between shadow-2xl">
+            <div>
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="text-pink-400 text-lg">📃</span>
+                    <h2 class="text-lg font-bold text-white tracking-tight">Audit Logs da Plataforma</h2>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed mb-6">Histórico de ações e eventos críticos executados na infraestrutura SaaS.</p>
+                
+                <div class="space-y-4 max-h-[365px] overflow-y-auto pr-2 custom-scrollbar">
+                    {{range .AuditLogs}}
+                    <div class="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-900/60 flex items-start gap-3.5 hover:border-slate-800/80 transition-all">
+                        <div class="p-2 rounded-lg bg-slate-900 border border-slate-800/40 text-sm mt-0.5">
+                            {{if eq .Action "CONFIG_UPDATE"}}⚙️{{else if eq .Action "SHOP_SUSPEND"}}🚫{{else if eq .Action "SHOP_ACTIVATE"}}✅{{else}}📝{{end}}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs font-bold text-slate-200 uppercase tracking-wide">{{.Action}}</span>
+                                <span class="text-[9px] font-semibold text-slate-500">{{formatTime .CreatedAt}}</span>
+                            </div>
+                            <p class="text-xs text-slate-450 mt-1 font-medium leading-relaxed">{{.Details}}</p>
+                        </div>
+                    </div>
+                    {{end}}
+                    
+                    {{if not .AuditLogs}}
+                    <div class="text-center py-12 text-slate-500">
+                        <p class="text-sm font-semibold">Nenhum evento registrado no log</p>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stores Table Container -->
+    <div id="tabela-lojas" class="glass-super rounded-3xl border border-slate-900 shadow-2xl overflow-hidden scroll-mt-24">
+        <div class="px-6 py-5 border-b border-slate-900 bg-slate-900/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h3 class="text-lg font-bold text-white tracking-tight">Gerenciamento de Tenants</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Ative ou suspenda lojas parceiras instantaneamente</p>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full admin-table text-sm text-left">
+                <thead>
+                    <tr class="border-b border-slate-900/80 text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-950/40">
+                        <th class="px-6 py-4 text-left">Loja</th>
+                        <th class="px-6 py-4 text-left hidden lg:table-cell">Slug (Endereço)</th>
+                        <th class="px-6 py-4 text-left hidden md:table-cell">Proprietário</th>
+                        <th class="px-6 py-4 text-left hidden sm:table-cell">DDI/WhatsApp</th>
+                        <th class="px-6 py-4 text-left hidden lg:table-cell">Criação</th>
+                        <th class="px-6 py-4 text-right">Ações / Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-900/40">
+                    {{range .Shops}}
+                    <tr class="hover:bg-slate-900/20 transition-colors">
+                        <!-- Loja info -->
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-slate-900 overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-800/50 shadow-inner">
+                                    {{if .LogoURL}}
+                                    <img src="{{.LogoURL}}" alt="" class="w-full h-full object-cover">
+                                    {{else}}
+                                    <span class="text-violet-400 font-extrabold text-sm">{{slice .Name 0 1}}</span>
+                                    {{end}}
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="font-bold text-white truncate">{{.Name}}</p>
+                                    <span class="text-[10px] font-semibold text-slate-500">ID: #{{.ID}}</span>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <!-- Slug -->
+                        <td class="px-6 py-4 hidden lg:table-cell">
+                            <a href="/{{.Slug}}" target="_blank" class="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors flex items-center gap-1">
+                                <span>/{{.Slug}}</span>
+                                <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                </svg>
+                            </a>
+                        </td>
+                        
+                        <!-- Lojista proprietário -->
+                        <td class="px-6 py-4 hidden md:table-cell">
+                            <div class="min-w-0">
+                                <p class="text-slate-355 font-semibold truncate">{{.OwnerName}}</p>
+                                <p class="text-xs text-slate-550 truncate">{{.OwnerEmail}}</p>
+                            </div>
+                        </td>
+                        
+                        <!-- WhatsApp -->
+                        <td class="px-6 py-4 hidden sm:table-cell text-slate-300 font-medium">
+                            <a href="https://wa.me/{{.WhatsappNumber}}" target="_blank" class="hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                <span>+{{.WhatsappNumber}}</span>
+                            </a>
+                        </td>
+                        
+                        <!-- Criação -->
+                        <td class="px-6 py-4 hidden lg:table-cell text-slate-400 font-medium">
+                            {{formatTime .CreatedAt}}
+                        </td>
+                        
+                        <!-- Ações HTMX -->
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                {{if .IsActive}}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>
+                                    Ativa
+                                </span>
+                                <button hx-post="/master/shops/{{.ID}}/toggle" 
+                                        hx-swap="outerHTML" 
+                                        hx-target="closest div" 
+                                        class="px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold transition-all active:scale-[0.98]">
+                                    Suspender
+                                </button>
+                                {{else}}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20">
+                                    Suspensa
+                                </span>
+                                <button hx-post="/master/shops/{{.ID}}/toggle" 
+                                        hx-swap="outerHTML" 
+                                        hx-target="closest div" 
+                                        class="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-bold transition-all active:scale-[0.98]">
+                                    Reativar
+                                </button>
+                                {{end}}
+                            </div>
+                        </td>
+                    </tr>
+                    {{end}}
+                    
+                    {{if not .Shops}}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-slate-500">
+                            <span class="text-3xl block mb-2">🏪</span>
+                            <p class="font-bold">Nenhuma loja cadastrada no sistema</p>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{{end}}

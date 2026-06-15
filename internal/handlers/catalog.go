@@ -30,6 +30,18 @@ func (h *Handlers) HandleCatalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verifica se a loja está ativa
+	if !shop.IsActive {
+		data := map[string]interface{}{
+			"Shop": shop,
+		}
+		if err := h.Tmpl.RenderPage(w, "catalog/inactive.html", data); err != nil {
+			log.Printf("Erro ao renderizar pagina inativa: %v", err)
+			http.Error(w, "Erro interno", http.StatusInternalServerError)
+		}
+		return
+	}
+
 	// Busca categorias da loja
 	categories, err := h.DB.ListCategoriesByShop(r.Context(), shop.ID)
 	if err != nil {
@@ -79,6 +91,11 @@ func (h *Handlers) HandleProductsByCategory(w http.ResponseWriter, r *http.Reque
 	shop, err := h.DB.GetShopBySlug(r.Context(), slug)
 	if err != nil {
 		http.NotFound(w, r)
+		return
+	}
+
+	if !shop.IsActive {
+		http.Error(w, "Loja inativa", http.StatusForbidden)
 		return
 	}
 
@@ -147,6 +164,15 @@ func (h *Handlers) HandleValidateCoupon(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	if !shop.IsActive {
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"valid":   false,
+			"message": "Loja inativa",
+		})
+		return
+	}
+
 	coupon, err := h.DB.GetCouponByCode(r.Context(), shop.ID, code)
 	if err != nil {
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -198,6 +224,15 @@ func (h *Handlers) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
 			"message": "Loja não encontrada",
+		})
+		return
+	}
+
+	if !shop.IsActive {
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"message": "Loja inativa",
 		})
 		return
 	}

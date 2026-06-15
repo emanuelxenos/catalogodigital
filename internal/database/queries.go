@@ -15,9 +15,9 @@ func (db *DB) CreateUser(ctx context.Context, name, email, passwordHash string) 
 	user := &User{}
 	err := db.Pool.QueryRow(ctx,
 		`INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3)
-		 RETURNING id, name, email, password_hash, created_at`,
+		 RETURNING id, name, email, password_hash, is_super_admin, created_at`,
 		name, email, passwordHash,
-	).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.CreatedAt)
+	).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.IsSuperAdmin, &user.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao criar usuário: %w", err)
 	}
@@ -28,9 +28,9 @@ func (db *DB) CreateUser(ctx context.Context, name, email, passwordHash string) 
 func (db *DB) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	user := &User{}
 	err := db.Pool.QueryRow(ctx,
-		`SELECT id, name, email, password_hash, created_at FROM users WHERE email = $1`,
+		`SELECT id, name, email, password_hash, is_super_admin, created_at FROM users WHERE email = $1`,
 		email,
-	).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.CreatedAt)
+	).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.IsSuperAdmin, &user.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("usuário não encontrado: %w", err)
 	}
@@ -41,9 +41,9 @@ func (db *DB) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 func (db *DB) GetUserByID(ctx context.Context, id int) (*User, error) {
 	user := &User{}
 	err := db.Pool.QueryRow(ctx,
-		`SELECT id, name, email, password_hash, created_at FROM users WHERE id = $1`,
+		`SELECT id, name, email, password_hash, is_super_admin, created_at FROM users WHERE id = $1`,
 		id,
-	).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.CreatedAt)
+	).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.IsSuperAdmin, &user.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("usuário não encontrado: %w", err)
 	}
@@ -58,7 +58,7 @@ func (db *DB) GetShopBySlug(ctx context.Context, slug string) (*Shop, error) {
 	err := db.Pool.QueryRow(ctx,
 		`SELECT id, user_id, name, slug, whatsapp_number, logo_url, primary_color, is_active, created_at,
 		        banner_url, delivery_fee, business_hours
-		 FROM shops WHERE slug = $1 AND is_active = TRUE`,
+		 FROM shops WHERE slug = $1`,
 		slug,
 	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.WhatsappNumber,
 		&shop.LogoURL, &shop.PrimaryColor, &shop.IsActive, &shop.CreatedAt,
@@ -657,5 +657,88 @@ func (db *DB) GetDailySalesLast7Days(ctx context.Context, shopID int) ([]DailySa
 	}
 	return sales, nil
 }
+
+// GetPlatformMetrics calcula estatísticas consolidadas para o super admin
+func (db *DB) GetPlatformMetrics(ctx context.Context) (map[string]interface{}, error) {
+	metrics := make(map[string]interface{})
+
+	// Total de Lojistas
+	var totalUsers int
+	err := db.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&totalUsers)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao contar usuarios: %w", err)
+	}
+	metrics["total_users"] = totalUsers
+
+	// Total de Lojas
+	var totalShops int
+	err = db.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM shops").Scan(&totalShops)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao contar lojas: %w", err)
+	}
+	metrics["total_shops"] = totalShops
+
+	// Total de Pedidos
+	var totalOrders int
+	err = db.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM orders").Scan(&totalOrders)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao contar pedidos: %w", err)
+	}
+	metrics["total_orders"] = totalOrders
+
+	// Faturamento Consolidado Geral (desconsiderando pedidos cancelados)
+	var globalRevenue float64
+	err = db.Pool.QueryRow(ctx, "SELECT COALESCE(SUM(total), 0) FROM orders WHERE status != 'Cancelado'").Scan(&globalRevenue)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao calcular faturamento global: %w", err)
+	}
+	metrics["global_revenue"] = globalRevenue
+
+	return metrics, nil
+}
+
+// ListShopsWithOwners retorna todas as lojas cadastradas com os dados do lojista proprietário
+func (db *DB) ListShopsWithOwners(ctx context.Context) ([]ShopWithOwner, error) {
+	query := `
+		SELECT s.id, s.user_id, s.name, s.slug, s.whatsapp_number, s.logo_url, s.is_active, s.created_at,
+		       u.name as owner_name, u.email as owner_email
+		FROM shops s
+		JOIN users u ON s.user_id = u.id
+		ORDER BY s.created_at DESC
+	`
+	rows, err := db.Pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao consultar lojas: %w", err)
+	}
+	defer rows.Close()
+
+	var list []ShopWithOwner
+	for rows.Next() {
+		var sw ShopWithOwner
+		err := rows.Scan(
+			&sw.ID, &sw.UserID, &sw.Name, &sw.Slug, &sw.WhatsappNumber, &sw.LogoURL, &sw.IsActive, &sw.CreatedAt,
+			&sw.OwnerName, &sw.OwnerEmail,
+		)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, sw)
+	}
+	return list, nil
+}
+
+// ToggleShopActive altera o status ativo de uma loja no SaaS
+func (db *DB) ToggleShopActive(ctx context.Context, shopID int) (bool, error) {
+	var active bool
+	err := db.Pool.QueryRow(ctx,
+		`UPDATE shops SET is_active = NOT is_active WHERE id = $1 RETURNING is_active`,
+		shopID,
+	).Scan(&active)
+	if err != nil {
+		return false, fmt.Errorf("erro ao alternar status da loja: %w", err)
+	}
+	return active, nil
+}
+
 
 

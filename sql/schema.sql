@@ -126,4 +126,39 @@ CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 -- Suporte a múltiplas fotos de produtos
 ALTER TABLE products ADD COLUMN IF NOT EXISTS images JSONB DEFAULT NULL;
 
+-- Suporte a Super Admin (Dono da Plataforma)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_super_admin BOOLEAN DEFAULT FALSE;
+
+-- Promove o usuário administrador a Super Admin
+UPDATE users SET is_super_admin = TRUE WHERE email = 'admin@admin.com';
+
+-- =============================================================
+-- Subsystem SaaS - Tabelas Exclusivas do Admin Mestre
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS platform_configs (
+    key VARCHAR(255) PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS platform_audit_logs (
+    id SERIAL PRIMARY KEY,
+    action VARCHAR(255) NOT NULL,
+    details TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Configurações padrão da plataforma
+INSERT INTO platform_configs (key, value) VALUES 
+('platform_name', 'Catálogo Digital SaaS') ON CONFLICT DO NOTHING;
+INSERT INTO platform_configs (key, value) VALUES 
+('maintenance_mode', 'false') ON CONFLICT DO NOTHING;
+INSERT INTO platform_configs (key, value) VALUES 
+('global_subscription_fee', '49.90') ON CONFLICT DO NOTHING;
+INSERT INTO platform_configs (key, value) VALUES 
+('support_whatsapp', '5511999999999') ON CONFLICT DO NOTHING;
+
+
+
 

@@ -10,6 +10,7 @@ type User struct {
 	Name         string    `json:"name"`
 	Email        string    `json:"email"`
 	PasswordHash string    `json:"-"`
+	IsSuperAdmin bool      `json:"is_super_admin"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
@@ -109,5 +110,36 @@ type DailySales struct {
 	TotalSales float64   `json:"total_sales"`
 	OrderCount int       `json:"order_count"`
 }
+
+// ShopWithOwner representa os dados da loja mesclados com dados do usuário dono
+type ShopWithOwner struct {
+	ID             int       `json:"id"`
+	UserID         int       `json:"user_id"`
+	Name           string    `json:"name"`
+	Slug           string    `json:"slug"`
+	WhatsappNumber string    `json:"whatsapp_number"`
+	LogoURL        string    `json:"logo_url"`
+	IsActive       bool      `json:"is_active"`
+	CreatedAt      time.Time `json:"created_at"`
+	OwnerName      string    `json:"owner_name"`
+	OwnerEmail     string    `json:"owner_email"`
+}
+
+// PlatformConfig representa uma configuração global do SaaS
+type PlatformConfig struct {
+	Key       string    `json:"key"`
+	Value     string    `json:"value"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// PlatformAuditLog representa um log de auditoria global da plataforma
+type PlatformAuditLog struct {
+	ID        int       `json:"id"`
+	Action    string    `json:"action"`
+	Details   string    `json:"details"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+
 
 
