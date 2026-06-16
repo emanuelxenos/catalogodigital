@@ -175,8 +175,8 @@ CREATE TABLE IF NOT EXISTS plans (
 -- Popula os planos iniciais
 INSERT INTO plans (id, name, price, max_products, max_categories, features) VALUES
 (1, 'Bronze (Grátis/Teste)', 0.00, 10, 3, '{"coupons": false, "business_hours": false}'),
-(2, 'Prata (Essencial)', 29.90, 40, 6, '{"coupons": true, "business_hours": false}'),
-(3, 'Ouro (Profissional)', 49.90, 150, 15, '{"coupons": true, "business_hours": true}'),
+(2, 'Prata (Essencial)', 29.90, 20, 4, '{"coupons": true, "business_hours": false}'),
+(3, 'Ouro (Profissional)', 49.90, 100, 10, '{"coupons": true, "business_hours": true}'),
 (4, 'Diamante (Ilimitado)', 89.90, -1, -1, '{"coupons": true, "business_hours": true}')
 ON CONFLICT (id) DO UPDATE SET 
     name = EXCLUDED.name,
