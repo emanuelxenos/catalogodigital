@@ -1,15 +1,108 @@
 {{define "content"}}
-<div class="space-y-8">
+<div class="space-y-8" x-data="{
+    statusFilter: 'todos',
+    dateFilter: 'todos',
+    orderStatuses: {
+        {{range .Orders}}
+        '{{.ID}}': '{{.Status}}',
+        {{end}}
+    },
+    orderDates: {
+        {{range .Orders}}
+        '{{.ID}}': '{{.CreatedAt.Format "2006-01-02"}}',
+        {{end}}
+    },
+    getSPTime(d) {
+        const spStr = d.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
+        return new Date(spStr);
+    },
+    shouldShow(id) {
+        const status = this.orderStatuses[id];
+        const dateStr = this.orderDates[id];
+        if (this.statusFilter !== 'todos' && status !== this.statusFilter) {
+            return false;
+        }
+        if (this.dateFilter !== 'todos') {
+            const orderDate = new Date(dateStr + 'T00:00:00');
+            const today = this.getSPTime(new Date());
+            const orderMidnight = new Date(orderDate.getFullYear(), orderDate.getMonth(), orderDate.getDate());
+            const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            if (this.dateFilter === 'hoje') {
+                if (orderMidnight.getTime() !== todayMidnight.getTime()) {
+                    return false;
+                }
+            } else if (this.dateFilter === '7dias') {
+                const diffTime = todayMidnight.getTime() - orderMidnight.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays < 0 || diffDays > 7) {
+                    return false;
+                }
+            } else if (this.dateFilter === 'mes') {
+                if (orderDate.getFullYear() !== today.getFullYear() || orderDate.getMonth() !== today.getMonth()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+}">
     <!-- Page Header -->
-    <div>
-        <h1 class="text-2xl font-bold text-white">Pedidos Recebidos</h1>
-        <p class="text-slate-400 mt-1">Gerencie a preparação e entrega dos pedidos em tempo real</p>
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-white">Pedidos Recebidos</h1>
+            <p class="text-slate-400 mt-1">Gerencie a preparação e entrega dos pedidos em tempo real</p>
+        </div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="flex flex-wrap items-center gap-4 bg-slate-950/40 p-5 rounded-3xl border border-slate-800/40 backdrop-blur-md">
+        <!-- Status Filter -->
+        <div class="flex flex-col gap-1.5 flex-1 min-w-[200px]">
+            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Filtrar por Status</label>
+            <select x-model="statusFilter" class="bg-slate-900/90 border border-slate-800 text-slate-300 text-xs font-semibold rounded-2xl px-4 py-3.5 focus:outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all cursor-pointer">
+                <option value="todos">Todos os Status</option>
+                <option value="Pendente">Pendente</option>
+                <option value="Preparando">Preparando</option>
+                <option value="Enviado">Enviado</option>
+                <option value="Concluido">Concluído</option>
+                <option value="Cancelado">Cancelado</option>
+            </select>
+        </div>
+
+        <!-- Date Filter -->
+        <div class="flex flex-col gap-1.5 flex-1 min-w-[200px]">
+            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Filtrar por Período</label>
+            <select x-model="dateFilter" class="bg-slate-900/90 border border-slate-800 text-slate-350 text-xs font-semibold rounded-2xl px-4 py-3.5 focus:outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all cursor-pointer">
+                <option value="todos">Todas as Datas</option>
+                <option value="hoje">Hoje</option>
+                <option value="7dias">Últimos 7 Dias</option>
+                <option value="mes">Este Mês</option>
+            </select>
+        </div>
+        
+        <!-- Stats Counter -->
+        <div class="flex items-center gap-6 px-4 py-2 border-l border-slate-800/60 hidden md:flex">
+            <div>
+                <span class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Filtrados</span>
+                <span class="text-xl font-extrabold text-white" x-text="Object.keys(orderStatuses).filter(id => shouldShow(id)).length"></span>
+            </div>
+            <div>
+                <span class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Pendentes</span>
+                <span class="text-xl font-extrabold text-amber-500" x-text="Object.keys(orderStatuses).filter(id => orderStatuses[id] === 'Pendente').length"></span>
+            </div>
+        </div>
     </div>
 
     <!-- Orders Cards Grid -->
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6" x-show="Object.keys(orderStatuses).filter(id => shouldShow(id)).length > 0">
         {{range .Orders}}
-        <div id="order-card-{{.ID}}" class="glass-dark rounded-3xl border border-slate-800/60 p-6 flex flex-col justify-between space-y-6">
+        <div id="order-card-{{.ID}}" 
+             x-show="shouldShow('{{.ID}}')"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             class="glass-dark rounded-3xl border border-slate-800/60 p-6 flex flex-col justify-between space-y-6"
+        >
             
             <!-- Order Header -->
             <div class="flex items-start justify-between border-b border-slate-800/40 pb-4">
@@ -131,6 +224,7 @@
                             hx-post="/admin/pedidos/{{.ID}}/status" 
                             hx-target="#status-badge-container-{{.ID}}" 
                             hx-swap="innerHTML"
+                            @change="orderStatuses['{{.ID}}'] = $event.target.value"
                             class="bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-violet-500 transition-colors cursor-pointer">
                         <option value="Pendente" {{if eq .Status "Pendente"}}selected{{end}}>Pendente</option>
                         <option value="Preparando" {{if eq .Status "Preparando"}}selected{{end}}>Preparando</option>
@@ -161,6 +255,16 @@
             <p class="text-sm text-slate-500 mt-1">Os pedidos feitos no seu catálogo aparecerão aqui em tempo real.</p>
         </div>
         {{end}}
+    </div>
+
+    <!-- No matches for filter -->
+    <div 
+        x-show="Object.keys(orderStatuses).filter(id => shouldShow(id)).length === 0 && Object.keys(orderStatuses).length > 0"
+        class="text-center py-20 glass-dark rounded-3xl border border-slate-800/60 w-full"
+    >
+        <span class="text-4xl block mb-3">🔍</span>
+        <p class="text-slate-400 font-bold">Nenhum pedido encontrado</p>
+        <p class="text-sm text-slate-500 mt-1">Tente ajustar seus filtros de status ou data.</p>
     </div>
 </div>
 
