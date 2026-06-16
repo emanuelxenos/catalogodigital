@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Faturamento - {{.Shop.Name}}</title>
+    <!-- Tailwind CSS (apenas para estruturar o print facilmente) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+        body {
+            font-family: 'Outfit', system-ui, sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+    </style>
+</head>
+<body class="p-8 max-w-4xl mx-auto" onload="window.print()">
+    <!-- Header -->
+    <div class="flex items-center justify-between border-b-2 border-slate-900 pb-6 mb-8">
+        <div>
+            <h1 class="text-2xl font-black uppercase tracking-wider">{{.Shop.Name}}</h1>
+            <p class="text-xs text-slate-500 mt-1">Relatório SaaS Consolidado de Faturamento & Caixa</p>
+        </div>
+        <div class="text-right">
+            <p class="text-xs font-bold text-slate-700">Data de Geração:</p>
+            <p class="text-xs text-slate-500">{{formatTime .Now}}</p>
+        </div>
+    </div>
+
+    <!-- Print Action Warning (non-printed) -->
+    <div class="no-print mb-6 p-4 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-800 text-xs flex justify-between items-center">
+        <span>A janela de impressão do seu navegador foi aberta automaticamente. Caso queira fechar e retornar ao painel, clique em fechar.</span>
+        <button onclick="window.close()" class="px-3 py-1 bg-violet-600 text-white rounded font-bold uppercase tracking-wider hover:bg-violet-700">Fechar Guia</button>
+    </div>
+
+    <!-- Metrics Summary Grid -->
+    <div class="grid grid-cols-3 gap-6 mb-10">
+        <div class="p-4 rounded-xl border border-slate-200 bg-white">
+            <span class="text-[10px] uppercase font-bold text-slate-400">Faturamento Mensal</span>
+            <p class="text-xl font-bold text-slate-900 mt-1">
+                {{if .Metrics}}{{formatPrice (index .Metrics "revenue_month")}}{{else}}R$ 0,00{{end}}
+            </p>
+        </div>
+        <div class="p-4 rounded-xl border border-slate-200 bg-white">
+            <span class="text-[10px] uppercase font-bold text-slate-400">Volume de Pedidos</span>
+            <p class="text-xl font-bold text-slate-900 mt-1">
+                {{if .Metrics}}{{index .Metrics "total_orders"}}{{else}}0{{end}}
+            </p>
+        </div>
+        <div class="p-4 rounded-xl border border-slate-200 bg-white">
+            <span class="text-[10px] uppercase font-bold text-slate-400">Ticket Médio</span>
+            <p class="text-xl font-bold text-slate-900 mt-1">
+                {{if .Metrics}}{{formatPrice (index .Metrics "average_ticket")}}{{else}}R$ 0,00{{end}}
+            </p>
+        </div>
+    </div>
+
+    <!-- Best Sellers Table -->
+    <div class="mb-10">
+        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700 mb-4 border-b border-slate-200 pb-2">Ranking de Produtos Mais Vendidos</h3>
+        <table class="w-full text-sm text-left border-collapse">
+            <thead>
+                <tr class="border-b-2 border-slate-300 text-xs uppercase font-bold text-slate-600 bg-slate-50">
+                    <th class="py-2.5 px-3 w-16 text-center">Posição</th>
+                    <th class="py-2.5 px-3">Nome do Produto</th>
+                    <th class="py-2.5 px-3 text-center">Unidades</th>
+                    <th class="py-2.5 px-3 text-right">Faturamento</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                {{range $index, $item := .BestSellers}}
+                <tr>
+                    <td class="py-3 px-3 text-center font-bold text-slate-500">{{add $index 1}}º</td>
+                    <td class="py-3 px-3 font-semibold">{{$item.Name}}</td>
+                    <td class="py-3 px-3 text-center">{{$item.TotalQty}}</td>
+                    <td class="py-3 px-3 text-right font-bold">{{formatPrice $item.TotalRevenue}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Payment Stats Table -->
+    <div class="mb-10">
+        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700 mb-4 border-b border-slate-200 pb-2">Vendas por Meio de Pagamento</h3>
+        <table class="w-full text-sm text-left border-collapse">
+            <thead>
+                <tr class="border-b-2 border-slate-300 text-xs uppercase font-bold text-slate-600 bg-slate-50">
+                    <th class="py-2.5 px-3">Meio de Pagamento</th>
+                    <th class="py-2.5 px-3 text-center">Quantidade de Pedidos</th>
+                    <th class="py-2.5 px-3 text-right">Faturamento Total</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                {{range $item := .PaymentStats}}
+                <tr>
+                    <td class="py-3 px-3 font-semibold uppercase">
+                        {{if eq $item.Method "pix"}}⚡ Pix{{else if eq $item.Method "cartao"}}💳 Cartão{{else}}💵 Dinheiro{{end}}
+                    </td>
+                    <td class="py-3 px-3 text-center">{{$item.OrderCount}}</td>
+                    <td class="py-3 px-3 text-right font-bold">{{formatPrice $item.TotalRevenue}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Footer of the PDF -->
+    <div class="mt-16 border-t border-slate-200 pt-6 text-center text-[10px] text-slate-400">
+        <p>Este documento foi gerado pelo painel administrativo do Catálogo Digital SaaS.</p>
+        <p class="mt-1">Licenciado para a loja {{.Shop.Name}} sob o plano Diamante.</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,113 @@
+{{define "content"}}
+<div class="space-y-8" x-data="{ 
+    baseUrl: '{{.CatalogURL}}',
+    tableNum: '',
+    getQrUrl() {
+        let data = this.baseUrl;
+        if (this.tableNum) {
+            data += '?mesa=' + encodeURIComponent(this.tableNum);
+        }
+        return 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(data) + '&color=0f172a&margin=10';
+    },
+    getPrintUrl() {
+        let url = '/admin/flyer?print=true';
+        if (this.tableNum) {
+            url += '&mesa=' + encodeURIComponent(this.tableNum);
+        }
+        return url;
+    }
+}">
+    <!-- Page Header -->
+    <div>
+        <h1 class="text-2xl font-bold text-white">Display de Mesa com QR Code</h1>
+        <p class="text-slate-400 mt-1">Gere cartões e displays elegantes para colocar em mesas, balcões ou embalagens de delivery</p>
+    </div>
+
+    <!-- Main Panel Container -->
+    <div class="relative min-h-[450px]">
+        
+        <!-- Lock Screen Overlay -->
+        {{if .IsLocked}}
+        <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm rounded-3xl z-20 flex flex-col items-center justify-center p-6 text-center border border-slate-900 shadow-2xl">
+            <span class="text-4xl mb-3">🔒</span>
+            <h2 class="text-lg font-bold text-white uppercase tracking-wider">Display de Mesa QR Code</h2>
+            <p class="text-xs text-slate-450 mt-1.5 max-w-sm leading-relaxed">
+                Permita que seus clientes leiam um QR Code na mesa e façam o pedido imediatamente pelo celular de forma integrada. Recurso disponível a partir do plano **Ouro**.
+            </p>
+            <a href="/admin/plano" 
+               class="mt-4 px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-violet-500/25">
+                Liberar Funcionalidade
+            </a>
+        </div>
+        {{end}}
+
+        <!-- Form and Preview Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 {{if .IsLocked}}blur-[2px] pointer-events-none select-none{{end}}">
+            
+            <!-- Left Side: Configurator -->
+            <div class="glass-dark p-6 rounded-3xl border border-slate-900 space-y-6">
+                <div>
+                    <h3 class="text-sm font-bold text-white uppercase tracking-wider">Configurar Identificação</h3>
+                    <p class="text-[11px] text-slate-500 mt-0.5">Identifique opcionalmente de onde o cliente está pedindo</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-350 mb-2">Número/Nome da Mesa (Opcional)</label>
+                        <input type="text" x-model="tableNum" placeholder="Ex: 05, Varanda, VIP" 
+                               class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-sm font-semibold focus:outline-none transition-all">
+                        <p class="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
+                            Ao preencher, o carrinho de compras do cliente incluirá automaticamente essa informação na mensagem final do pedido para facilitar o atendimento.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-2xl bg-slate-950/40 border border-slate-900/60 text-xs text-slate-450 leading-relaxed">
+                        💡 **Dica de Impressão:** Ao clicar no botão de impressão, o display abrirá em uma nova janela limpa sem o menu administrativo. Configure sua impressora para o formato A4 ou meia-folha e use papel de maior gramatura para melhor acabamento!
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-900">
+                    <a :href="getPrintUrl()" target="_blank"
+                       class="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-550 hover:to-indigo-550 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-violet-500/10 hover:shadow-violet-500/20 active:scale-[0.98] transition-all">
+                        🖨️ Visualizar e Imprimir Display
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right Side: Real-time Live Preview -->
+            <div class="flex flex-col items-center justify-center p-8 rounded-3xl border border-dashed border-slate-800 bg-slate-900/5 relative overflow-hidden group">
+                <span class="absolute top-4 left-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pré-visualização do Display</span>
+                
+                <!-- Simulated Physical Flyer -->
+                <div class="w-64 bg-white text-slate-950 p-6 rounded-2xl shadow-xl flex flex-col items-center text-center space-y-4 border border-slate-200">
+                    <!-- Shop Identity -->
+                    <div>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Cardápio Online</p>
+                        <h4 class="text-sm font-black text-slate-900 uppercase mt-0.5">{{.Shop.Name}}</h4>
+                    </div>
+
+                    <!-- Table Identification (dynamic) -->
+                    <div class="h-6 flex items-center justify-center">
+                        <template x-if="tableNum">
+                            <span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-extrabold uppercase border border-slate-200"
+                                  x-text="'Mesa: ' + tableNum"></span>
+                        </template>
+                    </div>
+
+                    <!-- Dynamic QR Code -->
+                    <div class="w-40 h-40 bg-slate-50 rounded-xl p-1.5 border border-slate-200 shadow-inner flex items-center justify-center">
+                        <img :src="getQrUrl()" alt="QR Code" class="w-full h-full object-contain">
+                    </div>
+
+                    <!-- Scan Instructions -->
+                    <div class="space-y-1">
+                        <p class="text-[10px] font-extrabold text-slate-800 uppercase tracking-wider">Aponte a Câmera</p>
+                        <p class="text-[9px] text-slate-500 max-w-[150px] leading-relaxed mx-auto">Faça seu pedido diretamente pelo celular de forma rápida e segura.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{{end}}

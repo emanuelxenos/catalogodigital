@@ -104,6 +104,18 @@ func main() {
 		// Assinatura e Faturamento
 		r.Get("/admin/plano", h.HandleShopBilling)
 		r.Post("/admin/plano/upgrade", h.HandleUpgradeSimulatorPost)
+
+		// Relatórios de Vendas
+		r.Get("/admin/relatorios", h.HandleReportsPage)
+		r.Get("/admin/relatorios/impressao", h.HandlePrintReports)
+
+		// Panfleto / Display de Mesa QR Code
+		r.Get("/admin/flyer", h.HandleQRFlyer)
+
+		// Banners Promocionais
+		r.Get("/admin/banners", h.HandleManageBanners)
+		r.Post("/admin/banners", h.HandleCreateBanner)
+		r.Delete("/admin/banners/{id}", h.HandleDeleteBanner)
 	})
 
 	// ==================== ROTAS MASTER ADMIN (SaaS Subsystem) ====================

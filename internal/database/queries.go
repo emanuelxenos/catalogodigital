@@ -792,5 +792,145 @@ func (db *DB) GetShopUsage(ctx context.Context, shopID int) (currentProducts int
 	return currentProducts, currentCategories, nil
 }
 
+// CreateShopBanner cria um novo banner promocional associado a loja
+func (db *DB) CreateShopBanner(ctx context.Context, b *ShopBanner) error {
+	err := db.Pool.QueryRow(ctx,
+		`INSERT INTO shop_banners (shop_id, image_url, link_url, position)
+		 VALUES ($1, $2, $3, $4) RETURNING id, created_at`,
+		b.ShopID, b.ImageURL, b.LinkURL, b.Position,
+	).Scan(&b.ID, &b.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("erro ao criar banner: %w", err)
+	}
+	return nil
+}
+
+// ListShopBanners lista todos os banners promocionais da loja
+func (db *DB) ListShopBanners(ctx context.Context, shopID int) ([]ShopBanner, error) {
+	rows, err := db.Pool.Query(ctx,
+		`SELECT id, shop_id, image_url, link_url, position, created_at
+		 FROM shop_banners WHERE shop_id = $1 ORDER BY position ASC, created_at DESC`,
+		shopID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao listar banners: %w", err)
+	}
+	defer rows.Close()
+
+	var banners []ShopBanner
+	for rows.Next() {
+		var b ShopBanner
+		if err := rows.Scan(&b.ID, &b.ShopID, &b.ImageURL, &b.LinkURL, &b.Position, &b.CreatedAt); err != nil {
+			return nil, err
+		}
+		banners = append(banners, b)
+	}
+	return banners, nil
+}
+
+// DeleteShopBanner deleta um banner promocional
+func (db *DB) DeleteShopBanner(ctx context.Context, id, shopID int) error {
+	result, err := db.Pool.Exec(ctx,
+		`DELETE FROM shop_banners WHERE id = $1 AND shop_id = $2`,
+		id, shopID,
+	)
+	if err != nil {
+		return fmt.Errorf("erro ao deletar banner: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("banner não encontrado")
+	}
+	return nil
+}
+
+// GetBestSellingProducts busca os produtos mais vendidos de uma loja
+func (db *DB) GetBestSellingProducts(ctx context.Context, shopID, limit int) ([]BestSeller, error) {
+	rows, err := db.Pool.Query(ctx,
+		`SELECT oi.name, SUM(oi.qty)::int as total_qty, SUM(oi.qty * oi.price)::float8 as total_revenue
+		 FROM order_items oi
+		 JOIN orders o ON oi.order_id = o.id
+		 WHERE o.shop_id = $1 AND o.status != 'Cancelado'
+		 GROUP BY oi.name
+		 ORDER BY total_qty DESC
+		 LIMIT $2`,
+		shopID, limit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar mais vendidos: %w", err)
+	}
+	defer rows.Close()
+
+	var list []BestSeller
+	for rows.Next() {
+		var item BestSeller
+		if err := rows.Scan(&item.Name, &item.TotalQty, &item.TotalRevenue); err != nil {
+			return nil, err
+		}
+		list = append(list, item)
+	}
+	return list, nil
+}
+
+// GetSalesByPaymentMethod busca estatísticas de vendas por método de pagamento
+func (db *DB) GetSalesByPaymentMethod(ctx context.Context, shopID int) ([]PaymentMethodStat, error) {
+	rows, err := db.Pool.Query(ctx,
+		`SELECT o.payment_method, COUNT(*)::int as order_count, SUM(o.total)::float8 as total_revenue
+		 FROM orders o
+		 WHERE o.shop_id = $1 AND o.status != 'Cancelado'
+		 GROUP BY o.payment_method`,
+		shopID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar vendas por pagamento: %w", err)
+	}
+	defer rows.Close()
+
+	var list []PaymentMethodStat
+	for rows.Next() {
+		var item PaymentMethodStat
+		if err := rows.Scan(&item.Method, &item.OrderCount, &item.TotalRevenue); err != nil {
+			return nil, err
+		}
+		list = append(list, item)
+	}
+	return list, nil
+}
+
+// GetDailySalesLast30Days busca faturamento diário dos últimos 30 dias
+func (db *DB) GetDailySalesLast30Days(ctx context.Context, shopID int) ([]DailySales, error) {
+	query := `
+		SELECT 
+			d.date::date as sales_date,
+			to_char(d.date, 'DD/MM') as day_name,
+			COALESCE(SUM(o.total), 0) as total_sales,
+			COUNT(o.id)::int as order_count
+		FROM (
+			SELECT generate_series(
+				CURRENT_DATE - INTERVAL '29 days',
+				CURRENT_DATE,
+				'1 day'::interval
+			)::date as date
+		) d
+		LEFT JOIN orders o ON o.shop_id = $1 AND o.created_at::date = d.date AND o.status != 'Cancelado'
+		GROUP BY d.date
+		ORDER BY d.date ASC
+	`
+	rows, err := db.Pool.Query(ctx, query, shopID)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar vendas de 30 dias: %w", err)
+	}
+	defer rows.Close()
+
+	var sales []DailySales
+	for rows.Next() {
+		var s DailySales
+		if err := rows.Scan(&s.Date, &s.DayName, &s.TotalSales, &s.OrderCount); err != nil {
+			return nil, err
+		}
+		sales = append(sales, s)
+	}
+	return sales, nil
+}
+
 
 

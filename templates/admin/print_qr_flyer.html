@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Display de Mesa - {{.Shop.Name}}</title>
+    <!-- Tailwind CSS (apenas para organizar print rapidamente) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+        body {
+            font-family: 'Outfit', system-ui, sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        :root {
+            --primary-color: {{.Shop.PrimaryColor}};
+        }
+        .border-primary {
+            border-color: var(--primary-color) !important;
+        }
+        .text-primary {
+            color: var(--primary-color) !important;
+        }
+        .bg-primary {
+            background-color: var(--primary-color) !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4" onload="window.print()">
+    
+    <!-- Print Action Warning (non-printed) -->
+    <div class="no-print w-full max-w-sm mb-6 p-4 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-800 text-xs flex justify-between items-center">
+        <span>Pronto para impressão física.</span>
+        <button onclick="window.close()" class="px-3 py-1 bg-violet-600 text-white rounded font-bold uppercase tracking-wider hover:bg-violet-700">Fechar Guia</button>
+    </div>
+
+    <!-- Printable Display Card (A4 centered mockup) -->
+    <div class="w-[450px] min-h-[640px] bg-white text-slate-950 p-12 rounded-[2rem] shadow-2xl border-4 border-slate-900/10 flex flex-col items-center justify-between text-center space-y-6 relative overflow-hidden">
+        
+        <!-- Top decoration header -->
+        <div class="space-y-1">
+            <span class="text-xs font-black uppercase tracking-[0.25em] text-slate-400">Cardápio & Pedidos Online</span>
+            <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tight mt-1">{{.Shop.Name}}</h1>
+        </div>
+
+        <!-- Dynamic Table Identifier -->
+        <div class="h-10 flex items-center justify-center">
+            {{if .TableNum}}
+            <span class="px-5 py-1.5 rounded-full bg-slate-100 text-slate-900 text-xs font-extrabold uppercase border border-slate-200 shadow-sm">
+                Mesa: {{.TableNum}}
+            </span>
+            {{end}}
+        </div>
+
+        <!-- High-res QR Code -->
+        <div class="w-64 h-64 bg-slate-50 rounded-3xl p-4 border-2 border-slate-200 shadow-inner flex items-center justify-center relative">
+            <img src="{{.QRImageURL}}" alt="QR Code de Mesa" class="w-full h-full object-contain">
+        </div>
+
+        <!-- Scan Instructions -->
+        <div class="space-y-2">
+            <div class="flex items-center justify-center gap-1.5 text-primary text-sm font-black uppercase tracking-wider">
+                <span>📱</span> Aponte a Câmera
+            </div>
+            <p class="text-[11px] text-slate-500 max-w-xs leading-relaxed mx-auto">
+                Leia o QR Code com a câmera do seu celular, monte o seu pedido e envie direto no nosso WhatsApp sem esperar na fila!
+            </p>
+        </div>
+
+        <!-- Footer platform label -->
+        <div class="text-[9px] text-slate-400 pt-4 border-t border-slate-150 w-full uppercase tracking-wider font-semibold">
+            catalogo.com/{{.Shop.Slug}}
+        </div>
+    </div>
+
+</body>
+</html>

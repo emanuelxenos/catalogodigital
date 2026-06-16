@@ -69,12 +69,22 @@ func (h *Handlers) HandleCatalog(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var banners []database.ShopBanner
+	if shop.PlanID == 4 {
+		var err error
+		banners, err = h.DB.ListShopBanners(r.Context(), shop.ID)
+		if err != nil {
+			log.Printf("Erro ao buscar banners para o catalogo: %v", err)
+		}
+	}
+
 	data := map[string]interface{}{
 		"Shop":          shop,
 		"Categories":    categories,
 		"Products":      products,
 		"IsOpen":        isOpen,
 		"BusinessHours": parsedHours,
+		"Banners":       banners,
 	}
 
 	if err := h.Tmpl.Render(w, "base", "catalog/index.html", data); err != nil {

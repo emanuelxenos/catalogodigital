@@ -155,6 +155,26 @@ type Plan struct {
 	Features      *string `json:"features"` // JSON string
 }
 
+// ShopBanner representa um banner promocional associado à loja
+type ShopBanner struct {
+	ID        int       `json:"id"`
+	ShopID    int       `json:"shop_id"`
+	ImageURL  string    `json:"image_url"`
+	LinkURL   string    `json:"link_url"`
+	Position  int       `json:"position"`
+	CreatedAt time.Time `json:"created_at"`
+}
 
+// BestSeller representa um produto mais vendido para fins de relatorios
+type BestSeller struct {
+	Name         string  `json:"name"`
+	TotalQty     int     `json:"total_qty"`
+	TotalRevenue float64 `json:"total_revenue"`
+}
 
-
+// PaymentMethodStat representa estatisticas de vendas por meio de pagamento
+type PaymentMethodStat struct {
+	Method       string  `json:"method"`
+	OrderCount   int     `json:"order_count"`
+	TotalRevenue float64 `json:"total_revenue"`
+}

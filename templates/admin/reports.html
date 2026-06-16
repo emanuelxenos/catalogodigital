@@ -1,0 +1,273 @@
+{{define "content"}}
+<div class="space-y-8" x-data="{ showPdfLockModal: false }">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-white">Relatórios & Análise de Vendas</h1>
+            <p class="text-slate-400 mt-1">Acompanhe métricas financeiras, produtos mais vendidos e faturamento do seu negócio</p>
+        </div>
+        
+        {{if not .IsLocked}}
+        <div>
+            {{if .IsPDFLocked}}
+            <button @click="showPdfLockModal = true"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600/20 hover:bg-violet-600/35 text-violet-300 border border-violet-500/35 font-semibold text-xs uppercase tracking-wider transition-all active:scale-[0.98]">
+                📥 Exportar Relatório PDF
+            </button>
+            {{else}}
+            <a href="/admin/relatorios/impressao" target="_blank"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-550 hover:to-indigo-550 text-white font-semibold text-xs uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-violet-500/10">
+                📥 Exportar Relatório PDF
+            </a>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Main Content Panel -->
+    <div class="relative min-h-[500px]">
+        
+        <!-- Lock Screen Overlay -->
+        {{if .IsLocked}}
+        <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm rounded-3xl z-20 flex flex-col items-center justify-center p-6 text-center border border-slate-900 shadow-2xl">
+            <span class="text-4xl mb-3">🔒</span>
+            <h2 class="text-lg font-bold text-white uppercase tracking-wider">Métricas e Relatórios Analíticos</h2>
+            <p class="text-xs text-slate-450 mt-1.5 max-w-sm leading-relaxed">
+                Tenha acesso a gráficos de faturamento por período, produtos mais vendidos e canais de pagamento da sua loja. Recurso disponível a partir do plano **Ouro**.
+            </p>
+            <a href="/admin/plano" 
+               class="mt-4 px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-violet-500/25">
+                Liberar Funcionalidade
+            </a>
+        </div>
+        {{end}}
+
+        <!-- Dashboard Widgets & Charts (unlocked state) -->
+        <div class="space-y-8 {{if .IsLocked}}blur-[2px] pointer-events-none select-none{{end}}">
+            
+            <!-- Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <!-- Monthly Revenue Card -->
+                <div class="glass-dark p-6 rounded-2xl border border-slate-900 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Faturamento Mensal</span>
+                        <h3 class="text-2xl font-black text-white mt-1">
+                            {{if .Metrics}}{{formatPrice (index .Metrics "revenue_month")}}{{else}}R$ 0,00{{end}}
+                        </h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 flex items-center justify-center text-lg">💰</div>
+                </div>
+
+                <!-- Orders Volume Card -->
+                <div class="glass-dark p-6 rounded-2xl border border-slate-900 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Volume de Pedidos</span>
+                        <h3 class="text-2xl font-black text-white mt-1">
+                            {{if .Metrics}}{{index .Metrics "total_orders"}}{{else}}0{{end}}
+                        </h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-450 border border-blue-500/20 flex items-center justify-center text-lg">📋</div>
+                </div>
+
+                <!-- Average Ticket Card -->
+                <div class="glass-dark p-6 rounded-2xl border border-slate-900 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ticket Médio</span>
+                        <h3 class="text-2xl font-black text-white mt-1">
+                            {{if .Metrics}}{{formatPrice (index .Metrics "average_ticket")}}{{else}}R$ 0,00{{end}}
+                        </h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-450 border border-violet-500/20 flex items-center justify-center text-lg">⚡</div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Daily Sales Line Chart (Col Span 2) -->
+                <div class="lg:col-span-2 glass-dark p-6 rounded-3xl border border-slate-900 flex flex-col justify-between">
+                    <div class="mb-4">
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider">Faturamento Diário</h3>
+                        <p class="text-[11px] text-slate-500">Consolidado dos últimos 30 dias de vendas</p>
+                    </div>
+                    
+                    <div class="h-64 relative">
+                        <canvas id="dailySalesChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Payment Methods Donut Chart -->
+                <div class="lg:col-span-1 glass-dark p-6 rounded-3xl border border-slate-900 flex flex-col justify-between">
+                    <div class="mb-4">
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider">Meios de Pagamento</h3>
+                        <p class="text-[11px] text-slate-500">Distribuição de preferências dos clientes</p>
+                    </div>
+
+                    <div class="h-64 relative flex items-center justify-center">
+                        <canvas id="paymentMethodsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Best Selling Table & Stats Grid -->
+            <div class="glass-dark rounded-3xl border border-slate-900 overflow-hidden">
+                <div class="px-6 py-5 border-b border-slate-900 bg-slate-950/20">
+                    <h3 class="text-sm font-bold text-white uppercase tracking-wider">Top 5 Produtos Mais Vendidos</h3>
+                    <p class="text-[11px] text-slate-500">Ranking por volume de itens em pedidos concluídos/preparando</p>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full admin-table text-sm text-left">
+                        <thead>
+                            <tr class="border-b border-slate-900/80 text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-950/40">
+                                <th class="px-6 py-3.5 text-center w-12">Posição</th>
+                                <th class="px-6 py-3.5">Nome do Produto</th>
+                                <th class="px-6 py-3.5 text-center">Unidades Vendidas</th>
+                                <th class="px-6 py-3.5 text-right">Faturamento Gerado</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-900/40">
+                            {{range $index, $item := .BestSellers}}
+                            <tr class="hover:bg-slate-900/10">
+                                <td class="px-6 py-4 text-center font-extrabold text-slate-400">
+                                    {{add $index 1}}º
+                                </td>
+                                <td class="px-6 py-4 font-bold text-white">
+                                    {{$item.Name}}
+                                </td>
+                                <td class="px-6 py-4 text-center text-slate-300 font-semibold">
+                                    {{$item.TotalQty}}
+                                </td>
+                                <td class="px-6 py-4 text-right text-emerald-400 font-bold">
+                                    {{formatPrice $item.TotalRevenue}}
+                                </td>
+                            </tr>
+                            {{end}}
+                            
+                            {{if not .BestSellers}}
+                            <tr>
+                                <td colspan="4" class="px-6 py-12 text-center text-slate-600">
+                                    Nenhum item vendido registrado nos pedidos atuais.
+                                </td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js setup for rendering visual reports -->
+    {{if not .IsLocked}}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // 1. Parse JSON dados recebidos do Go
+            const dailyData = JSON.parse('{{.DailyJSON}}') || [];
+            const paymentData = JSON.parse('{{.PaymentJSON}}') || [];
+
+            // 2. Gráfico de Faturamento Diário (Linha)
+            const dailyLabels = dailyData.map(item => item.day_name);
+            const dailyValues = dailyData.map(item => item.total_sales);
+
+            const ctxLine = document.getElementById('dailySalesChart').getContext('2d');
+            new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: dailyLabels,
+                    datasets: [{
+                        label: 'Vendas (R$)',
+                        data: dailyValues,
+                        borderColor: '#8B5CF6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#8B5CF6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#94a3b8', font: { size: 10 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#94a3b8', font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+
+            // 3. Gráfico de Meios de Pagamento (Pizza/Donut)
+            const paymentLabels = paymentData.map(item => {
+                const names = { 'pix': '⚡ Pix', 'cartao': '💳 Cartão', 'dinheiro': '💵 Dinheiro' };
+                return names[item.method] || item.method;
+            });
+            const paymentValues = paymentData.map(item => item.total_revenue);
+
+            const ctxPie = document.getElementById('paymentMethodsChart').getContext('2d');
+            new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: paymentLabels,
+                    datasets: [{
+                        data: paymentValues,
+                        backgroundColor: ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#94a3b8', font: { size: 10 }, padding: 15 }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        });
+    </script>
+    {{end}}
+
+    <!-- PDF Lock Modal (Diamante Locked) -->
+    <div x-show="showPdfLockModal" 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         style="display: none;">
+         
+         <div class="glass-dark rounded-3xl border border-slate-900 shadow-2xl max-w-sm w-full p-6 text-center space-y-4"
+              @click.away="showPdfLockModal = false">
+              <div class="w-14 h-14 rounded-full bg-violet-500/10 border border-violet-500/20 text-xl flex items-center justify-center mx-auto">
+                  💎
+              </div>
+              <h3 class="text-sm font-bold text-white uppercase tracking-wider">Exportação PDF Exclusiva</h3>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                  Gerar relatórios de faturamento em arquivo PDF profissional e imprimível é um recurso avançado do plano **Diamante (Ilimitado)**.
+              </p>
+              <div class="flex flex-col gap-2 pt-2">
+                  <a href="/admin/plano" class="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs uppercase tracking-wider transition-all">
+                      Fazer Upgrade Diamante
+                  </a>
+                  <button @click="showPdfLockModal = false" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 font-bold text-xs uppercase tracking-wider transition-all">
+                      Fechar
+                  </button>
+              </div>
+         </div>
+    </div>
+</div>
+{{end}}

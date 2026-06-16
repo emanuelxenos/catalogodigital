@@ -118,6 +118,84 @@
 
             <!-- COLUMN 2: Main storefront listing with search, category carousel for mobile, and grid -->
             <main class="col-span-full lg:col-span-9 space-y-6">
+                {{if .Banners}}
+                <!-- Banners Slideshow -->
+                <div 
+                    class="relative w-full rounded-3xl overflow-hidden shadow-premium border border-slate-100/80 bg-white"
+                    x-data="{ 
+                        activeSlide: 0, 
+                        slidesCount: {{len .Banners}},
+                        autoPlayInterval: null,
+                        startAutoplay() {
+                            this.autoPlayInterval = setInterval(() => {
+                                this.activeSlide = (this.activeSlide + 1) % this.slidesCount;
+                            }, 5000);
+                        },
+                        stopAutoplay() {
+                            if (this.autoPlayInterval) clearInterval(this.autoPlayInterval);
+                        }
+                    }"
+                    x-init="startAutoplay()"
+                    @mouseenter="stopAutoplay()"
+                    @mouseleave="startAutoplay()"
+                >
+                    <!-- Slides Container -->
+                    <div class="relative h-48 sm:h-64 md:h-80 w-full overflow-hidden bg-slate-950">
+                        {{range $index, $banner := .Banners}}
+                        <div 
+                            class="absolute inset-0 w-full h-full transition-all duration-700 ease-in-out transform"
+                            x-show="activeSlide === {{$index}}"
+                            x-transition:enter="transition ease-out duration-700"
+                            x-transition:enter-start="opacity-0 translate-x-full"
+                            x-transition:enter-end="opacity-100 translate-x-0"
+                            x-transition:leave="transition ease-in duration-700"
+                            x-transition:leave-start="opacity-100 translate-x-0"
+                            x-transition:leave-end="opacity-0 -translate-x-full"
+                        >
+                            {{if $banner.LinkURL}}
+                            <a href="{{$banner.LinkURL}}" target="_blank" class="block w-full h-full">
+                            {{end}}
+                                <img src="{{$banner.ImageURL}}" class="w-full h-full object-cover" alt="Banner Promocional">
+                            {{if $banner.LinkURL}}
+                            </a>
+                            {{end}}
+                        </div>
+                        {{end}}
+
+                        <!-- Arrows Navigation (Only if count > 1) -->
+                        <template x-if="slidesCount > 1">
+                            <div class="absolute inset-y-0 inset-x-4 flex items-center justify-between pointer-events-none">
+                                <button 
+                                    @click="activeSlide = (activeSlide - 1 + slidesCount) % slidesCount"
+                                    class="w-10 h-10 rounded-full bg-slate-900/40 hover:bg-slate-900/60 backdrop-blur-md text-white flex items-center justify-center pointer-events-auto transition-all duration-200 active:scale-95"
+                                >
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+                                </button>
+                                <button 
+                                    @click="activeSlide = (activeSlide + 1) % slidesCount"
+                                    class="w-10 h-10 rounded-full bg-slate-900/40 hover:bg-slate-900/60 backdrop-blur-md text-white flex items-center justify-center pointer-events-auto transition-all duration-200 active:scale-95"
+                                >
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Slide Indicator Dots (Only if count > 1) -->
+                    <template x-if="slidesCount > 1">
+                        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                            {{range $index, $banner := .Banners}}
+                            <button 
+                                @click="activeSlide = {{$index}}"
+                                class="w-2.5 h-2.5 rounded-full transition-all duration-300"
+                                :class="activeSlide === {{$index}} ? 'bg-white w-6 shadow-md' : 'bg-white/40 hover:bg-white/60'"
+                            ></button>
+                            {{end}}
+                        </div>
+                    </template>
+                </div>
+                {{end}}
+
                 <!-- Search Box & Mobile Navigation -->
                 <div class="bg-white rounded-3xl p-5 shadow-premium border border-slate-100/80 space-y-4">
                     <!-- Search input -->
