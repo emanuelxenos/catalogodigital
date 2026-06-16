@@ -439,4 +439,20 @@
     to { transform: scale(1); opacity: 1; }
 }
 
+/* Custom scrollbar for dark sidebars */
+.sidebar-scroll::-webkit-scrollbar {
+    width: 5px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+    background: #334155; /* slate-700 */
+    border-radius: 9999px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background: #475569; /* slate-600 */
+}
+
+
 
