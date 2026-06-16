@@ -141,7 +141,7 @@
                 </p>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <!-- Feature 1 -->
                 <div class="group p-8 rounded-3xl bg-slate-900/30 border border-slate-900 hover:border-violet-500/30 hover:bg-slate-900/50 hover:shadow-2xl hover:shadow-violet-500/5 transition-all duration-300">
                     <div class="w-12 h-12 rounded-2xl bg-violet-600/15 border border-violet-500/20 flex items-center justify-center mb-6 group-hover:scale-105 transition-all duration-300">
@@ -172,6 +172,39 @@
                     <h3 class="text-lg font-bold text-white mb-2">Horário Comercial Inteligente</h3>
                     <p class="text-slate-400 text-xs sm:text-sm leading-relaxed">
                         Configure seu período de funcionamento. O sistema fecha as vendas do catálogo automaticamente no horário de folga.
+                    </p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="group p-8 rounded-3xl bg-slate-900/30 border border-slate-900 hover:border-cyan-500/30 hover:bg-slate-900/50 hover:shadow-2xl hover:shadow-cyan-500/5 transition-all duration-300">
+                    <div class="w-12 h-12 rounded-2xl bg-cyan-600/15 border border-cyan-500/20 flex items-center justify-center mb-6 group-hover:scale-105 transition-all duration-300">
+                        <span class="text-xl">📈</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2">Relatórios Analíticos</h3>
+                    <p class="text-slate-400 text-xs sm:text-sm leading-relaxed">
+                        Monitore o faturamento, ticket médio, produtos mais vendidos e métodos de pagamento mais usados com gráficos Chart.js.
+                    </p>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="group p-8 rounded-3xl bg-slate-900/30 border border-slate-900 hover:border-amber-500/30 hover:bg-slate-900/50 hover:shadow-2xl hover:shadow-amber-500/5 transition-all duration-300">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-600/15 border border-amber-500/20 flex items-center justify-center mb-6 group-hover:scale-105 transition-all duration-300">
+                        <span class="text-xl">🖨️</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2">Display de Mesa com QR Code</h3>
+                    <p class="text-slate-400 text-xs sm:text-sm leading-relaxed">
+                        Gere flyers elegantes prontos para impressão para mesas ou balcão, permitindo que seus clientes façam pedidos do assento.
+                    </p>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="group p-8 rounded-3xl bg-slate-900/30 border border-slate-900 hover:border-rose-500/30 hover:bg-slate-900/50 hover:shadow-2xl hover:shadow-rose-500/5 transition-all duration-300">
+                    <div class="w-12 h-12 rounded-2xl bg-rose-600/15 border border-rose-500/20 flex items-center justify-center mb-6 group-hover:scale-105 transition-all duration-300">
+                        <span class="text-xl">🖼️</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2">Banners Promocionais</h3>
+                    <p class="text-slate-400 text-xs sm:text-sm leading-relaxed">
+                        Exiba um carrossel de fotos marcantes no topo do seu catálogo público para divulgar combos, promoções e produtos em alta.
                     </p>
                 </div>
             </div>
@@ -314,6 +347,58 @@
                             <li class="flex items-center gap-2">
                                 <span class="text-violet-400">✔</span>
                                 <span>Horário Comercial</span>
+                            </li>
+                            {{end}}
+
+                            <!-- Reports -->
+                            {{if or (eq .ID 1) (eq .ID 2)}}
+                            <li class="flex items-center gap-2 text-slate-600 line-through">
+                                <span>❌</span>
+                                <span>Relatórios de Vendas</span>
+                            </li>
+                            {{else}}
+                            <li class="flex items-center gap-2">
+                                <span class="text-violet-400">✔</span>
+                                <span>Relatórios de Vendas</span>
+                            </li>
+                            {{end}}
+
+                            <!-- Flyer de Mesa -->
+                            {{if or (eq .ID 1) (eq .ID 2)}}
+                            <li class="flex items-center gap-2 text-slate-600 line-through">
+                                <span>❌</span>
+                                <span>Flyer de Mesa com QR Code</span>
+                            </li>
+                            {{else}}
+                            <li class="flex items-center gap-2">
+                                <span class="text-violet-400">✔</span>
+                                <span>Flyer de Mesa com QR Code</span>
+                            </li>
+                            {{end}}
+
+                            <!-- Banners Promocionais -->
+                            {{if ne .ID 4}}
+                            <li class="flex items-center gap-2 text-slate-600 line-through">
+                                <span>❌</span>
+                                <span>Banners Promocionais</span>
+                            </li>
+                            {{else}}
+                            <li class="flex items-center gap-2">
+                                <span class="text-violet-400">✔</span>
+                                <span>Banners Promocionais (Slideshow)</span>
+                            </li>
+                            {{end}}
+
+                            <!-- Export PDF -->
+                            {{if ne .ID 4}}
+                            <li class="flex items-center gap-2 text-slate-600 line-through">
+                                <span>❌</span>
+                                <span>Exportar Relatórios em PDF</span>
+                            </li>
+                            {{else}}
+                            <li class="flex items-center gap-2">
+                                <span class="text-violet-400">✔</span>
+                                <span>Exportar Relatórios em PDF</span>
                             </li>
                             {{end}}
 

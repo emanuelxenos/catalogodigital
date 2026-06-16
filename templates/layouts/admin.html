@@ -213,10 +213,21 @@
                 </button>
                 <div class="flex-1"></div>
                 {{if .Shop}}
-                <a href="/{{.Shop.Slug}}" target="_blank" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                    Ver Catálogo
-                </a>
+                <div class="flex items-center gap-2" x-data="{ copied: false, shareUrl: window.location.origin + '/{{.Shop.Slug}}' }">
+                    <button 
+                        @click="navigator.clipboard.writeText(shareUrl); copied = true; setTimeout(() => copied = false, 2000)"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-350 hover:text-white transition-all active:scale-[0.98]"
+                        title="Copiar Link do Catálogo"
+                    >
+                        <span x-show="!copied">📋</span>
+                        <span x-show="copied" class="text-emerald-450 font-bold">✓</span>
+                        <span x-text="copied ? 'Copiado!' : 'Copiar Link'"></span>
+                    </button>
+                    <a href="/{{.Shop.Slug}}" target="_blank" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-violet-600 hover:bg-violet-500 text-white transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        Ver Catálogo
+                    </a>
+                </div>
                 {{end}}
             </header>
             
