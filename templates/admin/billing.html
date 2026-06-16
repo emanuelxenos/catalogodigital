@@ -168,7 +168,7 @@
             <p class="text-slate-400 text-sm mt-1">Escolha a opção ideal para o tamanho e a necessidade do seu negócio</p>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {{range .Plans}}
             <div class="glass-dark rounded-3xl border {{if eq $.Shop.PlanID .ID}}border-violet-500 shadow-xl shadow-violet-500/5{{else}}border-slate-800/80{{end}} p-6 flex flex-col justify-between relative overflow-hidden group hover:border-slate-700 transition-all duration-300">
                 <!-- Current Plan Tag -->
@@ -189,11 +189,13 @@
                     
                     <p class="text-slate-450 text-xs mt-3 leading-relaxed">
                         {{if eq .ID 1}}
-                        Ideal para quem está começando a testar o catálogo e as vendas online.
+                        Teste gratuito por 7 dias. Após expirado, limites caem para 5 produtos e 1 categoria.
                         {{else if eq .ID 2}}
-                        O melhor custo-benefício para comércios locais e delivery estruturado.
+                        Excelente para negócios no início que precisam de cupons de desconto.
+                        {{else if eq .ID 3}}
+                        Perfeito para lojas profissionais que exigem controle de horário de funcionamento.
                         {{else}}
-                        Para grandes negócios que necessitam de escala e controle sem limites.
+                        Para grandes operações com produtos ilimitados e atendimento VIP.
                         {{end}}
                     </p>
                     
@@ -212,33 +214,47 @@
                             </span>
                         </li>
                         
+                        <!-- Coupons -->
                         {{if eq .ID 1}}
-                        <li class="flex items-center gap-2 text-slate-550 line-through">
+                        <li class="flex items-center gap-2 text-slate-500 line-through">
                             <span>❌</span>
                             <span>Cupons de Desconto</span>
-                        </li>
-                        <li class="flex items-center gap-2 text-slate-550 line-through">
-                            <span>❌</span>
-                            <span>Controle de Horário comercial</span>
-                        </li>
-                        <li class="flex items-center gap-2 text-slate-550 line-through">
-                            <span>❌</span>
-                            <span>Suporte Premium</span>
                         </li>
                         {{else}}
                         <li class="flex items-center gap-2">
                             <span class="text-violet-400">✔</span>
                             <span>Cupons de Desconto</span>
                         </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-violet-400">✔</span>
-                            <span>Horários de Funcionamento</span>
+                        {{end}}
+
+                        <!-- Business Hours -->
+                        {{if or (eq .ID 1) (eq .ID 2)}}
+                        <li class="flex items-center gap-2 text-slate-500 line-through">
+                            <span>❌</span>
+                            <span>Horário Comercial</span>
                         </li>
+                        {{else}}
                         <li class="flex items-center gap-2">
                             <span class="text-violet-400">✔</span>
-                            <span>
-                                {{if eq .ID 3}}Suporte 24/7 VIP{{else}}Suporte Prioritário{{end}}
-                            </span>
+                            <span>Horário Comercial</span>
+                        </li>
+                        {{end}}
+
+                        <!-- Support -->
+                        {{if eq .ID 1}}
+                        <li class="flex items-center gap-2 text-slate-500 line-through">
+                            <span>❌</span>
+                            <span>Suporte WhatsApp</span>
+                        </li>
+                        {{else if eq .ID 4}}
+                        <li class="flex items-center gap-2">
+                            <span class="text-violet-400">✔</span>
+                            <span class="text-violet-300 font-semibold">Suporte VIP 24/7</span>
+                        </li>
+                        {{else}}
+                        <li class="flex items-center gap-2">
+                            <span class="text-violet-400">✔</span>
+                            <span>Suporte Prioritário</span>
                         </li>
                         {{end}}
                     </ul>
@@ -319,9 +335,9 @@
                               🔄
                           </div>
                           <h4 class="text-sm font-bold text-white">Deseja migrar para o plano Grátis?</h4>
-                          <p class="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                              Sua conta voltará para os limites do plano Bronze (Max 10 produtos e 3 categorias, sem cupons ou horários). Os excedentes continuarão salvos, mas não serão listados no catálogo.
-                          </p>
+                           <p class="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                               Sua conta voltará para os limites do plano Bronze (Max 10 produtos e 3 categorias, sem cupons ou horários). Por ser o plano de teste gratuito, ele expira 7 dias após a data de criação da loja.
+                           </p>
                           
                           <form hx-post="/admin/plano/upgrade" hx-swap="none" class="pt-4">
                               <input type="hidden" name="plan_id" :value="selectedPlanId">

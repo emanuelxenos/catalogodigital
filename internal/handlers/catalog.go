@@ -56,9 +56,9 @@ func (h *Handlers) HandleCatalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verifica se a loja está aberta (apenas para planos diferentes de Bronze/1)
+	// Verifica se a loja está aberta (apenas para planos Ouro e Diamante)
 	isOpen := true
-	if shop.PlanID != 1 {
+	if shop.PlanID == 3 || shop.PlanID == 4 {
 		isOpen = IsShopOpen(shop.BusinessHours)
 	}
 
@@ -250,8 +250,8 @@ func (h *Handlers) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Valida se a loja está aberta (apenas para planos diferentes de Bronze/1)
-	if shop.PlanID != 1 && !IsShopOpen(shop.BusinessHours) {
+	// 1. Valida se a loja está aberta (apenas para planos Ouro e Diamante)
+	if (shop.PlanID == 3 || shop.PlanID == 4) && !IsShopOpen(shop.BusinessHours) {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,

@@ -744,8 +744,13 @@ func (db *DB) ToggleShopActive(ctx context.Context, shopID int) (bool, error) {
 // UpgradeShopPlan altera o plano de uma loja e define a data de expiração (dias a partir de agora)
 func (db *DB) UpgradeShopPlan(ctx context.Context, shopID, planID int, days int) error {
 	var err error
-	if days <= 0 {
-		// Sem expiração (ex: plano grátis)
+	if planID == 1 {
+		// Plano Bronze: expira exatamente 7 dias após a criação da loja
+		_, err = db.Pool.Exec(ctx,
+			`UPDATE shops SET plan_id = $1, plan_expires_at = created_at + INTERVAL '7 days' WHERE id = $2`,
+			planID, shopID)
+	} else if days <= 0 {
+		// Sem expiração
 		_, err = db.Pool.Exec(ctx,
 			`UPDATE shops SET plan_id = $1, plan_expires_at = NULL WHERE id = $2`,
 			planID, shopID)

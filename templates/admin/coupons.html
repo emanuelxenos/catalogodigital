@@ -1,4 +1,26 @@
 {{define "content"}}
+{{if .IsLocked}}
+<div class="flex flex-col items-center justify-center py-16 text-center max-w-md mx-auto animate-fadeIn">
+    <div class="w-16 h-16 rounded-3xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-3xl mb-6 shadow-lg shadow-violet-500/5">
+        🎟️
+    </div>
+    <h1 class="text-2xl font-bold text-white">Cupons de Desconto</h1>
+    <p class="text-slate-400 mt-2 text-sm leading-relaxed">
+        Atraia mais clientes e aumente seu faturamento criando cupons promocionais (ex: PROMO10, FRETEGRATIS) para a sua loja.
+    </p>
+    <div class="mt-8 p-6 rounded-3xl bg-slate-950/40 border border-slate-900 w-full relative overflow-hidden group">
+        <div class="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-violet-500/5 blur-xl"></div>
+        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-bold bg-violet-500/10 text-violet-400 border border-violet-500/20 uppercase tracking-wider">
+            Recurso Premium
+        </span>
+        <h4 class="text-white font-bold text-base mt-4">Disponível a partir do plano Prata</h4>
+        <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">Esse e outros recursos comerciais estão disponíveis na assinatura dos planos **Prata** e superiores.</p>
+        <a href="/admin/plano" class="mt-6 block py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all active:scale-[0.98] shadow-lg shadow-violet-600/10">
+            Fazer Upgrade Agora
+        </a>
+    </div>
+</div>
+{{else}}
 <div class="space-y-8" x-data="{ showModal: false }">
     <!-- Page Header -->
     <div class="flex items-center justify-between">
@@ -140,4 +162,5 @@
         </div>
     </div>
 </div>
+{{end}}
 {{end}}

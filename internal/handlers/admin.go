@@ -744,29 +744,30 @@ func (h *Handlers) HandleShopConfigPost(w http.ResponseWriter, r *http.Request) 
 	deliveryFeeStr = strings.Replace(deliveryFeeStr, ",", ".", 1)
 	deliveryFee, _ := strconv.ParseFloat(deliveryFeeStr, 64)
 
-	// Horários de funcionamento (constrói o JSON)
-	days := []string{"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
-	hoursMap := make(map[string]map[string]string)
-	for _, day := range days {
-		open := strings.TrimSpace(r.FormValue("hours_" + day + "_open"))
-		close := strings.TrimSpace(r.FormValue("hours_" + day + "_close"))
-		if open != "" && close != "" {
-			hoursMap[day] = map[string]string{
-				"open":  open,
-				"close": close,
+	// Horários de funcionamento (constrói o JSON apenas se o plano for Ouro ou Diamante)
+	var bhPtr *string
+	if shop != nil && (shop.PlanID == 3 || shop.PlanID == 4) {
+		days := []string{"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
+		hoursMap := make(map[string]map[string]string)
+		for _, day := range days {
+			open := strings.TrimSpace(r.FormValue("hours_" + day + "_open"))
+			close := strings.TrimSpace(r.FormValue("hours_" + day + "_close"))
+			if open != "" && close != "" {
+				hoursMap[day] = map[string]string{
+					"open":  open,
+					"close": close,
+				}
 			}
 		}
+		if len(hoursMap) > 0 {
+			bhBytes, _ := json.Marshal(hoursMap)
+			bhStr := string(bhBytes)
+			bhPtr = &bhStr
+			log.Printf("[CONFIG] Hours Map parsed from form: %+v", hoursMap)
+			log.Printf("[CONFIG] BusinessHours JSON string: %s", bhStr)
+		}
 	}
-	var bhPtr *string
-	if len(hoursMap) > 0 {
-		bhBytes, _ := json.Marshal(hoursMap)
-		bhStr := string(bhBytes)
-		bhPtr = &bhStr
-	}
-	log.Printf("[CONFIG] Hours Map parsed from form: %+v", hoursMap)
-	if bhPtr != nil {
-		log.Printf("[CONFIG] BusinessHours JSON string: %s", *bhPtr)
-	} else {
+	if bhPtr == nil {
 		log.Printf("[CONFIG] BusinessHours JSON is nil")
 	}
 
@@ -999,23 +1000,22 @@ func (h *Handlers) HandleCoupons(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Restringe cupons no plano Bronze (ID 1)
-	if shop.PlanID == 1 {
-		http.Redirect(w, r, "/admin?error=Cupons de desconto não estão disponíveis no plano Bronze. Faça um upgrade!", http.StatusSeeOther)
-		return
-	}
-
-	coupons, err := h.DB.ListCouponsByShop(r.Context(), shop.ID)
-	if err != nil {
-		log.Printf("Erro ao listar cupons: %v", err)
+	var coupons []database.Coupon
+	var err error
+	if shop.PlanID != 1 {
+		coupons, err = h.DB.ListCouponsByShop(r.Context(), shop.ID)
+		if err != nil {
+			log.Printf("Erro ao listar cupons: %v", err)
+		}
 	}
 
 	data := map[string]interface{}{
-		"User":    user,
-		"Shop":    shop,
-		"Coupons": coupons,
-		"Success": r.URL.Query().Get("success"),
-		"Error":   r.URL.Query().Get("error"),
+		"User":     user,
+		"Shop":     shop,
+		"Coupons":  coupons,
+		"IsLocked": shop.PlanID == 1,
+		"Success":  r.URL.Query().Get("success"),
+		"Error":    r.URL.Query().Get("error"),
 	}
 
 	if err := h.Tmpl.Render(w, "admin", "admin/coupons.html", data); err != nil {
