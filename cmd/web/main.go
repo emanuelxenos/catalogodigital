@@ -13,6 +13,7 @@ import (
 	"catalogo/internal/config"
 	"catalogo/internal/database"
 	"catalogo/internal/handlers"
+	"catalogo/internal/mail"
 	"catalogo/internal/middleware"
 
 	"github.com/go-chi/chi/v5"
@@ -39,8 +40,11 @@ func main() {
 	}
 	log.Println("✅ Migrações executadas com sucesso")
 
+	// Inicializa mailer
+	mailer := mail.NewMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.SMTPFrom)
+
 	// Inicializa handlers
-	h := handlers.NewHandlers(db, cfg.DevMode)
+	h := handlers.NewHandlers(db, mailer, cfg.DevMode)
 
 	// Cria roteador
 	r := chi.NewRouter()

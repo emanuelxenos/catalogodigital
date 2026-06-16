@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"catalogo/internal/database"
+	"catalogo/internal/mail"
 )
 
 // TemplateEngine gerencia o carregamento e cache de templates
@@ -23,16 +24,18 @@ type TemplateEngine struct {
 
 // Handlers encapsula as dependências compartilhadas entre todos os handlers
 type Handlers struct {
-	DB       *database.DB
-	Tmpl     *TemplateEngine
+	DB     *database.DB
+	Tmpl   *TemplateEngine
+	Mailer *mail.Mailer
 }
 
 // NewHandlers cria uma nova instância de Handlers
-func NewHandlers(db *database.DB, devMode bool) *Handlers {
+func NewHandlers(db *database.DB, mailer *mail.Mailer, devMode bool) *Handlers {
 	tmpl := NewTemplateEngine("templates", devMode)
 	return &Handlers{
-		DB:   db,
-		Tmpl: tmpl,
+		DB:     db,
+		Tmpl:   tmpl,
+		Mailer: mailer,
 	}
 }
 

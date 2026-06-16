@@ -13,6 +13,11 @@ type Config struct {
 	Port          string
 	SessionSecret string
 	DevMode       bool
+	SMTPHost      string
+	SMTPPort      string
+	SMTPUser      string
+	SMTPPass      string
+	SMTPFrom      string
 }
 
 // Load carrega as variáveis de ambiente do .env e retorna a configuração
@@ -25,6 +30,11 @@ func Load() (*Config, error) {
 		Port:          getEnv("PORT", "8080"),
 		SessionSecret: getEnv("SESSION_SECRET", "catalogo-secret-key-default"),
 		DevMode:       getEnv("DEV_MODE", "false") == "true",
+		SMTPHost:      getEnv("SMTP_HOST", ""),
+		SMTPPort:      getEnv("SMTP_PORT", "587"),
+		SMTPUser:      getEnv("SMTP_USER", ""),
+		SMTPPass:      getEnv("SMTP_PASS", ""),
+		SMTPFrom:      getEnv("SMTP_FROM", ""),
 	}
 
 	if cfg.DatabaseURL == "" {

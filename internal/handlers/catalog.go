@@ -441,6 +441,22 @@ func (h *Handlers) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Busca o lojista (User) dono da loja para obter o e-mail de envio
+	user, err := h.DB.GetUserByID(r.Context(), shop.UserID)
+	if err != nil {
+		log.Printf("Erro ao buscar lojista pelo ID %d para enviar e-mail: %v", shop.UserID, err)
+	} else if user != nil && user.Email != "" {
+		// Envia a notificação por e-mail em segundo plano
+		go func(s *database.Shop, o *database.Order, items []database.OrderItem, email string) {
+			err := h.Mailer.SendOrderNotification(s, o, items, email)
+			if err != nil {
+				log.Printf("[Erro Mailer] Falha ao enviar e-mail de pedido para %s: %v", email, err)
+			} else {
+				log.Printf("[Mailer] E-mail de notificação de novo pedido enviado para %s", email)
+			}
+		}(shop, dbOrder, orderItemsToSave, user.Email)
+	}
+
 	// 6. Gera a mensagem do WhatsApp e monta URL
 	var msg strings.Builder
 	msg.WriteString("🛒 *NOVO PEDIDO*\n")
