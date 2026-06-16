@@ -1124,4 +1124,48 @@ func cleanWhatsAppNumber(number string) string {
 	return s
 }
 
+// HandleOrderNotifyEmailPost envia uma notificação por e-mail de atualização de status para o cliente
+func (h *Handlers) HandleOrderNotifyEmailPost(w http.ResponseWriter, r *http.Request) {
+	shop := middleware.GetShopFromContext(r)
+	if shop == nil {
+		http.Error(w, "Loja não configurada", http.StatusBadRequest)
+		return
+	}
+
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	// Busca o pedido no banco de dados para ter certeza de que pertence a esta loja
+	order, err := h.DB.GetOrderByID(r.Context(), id, shop.ID)
+	if err != nil {
+		log.Printf("Erro ao buscar pedido para e-mail: %v", err)
+		http.Error(w, "Pedido não encontrado", http.StatusNotFound)
+		return
+	}
+
+	if order.CustomerEmail == "" {
+		http.Error(w, "E-mail do cliente não informado para este pedido", http.StatusBadRequest)
+		return
+	}
+
+	// Envia o e-mail em uma goroutine assíncrona para não travar a UI do admin
+	go func(s *database.Shop, o *database.Order, email string) {
+		err := h.Mailer.SendOrderStatusUpdateEmail(s, o, email)
+		if err != nil {
+			log.Printf("[Erro Mailer] Falha ao notificar cliente por e-mail: %v", err)
+		} else {
+			log.Printf("[Mailer] E-mail de atualização de pedido #%d enviado para %s", o.ID, email)
+		}
+	}(shop, order, order.CustomerEmail)
+
+	// Retorna uma resposta amigável para o HTMX
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(`<span class="text-xs font-bold text-emerald-400">📧 E-mail Enviado!</span>`))
+}
+
+
 

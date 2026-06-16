@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS orders (
     shop_id INTEGER REFERENCES shops(id) ON DELETE CASCADE,
     customer_name VARCHAR(255) NOT NULL,
     customer_phone VARCHAR(50) DEFAULT '',
+    customer_email VARCHAR(255) DEFAULT '',
     delivery_method VARCHAR(50) NOT NULL, -- 'delivery' ou 'pickup'
     address TEXT DEFAULT '',
     payment_method VARCHAR(50) NOT NULL,
@@ -202,4 +203,7 @@ CREATE TABLE IF NOT EXISTS shop_banners (
 
 -- Migration para adicionar telefone do cliente nos pedidos
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(50) DEFAULT '';
+
+-- Migration para adicionar e-mail do cliente nos pedidos
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255) DEFAULT '';
 

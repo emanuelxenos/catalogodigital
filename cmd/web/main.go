@@ -99,6 +99,7 @@ func main() {
 		// Pedidos do lojista
 		r.Get("/admin/pedidos", h.HandleOrders)
 		r.Post("/admin/pedidos/{id}/status", h.HandleOrderStatusPost)
+		r.Post("/admin/pedidos/{id}/notificar-email", h.HandleOrderNotifyEmailPost)
 
 		// Cupons de desconto
 		r.Get("/admin/cupons", h.HandleCoupons)

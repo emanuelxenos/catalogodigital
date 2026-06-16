@@ -473,10 +473,10 @@ func (db *DB) DeleteCoupon(ctx context.Context, id, shopID int) error {
 // CreateOrder cria um pedido no banco de dados
 func (db *DB) CreateOrder(ctx context.Context, o *Order) error {
 	err := db.Pool.QueryRow(ctx,
-		`INSERT INTO orders (shop_id, customer_name, customer_phone, delivery_method, address, payment_method, coupon_code, discount, subtotal, total, status)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		`INSERT INTO orders (shop_id, customer_name, customer_phone, customer_email, delivery_method, address, payment_method, coupon_code, discount, subtotal, total, status)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		 RETURNING id, created_at`,
-		o.ShopID, o.CustomerName, o.CustomerPhone, o.DeliveryMethod, o.Address, o.PaymentMethod, o.CouponCode, o.Discount, o.Subtotal, o.Total, o.Status,
+		o.ShopID, o.CustomerName, o.CustomerPhone, o.CustomerEmail, o.DeliveryMethod, o.Address, o.PaymentMethod, o.CouponCode, o.Discount, o.Subtotal, o.Total, o.Status,
 	).Scan(&o.ID, &o.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("erro ao salvar pedido no banco: %w", err)
@@ -501,7 +501,7 @@ func (db *DB) CreateOrderItem(ctx context.Context, item *OrderItem) error {
 // ListOrdersByShop lista os pedidos de uma loja
 func (db *DB) ListOrdersByShop(ctx context.Context, shopID int) ([]Order, error) {
 	rows, err := db.Pool.Query(ctx,
-		`SELECT id, shop_id, customer_name, customer_phone, delivery_method, address, payment_method, coupon_code, discount, subtotal, total, status, created_at
+		`SELECT id, shop_id, customer_name, customer_phone, customer_email, delivery_method, address, payment_method, coupon_code, discount, subtotal, total, status, created_at
 		 FROM orders WHERE shop_id = $1 ORDER BY created_at DESC`,
 		shopID,
 	)
@@ -513,7 +513,7 @@ func (db *DB) ListOrdersByShop(ctx context.Context, shopID int) ([]Order, error)
 	var orders []Order
 	for rows.Next() {
 		var o Order
-		if err := rows.Scan(&o.ID, &o.ShopID, &o.CustomerName, &o.CustomerPhone, &o.DeliveryMethod, &o.Address, &o.PaymentMethod, &o.CouponCode, &o.Discount, &o.Subtotal, &o.Total, &o.Status, &o.CreatedAt); err != nil {
+		if err := rows.Scan(&o.ID, &o.ShopID, &o.CustomerName, &o.CustomerPhone, &o.CustomerEmail, &o.DeliveryMethod, &o.Address, &o.PaymentMethod, &o.CouponCode, &o.Discount, &o.Subtotal, &o.Total, &o.Status, &o.CreatedAt); err != nil {
 			return nil, err
 		}
 		orders = append(orders, o)
@@ -528,6 +528,26 @@ func (db *DB) ListOrdersByShop(ctx context.Context, shopID int) ([]Order, error)
 	}
 
 	return orders, nil
+}
+
+// GetOrderByID busca um pedido pelo ID e shopID
+func (db *DB) GetOrderByID(ctx context.Context, id, shopID int) (*Order, error) {
+	var o Order
+	err := db.Pool.QueryRow(ctx,
+		`SELECT id, shop_id, customer_name, customer_phone, customer_email, delivery_method, address, payment_method, coupon_code, discount, subtotal, total, status, created_at
+		 FROM orders WHERE id = $1 AND shop_id = $2`,
+		id, shopID,
+	).Scan(&o.ID, &o.ShopID, &o.CustomerName, &o.CustomerPhone, &o.CustomerEmail, &o.DeliveryMethod, &o.Address, &o.PaymentMethod, &o.CouponCode, &o.Discount, &o.Subtotal, &o.Total, &o.Status, &o.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar pedido: %w", err)
+	}
+
+	items, err := db.ListOrderItems(ctx, o.ID)
+	if err == nil {
+		o.Items = items
+	}
+
+	return &o, nil
 }
 
 // ListOrderItems lista os itens de um pedido

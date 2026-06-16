@@ -82,6 +82,7 @@ type Order struct {
 	ShopID         int         `json:"shop_id"`
 	CustomerName   string      `json:"customer_name"`
 	CustomerPhone  string      `json:"customer_phone"`
+	CustomerEmail  string      `json:"customer_email"`
 	DeliveryMethod string      `json:"delivery_method"` // "delivery" ou "pickup"
 	Address        string      `json:"address"`
 	PaymentMethod  string      `json:"payment_method"`

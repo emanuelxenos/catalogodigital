@@ -225,6 +225,7 @@ type CheckoutItem struct {
 type CheckoutRequest struct {
 	CustomerName   string         `json:"customerName"`
 	CustomerPhone  string         `json:"customerPhone"`
+	CustomerEmail  string         `json:"customerEmail"`
 	DeliveryMethod string         `json:"deliveryMethod"` // "entrega" ou "retirada"
 	Address        string         `json:"address"`
 	PaymentMethod  string         `json:"paymentMethod"`
@@ -414,6 +415,7 @@ func (h *Handlers) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		ShopID:         shop.ID,
 		CustomerName:   req.CustomerName,
 		CustomerPhone:  req.CustomerPhone,
+		CustomerEmail:  strings.TrimSpace(req.CustomerEmail),
 		DeliveryMethod: req.DeliveryMethod,
 		Address:        req.Address,
 		PaymentMethod:  req.PaymentMethod,

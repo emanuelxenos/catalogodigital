@@ -6,6 +6,7 @@ function carrinhoGlobal(deliveryFee = 0) {
         isOpen: false,
         customerName: localStorage.getItem('cart_customerName') || '',
         customerPhone: localStorage.getItem('cart_customerPhone') || '',
+        customerEmail: localStorage.getItem('cart_customerEmail') || '',
         deliveryMethod: localStorage.getItem('cart_deliveryMethod') || 'entrega',
         address: localStorage.getItem('cart_address') || '',
         paymentMethod: localStorage.getItem('cart_paymentMethod') || '',
@@ -47,6 +48,7 @@ function carrinhoGlobal(deliveryFee = 0) {
             localStorage.setItem('cart_items', JSON.stringify(this.items));
             localStorage.setItem('cart_customerName', this.customerName);
             localStorage.setItem('cart_customerPhone', this.customerPhone);
+            localStorage.setItem('cart_customerEmail', this.customerEmail);
             localStorage.setItem('cart_deliveryMethod', this.deliveryMethod);
             localStorage.setItem('cart_address', this.address);
             localStorage.setItem('cart_paymentMethod', this.paymentMethod);
@@ -251,6 +253,7 @@ function carrinhoGlobal(deliveryFee = 0) {
             const payload = {
                 customerName: this.customerName,
                 customerPhone: this.customerPhone,
+                customerEmail: this.customerEmail,
                 deliveryMethod: this.deliveryMethod,
                 address: this.address,
                 paymentMethod: this.paymentMethod,
@@ -288,6 +291,7 @@ function carrinhoGlobal(deliveryFee = 0) {
                     this.items = [];
                     this.customerName = '';
                     this.customerPhone = '';
+                    this.customerEmail = '';
                     this.address = '';
                     this.paymentMethod = '';
                     this.couponCode = '';
