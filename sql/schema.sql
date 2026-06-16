@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS orders (
     id SERIAL PRIMARY KEY,
     shop_id INTEGER REFERENCES shops(id) ON DELETE CASCADE,
     customer_name VARCHAR(255) NOT NULL,
+    customer_phone VARCHAR(50) DEFAULT '',
     delivery_method VARCHAR(50) NOT NULL, -- 'delivery' ou 'pickup'
     address TEXT DEFAULT '',
     payment_method VARCHAR(50) NOT NULL,
@@ -198,3 +199,7 @@ CREATE TABLE IF NOT EXISTS shop_banners (
     position INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Migration para adicionar telefone do cliente nos pedidos
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(50) DEFAULT '';
+

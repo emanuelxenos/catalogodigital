@@ -5,6 +5,7 @@ function carrinhoGlobal(deliveryFee = 0) {
         items: JSON.parse(localStorage.getItem('cart_items') || '[]'),
         isOpen: false,
         customerName: localStorage.getItem('cart_customerName') || '',
+        customerPhone: localStorage.getItem('cart_customerPhone') || '',
         deliveryMethod: localStorage.getItem('cart_deliveryMethod') || 'entrega',
         address: localStorage.getItem('cart_address') || '',
         paymentMethod: localStorage.getItem('cart_paymentMethod') || '',
@@ -43,6 +44,7 @@ function carrinhoGlobal(deliveryFee = 0) {
         save() {
             localStorage.setItem('cart_items', JSON.stringify(this.items));
             localStorage.setItem('cart_customerName', this.customerName);
+            localStorage.setItem('cart_customerPhone', this.customerPhone);
             localStorage.setItem('cart_deliveryMethod', this.deliveryMethod);
             localStorage.setItem('cart_address', this.address);
             localStorage.setItem('cart_paymentMethod', this.paymentMethod);
@@ -224,6 +226,10 @@ function carrinhoGlobal(deliveryFee = 0) {
                 this.showToast('⚠️ Por favor, informe seu nome');
                 return;
             }
+            if (!this.customerPhone) {
+                this.showToast('⚠️ Por favor, informe seu WhatsApp');
+                return;
+            }
             if (!this.paymentMethod) {
                 this.showToast('⚠️ Selecione a forma de pagamento');
                 return;
@@ -242,6 +248,7 @@ function carrinhoGlobal(deliveryFee = 0) {
             // Prepara payload formatado para a rota Go
             const payload = {
                 customerName: this.customerName,
+                customerPhone: this.customerPhone,
                 deliveryMethod: this.deliveryMethod,
                 address: this.address,
                 paymentMethod: this.paymentMethod,
@@ -277,6 +284,7 @@ function carrinhoGlobal(deliveryFee = 0) {
                     // Limpa o carrinho local
                     this.items = [];
                     this.customerName = '';
+                    this.customerPhone = '';
                     this.address = '';
                     this.paymentMethod = '';
                     this.couponCode = '';

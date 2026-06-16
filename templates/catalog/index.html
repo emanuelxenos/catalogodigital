@@ -544,6 +544,14 @@
                         class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-xs"
                         id="customer-name"
                     >
+                    <input 
+                        type="tel" 
+                        x-model="customerPhone" 
+                        placeholder="WhatsApp (DDD + Número)"
+                        class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-xs"
+                        id="customer-phone"
+                        required
+                    >
                     
                     <!-- Delivery Selector (Visual Pills) -->
                     <div class="flex gap-2 p-1 bg-slate-200/40 rounded-xl">
@@ -614,8 +622,8 @@
                 <!-- Send checkout message -->
                 <button 
                     @click="sendToWhatsApp('{{.Shop.WhatsappNumber}}')"
-                    :disabled="!customerName || !paymentMethod || (deliveryMethod === 'entrega' && !address)"
-                    :class="(!customerName || !paymentMethod || (deliveryMethod === 'entrega' && !address)) ? 'opacity-55 cursor-not-allowed shadow-none' : 'hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/35'"
+                    :disabled="!customerName || !customerPhone || !paymentMethod || (deliveryMethod === 'entrega' && !address)"
+                    :class="(!customerName || !customerPhone || !paymentMethod || (deliveryMethod === 'entrega' && !address)) ? 'opacity-55 cursor-not-allowed shadow-none' : 'hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/35'"
                     class="whatsapp-btn w-full py-4 rounded-2xl text-white font-bold flex items-center justify-center gap-3 text-base transition-all duration-300"
                     id="send-whatsapp"
                 >

@@ -224,6 +224,7 @@ type CheckoutItem struct {
 
 type CheckoutRequest struct {
 	CustomerName   string         `json:"customerName"`
+	CustomerPhone  string         `json:"customerPhone"`
 	DeliveryMethod string         `json:"deliveryMethod"` // "entrega" ou "retirada"
 	Address        string         `json:"address"`
 	PaymentMethod  string         `json:"paymentMethod"`
@@ -289,6 +290,16 @@ func (h *Handlers) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	cleanedPhone := cleanWhatsAppNumber(req.CustomerPhone)
+	if len(cleanedPhone) < 12 {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"message": "Informe o WhatsApp completo com DDD (ex: 11999999999)",
+		})
+		return
+	}
+	req.CustomerPhone = cleanedPhone
 	if req.DeliveryMethod == "entrega" && req.Address == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -402,6 +413,7 @@ func (h *Handlers) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 	dbOrder := &database.Order{
 		ShopID:         shop.ID,
 		CustomerName:   req.CustomerName,
+		CustomerPhone:  req.CustomerPhone,
 		DeliveryMethod: req.DeliveryMethod,
 		Address:        req.Address,
 		PaymentMethod:  req.PaymentMethod,
