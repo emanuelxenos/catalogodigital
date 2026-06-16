@@ -25,7 +25,7 @@ func (h *Handlers) HandleHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]interface{}{
-		"Title": "Catálogo Digital | Seu catálogo online via WhatsApp",
+		"Title": "Cataloger | Seu catálogo online via WhatsApp",
 		"Plans": plans,
 	}
 

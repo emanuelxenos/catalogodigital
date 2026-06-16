@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{if .Shop}}{{.Shop.Name}} | Catálogo Digital{{else}}Catálogo Digital | Seu catálogo online via WhatsApp{{end}}</title>
+    <title>{{if .Shop}}{{.Shop.Name}} | Cataloger{{else}}Cataloger | Seu catálogo online via WhatsApp{{end}}</title>
     
     <!-- Meta tags dinâmicas para compartilhamento -->
     {{if .Shop}}
@@ -12,7 +12,7 @@
     <meta property="og:description" content="Faça seu pedido diretamente pelo nosso catálogo digital e envie no WhatsApp!">
     {{if .Shop.LogoURL}}<meta property="og:image" content="{{.Shop.LogoURL}}">{{end}}
     {{else}}
-    <meta property="og:title" content="Catálogo Digital | Monte seu catálogo online">
+    <meta property="og:title" content="Cataloger | Monte seu catálogo online">
     <meta property="og:description" content="Crie seu catálogo digital e receba pedidos via WhatsApp de forma simples e rápida.">
     {{end}}
     <meta name="description" content="Catálogo digital com envio de pedidos via WhatsApp. Simples, rápido e profissional.">
