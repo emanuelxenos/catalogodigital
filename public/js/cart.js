@@ -31,6 +31,8 @@ function carrinhoGlobal(deliveryFee = 0) {
         discountApplied: parseFloat(localStorage.getItem('cart_couponValue') || '0') > 0 ? 1 : 0, // mantido para compatibilidade visual
         couponError: '',
         couponSuccess: '',
+        showSuccessModal: false,
+        checkoutSuccessOrderId: null,
 
         // Inicializa o carrinho
         init() {
@@ -221,13 +223,13 @@ function carrinhoGlobal(deliveryFee = 0) {
         },
 
         // Envia o pedido para a Rota de Checkout Segura do Backend
-        sendToWhatsApp(shopPhone) {
+        finalizeOrder() {
             if (!this.customerName) {
                 this.showToast('⚠️ Por favor, informe seu nome');
                 return;
             }
             if (!this.customerPhone) {
-                this.showToast('⚠️ Por favor, informe seu WhatsApp');
+                this.showToast('⚠️ Por favor, informe seu telefone');
                 return;
             }
             if (!this.paymentMethod) {
@@ -277,10 +279,11 @@ function carrinhoGlobal(deliveryFee = 0) {
                 return res.json();
             })
             .then(data => {
-                if (data.whatsapp_url) {
-                    // Abre o WhatsApp com a URL formatada do backend
-                    window.open(data.whatsapp_url, '_blank');
-                    
+                if (data.success) {
+                    // Salva os dados do pedido no estado local
+                    this.checkoutSuccessOrderId = data.order_id;
+                    this.showSuccessModal = true;
+
                     // Limpa o carrinho local
                     this.items = [];
                     this.customerName = '';
@@ -295,8 +298,6 @@ function carrinhoGlobal(deliveryFee = 0) {
                     this.couponError = '';
                     this.save();
                     this.isOpen = false;
-                    
-                    this.showToast('✅ Pedido criado com sucesso!');
                 } else {
                     this.showToast('⚠️ Erro ao processar pedido');
                 }
@@ -305,6 +306,11 @@ function carrinhoGlobal(deliveryFee = 0) {
                 this.showToast('❌ ' + err.message);
                 console.error(err);
             });
+        },
+
+        closeSuccessModal() {
+            this.showSuccessModal = false;
+            this.checkoutSuccessOrderId = null;
         },
 
         // Mostra uma notificação toast

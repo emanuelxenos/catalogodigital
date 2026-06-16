@@ -516,6 +516,7 @@ func (h *Handlers) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":      true,
+		"order_id":     dbOrder.ID,
 		"whatsapp_url": whatsappURL,
 	})
 }
