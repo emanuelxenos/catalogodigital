@@ -1,157 +1,394 @@
 {{define "content"}}
-<div class="min-h-screen">
+<div class="min-h-screen bg-slate-950 text-slate-100 selection:bg-violet-500 selection:text-white">
+    
+    <!-- Premium Header / Navbar -->
+    <header class="sticky top-0 z-50 bg-slate-950/70 backdrop-blur-xl border-b border-slate-900/60">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
+            <!-- Logo -->
+            <a href="/" class="flex items-center gap-3 group">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 group-hover:scale-105 transition-transform duration-300">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                </div>
+                <span class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">Catálogo<span class="text-violet-500">.</span></span>
+            </a>
+
+            <!-- Nav Links (hidden on mobile) -->
+            <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
+                <a href="#features" class="hover:text-white transition-colors">Recursos</a>
+                <a href="#workflow" class="hover:text-white transition-colors">Como Funciona</a>
+                <a href="#pricing" class="hover:text-white transition-colors">Planos & Preços</a>
+            </nav>
+
+            <!-- CTA Buttons -->
+            <div class="flex items-center gap-4">
+                <a href="/admin/login" class="text-sm font-semibold text-slate-300 hover:text-white transition-colors px-4 py-2">
+                    Entrar
+                </a>
+                <a href="/admin/register" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-550 hover:to-indigo-550 text-white text-sm font-bold shadow-lg shadow-violet-500/10 hover:shadow-violet-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                    Criar Catálogo
+                </a>
+            </div>
+        </div>
+    </header>
+
     <!-- Hero Section -->
-    <section class="hero-gradient relative overflow-hidden">
+    <section class="hero-gradient relative overflow-hidden pt-12 pb-24 sm:py-32">
         <div class="hero-grid absolute inset-0"></div>
         
-        <!-- Glowing orbs -->
-        <div class="absolute top-20 left-1/4 w-72 h-72 bg-violet-600/20 rounded-full blur-3xl"></div>
-        <div class="absolute bottom-20 right-1/4 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl"></div>
+        <!-- Glowing ambient light orbs -->
+        <div class="absolute top-20 left-1/4 w-96 h-96 bg-violet-600/20 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-10 right-1/4 w-[500px] h-[500px] bg-indigo-600/15 rounded-full blur-[140px]"></div>
         
-        <div class="relative max-w-6xl mx-auto px-4 sm:px-6 py-24 sm:py-32 lg:py-40">
-            <div class="text-center animate-fade-in-up">
-                <!-- Badge -->
-                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-sm font-medium mb-8">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 17.894c-.748.748-1.617 1.336-2.584 1.748A7.927 7.927 0 0112 20.4a7.927 7.927 0 01-3.31-.758 8.578 8.578 0 01-2.584-1.748A8.578 8.578 0 014.358 15.31 7.927 7.927 0 013.6 12a7.927 7.927 0 01.758-3.31 8.578 8.578 0 011.748-2.584A8.578 8.578 0 018.69 4.358 7.927 7.927 0 0112 3.6a7.927 7.927 0 013.31.758 8.578 8.578 0 012.584 1.748 8.578 8.578 0 011.748 2.584A7.927 7.927 0 0120.4 12a7.927 7.927 0 01-.758 3.31 8.578 8.578 0 01-1.748 2.584z"/></svg>
-                    Pedidos direto no WhatsApp
+        <div class="relative max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <!-- Text Area -->
+                <div class="lg:col-span-7 space-y-8 text-center lg:text-left">
+                    <!-- Dynamic Badge -->
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-semibold mx-auto lg:mx-0">
+                        <span class="flex h-2 w-2 relative">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        Catálogo Digital Integrado ao WhatsApp
+                    </div>
+                    
+                    <h1 class="text-4xl sm:text-6xl font-black text-white leading-[1.15] tracking-tight">
+                        Transforme seu catálogo em um 
+                        <span class="bg-gradient-to-r from-violet-400 via-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+                            canal de vendas ativo
+                        </span>
+                    </h1>
+                    
+                    <p class="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                        Esqueça os PDFs pesados e desorganizados. Crie um site moderno e rápido para os seus clientes escolherem produtos, selecionarem opcionais e enviarem o pedido pronto direto no seu WhatsApp.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                        <a href="/admin/register" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-base shadow-xl shadow-violet-500/20 hover:shadow-violet-500/40 hover:scale-105 active:scale-[0.98] transition-all">
+                            Começar Teste de 7 dias
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                        </a>
+                        <a href="#pricing" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 text-slate-300 font-semibold hover:text-white transition-all">
+                            Ver Planos & Preços
+                        </a>
+                    </div>
                 </div>
-                
-                <h1 class="text-4xl sm:text-5xl lg:text-7xl font-extrabold text-white leading-tight mb-6">
-                    Seu catálogo digital
-                    <span class="block mt-2 bg-gradient-to-r from-violet-400 via-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-                        profissional e gratuito
-                    </span>
-                </h1>
-                
-                <p class="max-w-2xl mx-auto text-lg sm:text-xl text-slate-400 leading-relaxed mb-10">
-                    Crie seu catálogo de produtos online em minutos. Seus clientes montam o pedido 
-                    e enviam direto pro seu WhatsApp. Simples assim.
-                </p>
-                
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <a href="/admin/login" id="cta-start" class="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold text-lg shadow-xl shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-105 transition-all duration-300">
-                        Criar meu catálogo
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
-                    </a>
-                    <a href="#features" class="inline-flex items-center gap-2 px-6 py-4 rounded-2xl text-slate-300 font-medium hover:text-white transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        Saiba mais
-                    </a>
+
+                <!-- Graphic/Mockup Area (hidden on mobile, premium desktop visual) -->
+                <div class="hidden lg:block lg:col-span-5 relative">
+                    <div class="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-indigo-500/10 rounded-[2.5rem] blur-2xl"></div>
+                    <div class="relative glass-dark rounded-[2.5rem] p-6 border border-slate-800 shadow-2xl">
+                        <!-- Simulated Store Screen Header -->
+                        <div class="flex items-center gap-3 border-b border-slate-900 pb-4 mb-6">
+                            <div class="w-10 h-10 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-lg">🍔</div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Burgers Gourmet</h4>
+                                <span class="inline-flex items-center text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">● Aberto</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Simulated Product Cards -->
+                        <div class="space-y-4">
+                            <div class="p-3.5 rounded-2xl bg-slate-950/40 border border-slate-900/60 flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-xl">🥓</div>
+                                <div class="flex-1">
+                                    <h5 class="text-xs font-bold text-white">Monster Bacon Cheddar</h5>
+                                    <p class="text-[10px] text-violet-400 font-bold mt-1">R$ 38,90</p>
+                                </div>
+                                <button class="w-7 h-7 rounded-lg bg-violet-600 text-white font-bold text-xs">+</button>
+                            </div>
+                            
+                            <div class="p-3.5 rounded-2xl bg-slate-950/40 border border-slate-900/60 flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-xl">🍟</div>
+                                <div class="flex-1">
+                                    <h5 class="text-xs font-bold text-white">Batata Frita Suprema</h5>
+                                    <p class="text-[10px] text-violet-400 font-bold mt-1">R$ 24,00</p>
+                                </div>
+                                <button class="w-7 h-7 rounded-lg bg-violet-600 text-white font-bold text-xs">+</button>
+                            </div>
+                        </div>
+
+                        <!-- Simulated Shopping Cart Button -->
+                        <div class="mt-6 pt-4 border-t border-slate-900 flex justify-between items-center">
+                            <div>
+                                <span class="text-[9px] text-slate-500 uppercase font-black">Subtotal</span>
+                                <p class="text-xs font-bold text-white">R$ 62,90</p>
+                            </div>
+                            <div class="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-600/10">
+                                💬 Enviar Pedido
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
-    
+
     <!-- Features Section -->
-    <section id="features" class="py-20 sm:py-28 bg-white">
+    <section id="features" class="py-24 sm:py-32 bg-slate-950 border-t border-slate-900 relative">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
-            <div class="text-center mb-16 animate-fade-in-up">
-                <h2 class="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-                    Tudo que você precisa para
-                    <span class="gradient-text">vender mais</span>
+            <div class="text-center mb-20">
+                <span class="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] font-black uppercase tracking-wider">
+                    Desenvolvido para Escala
+                </span>
+                <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mt-4">
+                    Ferramentas robustas para <span class="bg-gradient-to-r from-violet-400 via-indigo-400 to-cyan-400 bg-clip-text text-transparent">vender mais</span>
                 </h2>
-                <p class="text-lg text-slate-500 max-w-xl mx-auto">
-                    Ferramentas profissionais para criar seu catálogo digital e receber pedidos de forma organizada.
+                <p class="text-slate-400 text-sm sm:text-base max-w-xl mx-auto mt-3">
+                    Organize seu catálogo, automatize o atendimento e aumente o faturamento diário da sua loja.
                 </p>
             </div>
             
-            <div class="grid md:grid-cols-3 gap-8 stagger-children">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <!-- Feature 1 -->
-                <div class="group p-8 rounded-3xl bg-gradient-to-br from-slate-50 to-slate-100/50 border border-slate-200/60 hover:border-violet-200 hover:shadow-xl hover:shadow-violet-500/5 transition-all duration-300">
-                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                        </svg>
+                <div class="group p-8 rounded-3xl bg-slate-900/30 border border-slate-900 hover:border-violet-500/30 hover:bg-slate-900/50 hover:shadow-2xl hover:shadow-violet-500/5 transition-all duration-300">
+                    <div class="w-12 h-12 rounded-2xl bg-violet-600/15 border border-violet-500/20 flex items-center justify-center mb-6 group-hover:scale-105 transition-all duration-300">
+                        <span class="text-xl">📱</span>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-3">Mobile-First</h3>
-                    <p class="text-slate-500 leading-relaxed">
-                        Catálogo otimizado para celular. Seus clientes navegam e pedem com facilidade, usando apenas o polegar.
+                    <h3 class="text-lg font-bold text-white mb-2">Interface Premium Mobile</h3>
+                    <p class="text-slate-400 text-xs sm:text-sm leading-relaxed">
+                        Seu cliente navega no catálogo de forma ágil e intuitiva diretamente do celular, com carregamento rápido e design premium.
                     </p>
                 </div>
                 
                 <!-- Feature 2 -->
-                <div class="group p-8 rounded-3xl bg-gradient-to-br from-slate-50 to-slate-100/50 border border-slate-200/60 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/5 transition-all duration-300">
-                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                        <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                        </svg>
+                <div class="group p-8 rounded-3xl bg-slate-900/30 border border-slate-900 hover:border-indigo-500/30 hover:bg-slate-900/50 hover:shadow-2xl hover:shadow-indigo-500/5 transition-all duration-300">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-600/15 border border-indigo-500/20 flex items-center justify-center mb-6 group-hover:scale-105 transition-all duration-300">
+                        <span class="text-xl">🎟️</span>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-3">Pedido via WhatsApp</h3>
-                    <p class="text-slate-500 leading-relaxed">
-                        O cliente monta o pedido no carrinho e envia direto pro seu WhatsApp com todos os detalhes formatados.
+                    <h3 class="text-lg font-bold text-white mb-2">Cupons de Desconto</h3>
+                    <p class="text-slate-400 text-xs sm:text-sm leading-relaxed">
+                        Crie cupons promocionais para atrair clientes, aumentar o ticket médio e fidelizar consumidores recorrentes.
                     </p>
                 </div>
                 
                 <!-- Feature 3 -->
-                <div class="group p-8 rounded-3xl bg-gradient-to-br from-slate-50 to-slate-100/50 border border-slate-200/60 hover:border-amber-200 hover:shadow-xl hover:shadow-amber-500/5 transition-all duration-300">
-                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
-                        </svg>
+                <div class="group p-8 rounded-3xl bg-slate-900/30 border border-slate-900 hover:border-emerald-500/30 hover:bg-slate-900/50 hover:shadow-2xl hover:shadow-emerald-500/5 transition-all duration-300">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-600/15 border border-emerald-500/20 flex items-center justify-center mb-6 group-hover:scale-105 transition-all duration-300">
+                        <span class="text-xl">⏰</span>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-3">Sua Marca</h3>
-                    <p class="text-slate-500 leading-relaxed">
-                        Personalize cores, logo e informações da sua loja. Seu catálogo com a cara do seu negócio.
+                    <h3 class="text-lg font-bold text-white mb-2">Horário Comercial Inteligente</h3>
+                    <p class="text-slate-400 text-xs sm:text-sm leading-relaxed">
+                        Configure seu período de funcionamento. O sistema fecha as vendas do catálogo automaticamente no horário de folga.
                     </p>
                 </div>
             </div>
         </div>
     </section>
-    
-    <!-- How it Works -->
-    <section class="py-20 sm:py-28 bg-slate-50">
+
+    <!-- Workflow Section -->
+    <section id="workflow" class="py-24 sm:py-32 bg-slate-950 border-t border-slate-900 relative">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-                    Como funciona
+            <div class="text-center mb-20">
+                <span class="px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-[10px] font-black uppercase tracking-wider">
+                    Simplicidade na Prática
+                </span>
+                <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mt-4">
+                    Tudo pronto em <span class="bg-gradient-to-r from-violet-400 via-indigo-400 to-cyan-400 bg-clip-text text-transparent">3 passos simples</span>
                 </h2>
-                <p class="text-lg text-slate-500">Em 3 passos simples</p>
             </div>
             
-            <div class="grid md:grid-cols-3 gap-8 stagger-children">
-                <div class="text-center">
-                    <div class="w-16 h-16 rounded-2xl bg-violet-100 text-violet-600 flex items-center justify-center text-2xl font-bold mx-auto mb-6">1</div>
-                    <h3 class="text-lg font-bold text-slate-900 mb-2">Cadastre seus produtos</h3>
-                    <p class="text-slate-500">Adicione fotos, preços e descrições no painel administrativo.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 stagger-children">
+                <div class="text-center space-y-4">
+                    <div class="w-14 h-14 rounded-2xl bg-violet-600/10 border border-violet-500/25 flex items-center justify-center text-lg font-black text-white mx-auto shadow-md">
+                        1
+                    </div>
+                    <h3 class="text-base font-bold text-white">Cadastre sua Loja</h3>
+                    <p class="text-slate-400 text-xs leading-relaxed max-w-xs mx-auto">
+                        Crie sua conta em 1 minuto, escolha as cores da sua marca e cadastre seus produtos com foto e opcionais.
+                    </p>
                 </div>
-                <div class="text-center">
-                    <div class="w-16 h-16 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-2xl font-bold mx-auto mb-6">2</div>
-                    <h3 class="text-lg font-bold text-slate-900 mb-2">Compartilhe o link</h3>
-                    <p class="text-slate-500">Envie o link do seu catálogo nas redes sociais e para seus clientes.</p>
+                <div class="text-center space-y-4">
+                    <div class="w-14 h-14 rounded-2xl bg-indigo-600/10 border border-indigo-500/25 flex items-center justify-center text-lg font-black text-white mx-auto shadow-md">
+                        2
+                    </div>
+                    <h3 class="text-base font-bold text-white">Compartilhe seu Link</h3>
+                    <p class="text-slate-400 text-xs leading-relaxed max-w-xs mx-auto">
+                        Divulgue o endereço do seu catálogo na bio do Instagram, em mensagens prontas ou direto no status do WhatsApp.
+                    </p>
                 </div>
-                <div class="text-center">
-                    <div class="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl font-bold mx-auto mb-6">3</div>
-                    <h3 class="text-lg font-bold text-slate-900 mb-2">Receba pedidos</h3>
-                    <p class="text-slate-500">Seus clientes montam pedidos e enviam direto pro seu WhatsApp.</p>
+                <div class="text-center space-y-4">
+                    <div class="w-14 h-14 rounded-2xl bg-emerald-600/10 border border-emerald-500/25 flex items-center justify-center text-lg font-black text-white mx-auto shadow-md">
+                        3
+                    </div>
+                    <h3 class="text-base font-bold text-white">Venda Automatizada</h3>
+                    <p class="text-slate-400 text-xs leading-relaxed max-w-xs mx-auto">
+                        Seus clientes montam o carrinho de compras pelo celular e enviam o pedido formatado direto pro seu WhatsApp.
+                    </p>
                 </div>
             </div>
         </div>
     </section>
-    
-    <!-- CTA Final -->
-    <section class="hero-gradient relative overflow-hidden py-20 sm:py-28">
-        <div class="absolute top-10 right-1/4 w-64 h-64 bg-violet-600/20 rounded-full blur-3xl"></div>
-        <div class="relative max-w-3xl mx-auto px-4 sm:px-6 text-center">
-            <h2 class="text-3xl sm:text-4xl font-bold text-white mb-6">
-                Pronto para começar?
-            </h2>
-            <p class="text-lg text-slate-400 mb-10">
-                Crie seu catálogo digital agora mesmo. É rápido, fácil e gratuito.
-            </p>
-            <a href="/admin/login" class="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold text-lg shadow-xl shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-105 transition-all duration-300">
-                Começar agora
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
-            </a>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-24 sm:py-32 bg-slate-950 border-t border-slate-900 relative overflow-hidden">
+        <!-- Background Orbs -->
+        <div class="absolute top-1/3 left-1/4 w-96 h-96 bg-violet-600/10 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-10 right-10 w-80 h-80 bg-indigo-600/10 rounded-full blur-[120px]"></div>
+        
+        <div class="relative max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="text-center mb-16 animate-fade-in-up">
+                <span class="px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-[10px] font-black uppercase tracking-wider">
+                    Planos Flexíveis
+                </span>
+                <h2 class="text-3xl sm:text-5xl font-extrabold text-white mt-4">
+                    Planos ideais para o seu <span class="bg-gradient-to-r from-violet-400 via-indigo-400 to-cyan-400 bg-clip-text text-transparent">crescimento</span>
+                </h2>
+                <p class="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto mt-3">
+                    Cadastre-se e ganhe 7 dias grátis no plano Bronze. Faça o upgrade a qualquer momento para liberar novos limites e ferramentas de automação.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 stagger-children">
+                {{range .Plans}}
+                <div class="glass-dark rounded-3xl border {{if eq .ID 3}}border-violet-500 shadow-xl shadow-violet-500/10{{else}}border-slate-900/80{{end}} p-6 flex flex-col justify-between relative overflow-hidden group hover:border-slate-800 transition-all duration-300">
+                    <!-- Highlight Tag for most popular (Ouro) -->
+                    {{if eq .ID 3}}
+                    <span class="absolute top-4 right-4 bg-violet-600 text-white font-extrabold text-[9px] px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        Recomendado
+                    </span>
+                    {{end}}
+                    
+                    <div>
+                        <h3 class="text-base font-bold text-white">{{.Name}}</h3>
+                        
+                        <!-- Price -->
+                        <div class="flex items-baseline gap-1 mt-4">
+                            {{if eq .Price 0.00}}
+                            <span class="text-2xl font-black text-white">Grátis</span>
+                            {{else}}
+                            <span class="text-3xl font-black text-white">{{formatPrice .Price}}</span>
+                            <span class="text-xs text-slate-500">/mês</span>
+                            {{end}}
+                        </div>
+                        
+                        <p class="text-slate-400 text-[11px] mt-3 leading-relaxed min-h-[48px]">
+                            {{if eq .ID 1}}
+                            Período de teste gratuito por 7 dias. Perfeito para conhecer a plataforma.
+                            {{else if eq .ID 2}}
+                            Ideal para comércios no início que querem oferecer cupons de desconto.
+                            {{else if eq .ID 3}}
+                            A melhor escolha para operações de delivery com horário de atendimento dinâmico.
+                            {{else}}
+                            Para grandes operações com produtos ilimitados e suporte premium VIP 24/7.
+                            {{end}}
+                        </p>
+                        
+                        <!-- Features List -->
+                        <ul class="space-y-3 mt-6 text-xs text-slate-350 border-t border-slate-900/60 pt-6">
+                            <li class="flex items-center gap-2">
+                                <span class="text-violet-400 font-bold">✔</span>
+                                <span>
+                                    {{if eq .MaxProducts -1}}Produtos Ilimitados{{else}}Até <strong>{{.MaxProducts}}</strong> Produtos{{end}}
+                                </span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="text-violet-400 font-bold">✔</span>
+                                <span>
+                                    {{if eq .MaxCategories -1}}Categorias Ilimitadas{{else}}Até <strong>{{.MaxCategories}}</strong> Categorias{{end}}
+                                </span>
+                            </li>
+                            
+                            <!-- Coupons -->
+                            {{if eq .ID 1}}
+                            <li class="flex items-center gap-2 text-slate-600 line-through">
+                                <span>❌</span>
+                                <span>Cupons de Desconto</span>
+                            </li>
+                            {{else}}
+                            <li class="flex items-center gap-2">
+                                <span class="text-violet-400">✔</span>
+                                <span>Cupons de Desconto</span>
+                            </li>
+                            {{end}}
+
+                            <!-- Business Hours -->
+                            {{if or (eq .ID 1) (eq .ID 2)}}
+                            <li class="flex items-center gap-2 text-slate-600 line-through">
+                                <span>❌</span>
+                                <span>Horário Comercial</span>
+                            </li>
+                            {{else}}
+                            <li class="flex items-center gap-2">
+                                <span class="text-violet-400">✔</span>
+                                <span>Horário Comercial</span>
+                            </li>
+                            {{end}}
+
+                            <!-- Support -->
+                            {{if eq .ID 1}}
+                            <li class="flex items-center gap-2 text-slate-600 line-through">
+                                <span>❌</span>
+                                <span>Suporte WhatsApp</span>
+                            </li>
+                            {{else if eq .ID 4}}
+                            <li class="flex items-center gap-2">
+                                <span class="text-violet-400">✔</span>
+                                <span class="text-violet-300 font-semibold">Suporte VIP 24/7</span>
+                            </li>
+                            {{else}}
+                            <li class="flex items-center gap-2">
+                                <span class="text-violet-400">✔</span>
+                                <span>Suporte Prioritário</span>
+                            </li>
+                            {{end}}
+                        </ul>
+                    </div>
+                    
+                    <!-- Action Button -->
+                    <div class="mt-8">
+                        <a href="/admin/register" 
+                           class="block text-center w-full py-3 rounded-xl {{if eq .ID 3}}bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-550 hover:to-indigo-550 text-white shadow-lg shadow-violet-600/20{{else}}bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800/80 hover:border-slate-700{{end}} font-bold text-xs uppercase tracking-wider transition-all duration-300 active:scale-[0.98]">
+                            {{if eq .ID 1}}Criar Conta Grátis{{else}}Começar Agora{{end}}
+                        </a>
+                    </div>
+                </div>
+                {{end}}
+            </div>
         </div>
     </section>
-    
+
+    <!-- Final CTA Section -->
+    <section class="py-24 sm:py-32 bg-slate-950 border-t border-slate-900 relative overflow-hidden">
+        <div class="hero-grid absolute inset-0"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-violet-600/10 rounded-full blur-[140px]"></div>
+        
+        <div class="relative max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-8">
+            <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                Pronto para digitalizar o seu atendimento?
+            </h2>
+            <p class="text-slate-400 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
+                Crie seu catálogo profissional e automatize seus pedidos via WhatsApp em minutos.
+            </p>
+            <div class="pt-4">
+                <a href="/admin/register" class="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-base shadow-xl shadow-violet-500/20 hover:shadow-violet-500/40 hover:scale-105 active:scale-[0.98] transition-all">
+                    Criar Meu Catálogo Grátis
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                </a>
+            </div>
+        </div>
+    </section>
+
     <!-- Footer -->
-    <footer class="bg-slate-900 border-t border-slate-800 py-8">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-            <p class="text-slate-500 text-sm">
-                &copy; 2024 Catálogo Digital. Feito com ❤️ para empreendedores.
+    <footer class="bg-slate-950 border-t border-slate-900/60 py-12 relative z-10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                </div>
+                <span class="font-extrabold text-sm tracking-tight text-white">Catálogo<span class="text-violet-500">.</span></span>
+            </div>
+            
+            <p class="text-slate-500 text-xs">
+                &copy; 2026 Catálogo Digital. Todos os direitos reservados. Feito com ❤️ para empreendedores.
             </p>
         </div>
     </footer>
+
 </div>
 {{end}}
