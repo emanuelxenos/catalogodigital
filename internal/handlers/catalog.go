@@ -550,19 +550,24 @@ func formatBRL(val float64) string {
 	return "R$ " + s
 }
 
+// DayHours representa os horários de abertura e fechamento de um dia
+type DayHours struct {
+	Open  string `json:"open"`
+	Close string `json:"close"`
+}
+
 // IsShopOpen valida os horários comerciais da loja
 func IsShopOpen(businessHours *string) bool {
 	if businessHours == nil || *businessHours == "" || *businessHours == "null" {
+		log.Println("[IsShopOpen] business_hours é nulo/vazio → retornando aberto por padrão")
 		return true // Aberto por padrão
 	}
 
-	var hours map[string]struct {
-		Open  string `json:"open"`
-		Close string `json:"close"`
-	}
+	hours := make(map[string]DayHours)
 
 	if err := json.Unmarshal([]byte(*businessHours), &hours); err != nil {
-		return true
+		log.Printf("[IsShopOpen] ERRO ao fazer parse do JSON de horários: %v | JSON: %s", err, *businessHours)
+		return false // Conservador: se não consegue ler o horário, considera fechado
 	}
 
 	loc, err := time.LoadLocation("America/Sao_Paulo")
@@ -574,11 +579,16 @@ func IsShopOpen(businessHours *string) bool {
 	dayKey := weekdays[now.Weekday()]
 
 	dayConfig, exists := hours[dayKey]
+	log.Printf("[IsShopOpen] dia=%s | config encontrado=%v | open=%s close=%s", dayKey, exists, dayConfig.Open, dayConfig.Close)
+
 	if !exists || dayConfig.Open == "" || dayConfig.Close == "" {
+		log.Printf("[IsShopOpen] Dia '%s' sem horário configurado → FECHADO", dayKey)
 		return false
 	}
 
 	currentHM := now.Format("15:04")
-	return currentHM >= dayConfig.Open && currentHM <= dayConfig.Close
+	isOpen := currentHM >= dayConfig.Open && currentHM <= dayConfig.Close
+	log.Printf("[IsShopOpen] agora=%s | range=%s-%s | aberto=%v", currentHM, dayConfig.Open, dayConfig.Close, isOpen)
+	return isOpen
 }
 

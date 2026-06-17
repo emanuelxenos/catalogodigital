@@ -1,6 +1,6 @@
 // carrinhoGlobal - Alpine.js store para o carrinho de compras
 // Persiste no localStorage para manter o estado entre navegações
-function carrinhoGlobal(deliveryFee = 0) {
+function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
     return {
         items: JSON.parse(localStorage.getItem('cart_items') || '[]'),
         isOpen: false,
@@ -13,6 +13,7 @@ function carrinhoGlobal(deliveryFee = 0) {
         justAdded: false,
         toastMessage: '',
         deliveryFee: parseFloat(deliveryFee),
+        shopIsOpen: shopIsOpen, // Recebido do servidor via template Go
         
         // Modal de produto e observações
         searchQuery: '',

@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="min-h-screen bg-slate-50/70 pb-16 mesh-grid" x-data="carrinhoGlobal({{.Shop.DeliveryFee}})">
+<div class="min-h-screen bg-slate-50/70 pb-16 mesh-grid" x-data="carrinhoGlobal({{.Shop.DeliveryFee}}, {{if .IsOpen}}true{{else}}false{{end}})">
     
     <!-- Cover Banner -->
     <div class="relative h-44 sm:h-52 w-full bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 overflow-hidden flex items-center">
@@ -630,18 +630,29 @@
                 </div>
                 
                 <!-- Send checkout message -->
-                <button 
-                    @click="finalizeOrder()"
-                    :disabled="!customerName || !customerPhone || !paymentMethod || (deliveryMethod === 'entrega' && !address)"
-                    :class="(!customerName || !customerPhone || !paymentMethod || (deliveryMethod === 'entrega' && !address)) ? 'opacity-55 cursor-not-allowed shadow-none' : 'hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-primary/20 hover:shadow-primary/35'"
-                    class="btn-primary w-full py-4 rounded-2xl text-white font-bold flex items-center justify-center gap-3 text-base transition-all duration-300"
-                    id="btn-checkout"
-                >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                    Finalizar Pedido
-                </button>
+                <!-- Aviso de loja fechada -->
+                <template x-if="!shopIsOpen">
+                    <div class="w-full py-4 rounded-2xl bg-red-50 border border-red-200 text-red-600 font-bold flex items-center justify-center gap-2 text-sm">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        </svg>
+                        Loja fechada no momento — pedidos indisponíveis
+                    </div>
+                </template>
+                <template x-if="shopIsOpen">
+                    <button 
+                        @click="finalizeOrder()"
+                        :disabled="!customerName || !customerPhone || !paymentMethod || (deliveryMethod === 'entrega' && !address)"
+                        :class="(!customerName || !customerPhone || !paymentMethod || (deliveryMethod === 'entrega' && !address)) ? 'opacity-55 cursor-not-allowed shadow-none' : 'hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-primary/20 hover:shadow-primary/35'"
+                        class="btn-primary w-full py-4 rounded-2xl text-white font-bold flex items-center justify-center gap-3 text-base transition-all duration-300"
+                        id="btn-checkout"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                        Finalizar Pedido
+                    </button>
+                </template>
             </div>
         </div>
     </div>
