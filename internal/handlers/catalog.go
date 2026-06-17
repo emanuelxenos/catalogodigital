@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +14,15 @@ import (
 
 	"github.com/go-chi/chi/v5"
 )
+
+// isValidEmailBackend valida o formato básico de um e-mail no backend
+func isValidEmailBackend(email string) bool {
+	if email == "" {
+		return true // campo opcional
+	}
+	re := regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
+	return re.MatchString(strings.TrimSpace(email))
+}
 
 // HandleCatalog renderiza o catálogo público de uma loja
 func (h *Handlers) HandleCatalog(w http.ResponseWriter, r *http.Request) {
@@ -292,15 +302,25 @@ func (h *Handlers) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cleanedPhone := cleanWhatsAppNumber(req.CustomerPhone)
-	if len(cleanedPhone) < 12 {
+	// DDI(55) + DDD(2) + numero(8 ou 9) = 12 ou 13 dígitos
+	if len(cleanedPhone) < 12 || len(cleanedPhone) > 13 {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"message": "Informe o WhatsApp completo com DDD (ex: 11999999999)",
+			"message": "WhatsApp inválido. Informe DDD + número completo (ex: 87 99999-9999)",
 		})
 		return
 	}
 	req.CustomerPhone = cleanedPhone
+	if !isValidEmailBackend(req.CustomerEmail) {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"message": "E-mail informado está em formato inválido",
+		})
+		return
+	}
+	req.CustomerEmail = strings.TrimSpace(req.CustomerEmail)
 	if req.DeliveryMethod == "entrega" && req.Address == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{

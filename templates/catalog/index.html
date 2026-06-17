@@ -544,23 +544,34 @@
                         class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-xs"
                         id="customer-name"
                     >
-                    <input 
-                        type="tel" 
-                        x-model="customerPhone" 
-                        placeholder="WhatsApp (DDD + Número)"
-                        class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-xs"
-                        id="customer-phone"
-                        required
-                    >
+                    <!-- Campo WhatsApp com máscara -->
+                    <div class="space-y-1">
+                        <input 
+                            type="tel" 
+                            :value="customerPhone"
+                            @input="onPhoneInput($event)"
+                            @blur="phoneError = isValidPhone(customerPhone) ? '' : (customerPhone ? 'Número incompleto. Informe DDD + número (ex: 87 99999-9999)' : '')"
+                            placeholder="(DDD) 99999-9999"
+                            :class="phoneError ? 'border-red-400 ring-4 ring-red-400/10' : 'border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10'"
+                            class="w-full px-4 py-3 rounded-xl border bg-white text-sm font-semibold focus:outline-none transition-all shadow-xs"
+                            id="customer-phone"
+                        >
+                        <p x-show="phoneError" x-text="phoneError" class="text-[11px] font-semibold text-red-500 px-1"></p>
+                    </div>
+                    <!-- Campo E-mail -->
                     <div class="space-y-1">
                         <input 
                             type="email" 
-                            x-model="customerEmail" 
+                            x-model="customerEmail"
+                            @input="onEmailInput()"
+                            @blur="emailError = isValidEmail(customerEmail) ? '' : 'E-mail inválido. Verifique o formato (ex: nome@email.com)'"
                             placeholder="E-mail (opcional)"
-                            class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-xs"
+                            :class="emailError ? 'border-red-400 ring-4 ring-red-400/10' : 'border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10'"
+                            class="w-full px-4 py-3 rounded-xl border bg-white text-sm font-semibold focus:outline-none transition-all shadow-xs"
                             id="customer-email"
                         >
-                        <p class="text-[10px] text-slate-400 font-medium px-1">Se informado, você também receberá notificações do pedido por e-mail.</p>
+                        <p x-show="emailError" x-text="emailError" class="text-[11px] font-semibold text-red-500 px-1"></p>
+                        <p x-show="!emailError" class="text-[10px] text-slate-400 font-medium px-1">Se informado, você também receberá notificações do pedido por e-mail.</p>
                     </div>
                     
                     <!-- Delivery Selector (Visual Pills) -->

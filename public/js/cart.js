@@ -14,6 +14,8 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
         toastMessage: '',
         deliveryFee: parseFloat(deliveryFee),
         shopIsOpen: shopIsOpen, // Recebido do servidor via template Go
+        phoneError: '',
+        emailError: '',
         
         // Modal de produto e observações
         searchQuery: '',
@@ -225,14 +227,78 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
             }).format(value);
         },
 
+        // -------------------------------------------------------
+        // Helpers de Validação
+        // -------------------------------------------------------
+
+        // Extrai somente dígitos de uma string
+        onlyDigits(str) {
+            return str.replace(/\D/g, '');
+        },
+
+        // Aplica máscara ao telefone enquanto o usuário digita
+        // Formato: (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
+        applyPhoneMask(value) {
+            let digits = this.onlyDigits(value).substring(0, 11);
+            if (digits.length === 0) return '';
+            let result = '(' + digits.substring(0, 2);
+            if (digits.length > 2) {
+                result += ') ' + digits.substring(2, digits.length <= 10 ? 6 : 7);
+            }
+            if (digits.length > (digits.length <= 10 ? 6 : 7)) {
+                result += '-' + digits.substring(digits.length <= 10 ? 6 : 7);
+            }
+            return result;
+        },
+
+        // Valida se o telefone tem o mínimo de dígitos para ser um número brasileiro válido
+        // Exige: DDD (2) + número (8 ou 9 dígitos) = 10 ou 11 dígitos
+        isValidPhone(value) {
+            const digits = this.onlyDigits(value);
+            return digits.length >= 10 && digits.length <= 11;
+        },
+
+        // Valida formato de e-mail simples
+        isValidEmail(value) {
+            if (!value || value.trim() === '') return true; // opcional
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+        },
+
+        // Handler para o campo de telefone: aplica máscara e limpa erro
+        onPhoneInput(event) {
+            this.customerPhone = this.applyPhoneMask(event.target.value);
+            if (this.isValidPhone(this.customerPhone)) {
+                this.phoneError = '';
+            }
+        },
+
+        // Handler para o campo de email: limpa erro ao corrigir
+        onEmailInput() {
+            if (this.isValidEmail(this.customerEmail)) {
+                this.emailError = '';
+            }
+        },
+
+        // -------------------------------------------------------
         // Envia o pedido para a Rota de Checkout Segura do Backend
+        // -------------------------------------------------------
         finalizeOrder() {
-            if (!this.customerName) {
+            // Reseta erros anteriores
+            this.phoneError = '';
+            this.emailError = '';
+
+            if (!this.customerName || !this.customerName.trim()) {
                 this.showToast('⚠️ Por favor, informe seu nome');
                 return;
             }
-            if (!this.customerPhone) {
-                this.showToast('⚠️ Por favor, informe seu telefone');
+            if (!this.customerPhone || !this.isValidPhone(this.customerPhone)) {
+                this.phoneError = 'Número inválido. Informe DDD + número (ex: 87 99999-9999)';
+                this.showToast('⚠️ WhatsApp inválido');
+                return;
+            }
+            if (this.customerEmail && !this.isValidEmail(this.customerEmail)) {
+                this.emailError = 'E-mail inválido. Verifique o formato (ex: nome@email.com)';
+                this.showToast('⚠️ E-mail com formato inválido');
                 return;
             }
             if (!this.paymentMethod) {
