@@ -179,11 +179,13 @@
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs text-slate-500">De:</span>
                                     <input type="time" name="hours_mon_open" value="{{getHour .BusinessHours "mon" "open"}}"
+                                        :disabled="!active.mon"
                                         class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
                                 </div>
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs text-slate-500">Até:</span>
                                     <input type="time" name="hours_mon_close" value="{{getHour .BusinessHours "mon" "close"}}"
+                                        :disabled="!active.mon"
                                         class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
                                 </div>
                             </div>
@@ -210,11 +212,13 @@
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs text-slate-500">De:</span>
                                     <input type="time" name="hours_tue_open" value="{{getHour .BusinessHours "tue" "open"}}"
+                                        :disabled="!active.tue"
                                         class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
                                 </div>
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs text-slate-500">Até:</span>
                                     <input type="time" name="hours_tue_close" value="{{getHour .BusinessHours "tue" "close"}}"
+                                        :disabled="!active.tue"
                                         class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
                                 </div>
                             </div>
@@ -241,11 +245,13 @@
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs text-slate-500">De:</span>
                                     <input type="time" name="hours_wed_open" value="{{getHour .BusinessHours "wed" "open"}}"
+                                        :disabled="!active.wed"
                                         class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
                                 </div>
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs text-slate-500">Até:</span>
                                     <input type="time" name="hours_wed_close" value="{{getHour .BusinessHours "wed" "close"}}"
+                                        :disabled="!active.wed"
                                         class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
                                 </div>
                             </div>
@@ -272,11 +278,13 @@
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs text-slate-500">De:</span>
                                     <input type="time" name="hours_thu_open" value="{{getHour .BusinessHours "thu" "open"}}"
+                                        :disabled="!active.thu"
                                         class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
                                 </div>
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs text-slate-500">Até:</span>
                                     <input type="time" name="hours_thu_close" value="{{getHour .BusinessHours "thu" "close"}}"
+                                        :disabled="!active.thu"
                                         class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
                                 </div>
                             </div>
@@ -303,11 +311,13 @@
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs text-slate-500">De:</span>
                                     <input type="time" name="hours_fri_open" value="{{getHour .BusinessHours "fri" "open"}}"
+                                        :disabled="!active.fri"
                                         class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
                                 </div>
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs text-slate-500">Até:</span>
                                     <input type="time" name="hours_fri_close" value="{{getHour .BusinessHours "fri" "close"}}"
+                                        :disabled="!active.fri"
                                         class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
                                 </div>
                             </div>
@@ -334,11 +344,13 @@
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs text-slate-500">De:</span>
                                     <input type="time" name="hours_sat_open" value="{{getHour .BusinessHours "sat" "open"}}"
+                                        :disabled="!active.sat"
                                         class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
                                 </div>
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs text-slate-500">Até:</span>
                                     <input type="time" name="hours_sat_close" value="{{getHour .BusinessHours "sat" "close"}}"
+                                        :disabled="!active.sat"
                                         class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
                                 </div>
                             </div>
@@ -365,11 +377,13 @@
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs text-slate-500">De:</span>
                                     <input type="time" name="hours_sun_open" value="{{getHour .BusinessHours "sun" "open"}}"
+                                        :disabled="!active.sun"
                                         class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
                                 </div>
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs text-slate-500">Até:</span>
                                     <input type="time" name="hours_sun_close" value="{{getHour .BusinessHours "sun" "close"}}"
+                                        :disabled="!active.sun"
                                         class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:border-violet-500">
                                 </div>
                             </div>
