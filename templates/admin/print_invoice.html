@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprovante de Pagamento - {{.Shop.Name}}</title>
+    <!-- Tailwind CSS para estilização rápida -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+        @media print {
+            body {
+                background: white;
+                color: black;
+                padding: 0;
+            }
+            .no-print {
+                display: none;
+            }
+            .print-border {
+                border: 1px solid #e2e8f0 !important;
+            }
+        }
+        body {
+            font-family: 'Outfit', system-ui, sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 max-w-2xl mx-auto" onload="window.print()">
+
+    <!-- Print Action Warning (non-printed) -->
+    <div class="no-print mb-6 p-4 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-800 text-xs flex justify-between items-center">
+        <span>A janela de impressão do seu navegador foi aberta automaticamente. Caso queira fechar e retornar ao painel, clique em fechar.</span>
+        <button onclick="window.close()" class="px-3 py-1 bg-violet-600 text-white rounded font-bold uppercase tracking-wider hover:bg-violet-700">Fechar Guia</button>
+    </div>
+
+    <!-- Receipt Container -->
+    <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 sm:p-10 print-border relative overflow-hidden">
+        
+        <!-- PAGO Stamp Overlay -->
+        <div class="absolute top-8 right-8 border-4 border-emerald-500/30 text-emerald-500/50 font-black text-sm uppercase tracking-widest px-4 py-2 rounded-xl transform rotate-12 pointer-events-none">
+            Pago
+        </div>
+
+        <!-- Header / Logo -->
+        <div class="border-b border-slate-100 pb-8 mb-8 flex justify-between items-start">
+            <div>
+                <h1 class="text-xl font-extrabold text-violet-600 tracking-tight uppercase">Recibo de Pagamento</h1>
+                <p class="text-xs text-slate-400 mt-1">Comprovante de transação do plano digital</p>
+            </div>
+            <div class="text-right">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Data de Emissão</span>
+                <span class="text-xs font-semibold text-slate-700">{{formatTime .Now}}</span>
+            </div>
+        </div>
+
+        <!-- Details Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-8">
+            <!-- Emissor (SaaS Platform) -->
+            <div>
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Emissor</h3>
+                <p class="text-sm font-bold text-slate-800">Catálogo Digital SaaS</p>
+                <p class="text-xs text-slate-500 mt-0.5">Sistema de Catálogo Online para Delivery</p>
+                <p class="text-xs text-slate-500">contato@catalogodigital.com.br</p>
+            </div>
+
+            <!-- Destinatário (Shop Owner) -->
+            <div>
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Cliente</h3>
+                <p class="text-sm font-bold text-slate-800">{{.Shop.Name}}</p>
+                <p class="text-xs text-slate-500 mt-0.5">WhatsApp: {{.Shop.WhatsappNumber}}</p>
+                <p class="text-xs text-slate-500">ID Loja: #{{.Shop.ID}}</p>
+            </div>
+        </div>
+
+        <!-- Transaction Details Table -->
+        <div class="border border-slate-200/80 rounded-2xl overflow-hidden mb-8">
+            <div class="bg-slate-50 px-5 py-3 border-b border-slate-200/80 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                Descrição da Assinatura
+            </div>
+            <div class="divide-y divide-slate-100 px-5">
+                <div class="py-3.5 flex justify-between text-xs">
+                    <span class="text-slate-500">Plano Contratado</span>
+                    <span class="font-bold text-slate-800">{{.Plan.Name}} (Acesso Mensal)</span>
+                </div>
+                <div class="py-3.5 flex justify-between text-xs">
+                    <span class="text-slate-500">ID da Transação Asaas</span>
+                    <span class="font-mono text-slate-600 font-medium">{{.Charge.AsaasPaymentID}}</span>
+                </div>
+                <div class="py-3.5 flex justify-between text-xs">
+                    <span class="text-slate-500">Forma de Pagamento</span>
+                    <span class="font-semibold text-slate-800">
+                        {{if eq .Charge.BillingType "CREDIT_CARD"}}Cartão de Crédito{{else if eq .Charge.BillingType "PIX"}}PIX{{else}}{{.Charge.BillingType}}{{end}}
+                    </span>
+                </div>
+                <div class="py-3.5 flex justify-between text-xs">
+                    <span class="text-slate-500">Data de Pagamento</span>
+                    <span class="font-semibold text-slate-800">{{formatTime .Charge.CreatedAt}}</span>
+                </div>
+                <div class="py-4 flex justify-between text-sm font-bold border-t border-slate-200">
+                    <span class="text-slate-800">Valor Total Pago</span>
+                    <span class="text-violet-600 text-base font-black">{{formatPrice .Charge.Amount}}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Notes -->
+        <div class="text-center border-t border-slate-100 pt-6">
+            <p class="text-[10px] text-slate-400">Este documento serve como comprovação de quitação da mensalidade para o período de 30 dias subsequentes à data de pagamento.</p>
+            <p class="text-[9px] text-slate-400/80 mt-1">Dúvidas ou problemas com seu pagamento? Entre em contato com o suporte técnico.</p>
+        </div>
+    </div>
+</body>
+</html>

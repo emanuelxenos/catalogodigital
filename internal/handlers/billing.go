@@ -70,7 +70,7 @@ func (h *Handlers) HandleShopBilling(w http.ResponseWriter, r *http.Request) {
 	limit := 10
 	offset := (page - 1) * limit
 
-	charges, totalCharges, err := h.DB.ListChargesByShop(r.Context(), shop.ID, limit, offset)
+	charges, totalCharges, err := h.DB.ListChargesByShop(r.Context(), shop.ID, limit, offset, 0)
 	if err != nil {
 		log.Printf("Erro ao buscar histórico de cobranças da loja %d: %v", shop.ID, err)
 		charges = []database.PaymentCharge{}
@@ -571,6 +571,116 @@ func (h *Handlers) HandleAsaasWebhook(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[WEBHOOK] ✅ Plano %s ativado/renovado para shop %d via evento %s", planName, dbCharge.ShopID, event.Event)
 	w.WriteHeader(http.StatusOK)
 }
+
+// HandleShopInvoices renderiza a página dedicada de faturas com paginação e filtro por ano
+func (h *Handlers) HandleShopInvoices(w http.ResponseWriter, r *http.Request) {
+	user := middleware.GetUserFromContext(r)
+	shop := middleware.GetShopFromContext(r)
+	if shop == nil {
+		http.Redirect(w, r, "/admin/config", http.StatusSeeOther)
+		return
+	}
+
+	// 1. Carrega os anos com cobranças registradas
+	years, err := h.DB.GetBillingYears(r.Context(), shop.ID)
+	if err != nil {
+		log.Printf("Erro ao buscar anos de cobrança: %v", err)
+		years = []int{time.Now().Year()}
+	}
+
+	// 2. Lê parâmetros de paginação e filtro de ano
+	page := 1
+	if pStr := r.URL.Query().Get("page"); pStr != "" {
+		if p, err := strconv.Atoi(pStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	limit := 10
+	offset := (page - 1) * limit
+
+	year := 0 // 0 significa exibir tudo
+	if yStr := r.URL.Query().Get("year"); yStr != "" {
+		if y, err := strconv.Atoi(yStr); err == nil && y > 0 {
+			year = y
+		}
+	}
+
+	// 3. Busca faturas filtradas
+	charges, totalCharges, err := h.DB.ListChargesByShop(r.Context(), shop.ID, limit, offset, year)
+	if err != nil {
+		log.Printf("Erro ao buscar faturas: %v", err)
+		charges = []database.PaymentCharge{}
+	}
+
+	totalPages := (totalCharges + limit - 1) / limit
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
+	data := map[string]interface{}{
+		"User":              user,
+		"Shop":              shop,
+		"Charges":           charges,
+		"Years":             years,
+		"SelectedYear":      year,
+		"CurrentPage":       page,
+		"TotalPages":        totalPages,
+		"HasPrevPage":       page > 1,
+		"HasNextPage":       page < totalPages,
+		"PrevPage":          page - 1,
+		"NextPage":          page + 1,
+		"Success":           r.URL.Query().Get("success"),
+		"Error":             r.URL.Query().Get("error"),
+	}
+
+	if err := h.Tmpl.Render(w, "admin", "admin/invoices.html", data); err != nil {
+		log.Printf("Erro ao renderizar faturas: %v", err)
+		http.Error(w, "Erro interno", http.StatusInternalServerError)
+	}
+}
+
+// HandlePrintInvoiceReceipt exibe o comprovante de pagamento limpo e otimizado para impressão/PDF
+func (h *Handlers) HandlePrintInvoiceReceipt(w http.ResponseWriter, r *http.Request) {
+	shop := middleware.GetShopFromContext(r)
+	if shop == nil {
+		http.Error(w, "Loja não configurada", http.StatusBadRequest)
+		return
+	}
+
+	chargeIDStr := chi.URLParam(r, "id")
+	chargeID, err := strconv.Atoi(chargeIDStr)
+	if err != nil {
+		http.Error(w, "ID de fatura inválido", http.StatusBadRequest)
+		return
+	}
+
+	// Busca a fatura
+	charge, err := h.DB.GetChargeByID(r.Context(), chargeID)
+	if err != nil || charge.ShopID != shop.ID {
+		http.Error(w, "Comprovante não encontrado", http.StatusNotFound)
+		return
+	}
+
+	// Carrega plano faturado
+	plan, err := h.DB.GetPlanByID(r.Context(), charge.PlanID)
+	if err != nil {
+		plan = &database.Plan{Name: "Plano Especial", Price: charge.Amount}
+	}
+
+	data := map[string]interface{}{
+		"Shop":         shop,
+		"Charge":       charge,
+		"Plan":         plan,
+		"Now":          time.Now(),
+	}
+
+	// Renderiza página de impressão limpa
+	if err := h.Tmpl.RenderPage(w, "admin/print_invoice.html", data); err != nil {
+		log.Printf("Erro ao renderizar página de impressão de recibo: %v", err)
+		http.Error(w, "Erro interno", http.StatusInternalServerError)
+	}
+}
+
 
 // jsonError responde com JSON de erro
 func jsonError(w http.ResponseWriter, msg string, code int) {

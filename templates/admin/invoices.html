@@ -1,0 +1,154 @@
+{{define "content"}}
+<div class="space-y-8">
+
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
+                <a href="/admin/plano" class="hover:text-slate-300 transition-colors">Meu Plano & Faturamento</a>
+                <span>&rarr;</span>
+                <span class="text-slate-400">Histórico de Faturas</span>
+            </div>
+            <h1 class="text-2xl font-bold text-white">Histórico de Faturas</h1>
+            <p class="text-slate-400 mt-1">Consulte todos os seus pagamentos e emita comprovantes</p>
+        </div>
+        
+        <!-- Year Filter Dropdown -->
+        <div class="flex items-center gap-3">
+            <label for="year-filter" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Ano:</label>
+            <select id="year-filter" 
+                    onchange="filterByYear(this.value)"
+                    class="px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all cursor-pointer">
+                <option value="0" {{if eq .SelectedYear 0}}selected{{end}}>Todos os anos</option>
+                {{$selected := .SelectedYear}}
+                {{range .Years}}
+                <option value="{{.}}" {{if eq $selected .}}selected{{end}}>{{.}}</option>
+                {{end}}
+            </select>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    {{if .Success}}
+    <div class="px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm flex items-center gap-2">
+        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        {{.Success}}
+    </div>
+    {{end}}
+    {{if .Error}}
+    <div class="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm flex items-center gap-2">
+        <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        {{.Error}}
+    </div>
+    {{end}}
+
+    <!-- Faturas List -->
+    <div class="glass-dark p-6 rounded-3xl border border-slate-800/80">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-800/60 text-slate-500 uppercase font-bold tracking-wider">
+                        <th class="py-3 px-4">Data</th>
+                        <th class="py-3 px-4">ID da Transação</th>
+                        <th class="py-3 px-4">Método</th>
+                        <th class="py-3 px-4">Valor</th>
+                        <th class="py-3 px-4">Status</th>
+                        <th class="py-3 px-4 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/40 text-slate-300">
+                    {{if .Charges}}
+                        {{range .Charges}}
+                        <tr class="hover:bg-slate-900/20 transition-colors">
+                            <td class="py-3.5 px-4 font-semibold">{{formatTime .CreatedAt}}</td>
+                            <td class="py-3.5 px-4 font-mono text-[11px] text-slate-400">{{.AsaasPaymentID}}</td>
+                            <td class="py-3.5 px-4">
+                                <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[10px] font-bold uppercase tracking-wider">
+                                    {{if eq .BillingType "CREDIT_CARD"}}Cartão{{else}}{{.BillingType}}{{end}}
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4 font-bold text-white">{{formatPrice .Amount}}</td>
+                            <td class="py-3.5 px-4">
+                                {{if or (eq .Status "RECEIVED") (eq .Status "CONFIRMED")}}
+                                    <span class="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">Pago</span>
+                                {{else if eq .Status "PENDING"}}
+                                    <span class="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider">Pendente</span>
+                                {{else}}
+                                    <span class="px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-wider">{{.Status}}</span>
+                                {{end}}
+                            </td>
+                            <td class="py-3.5 px-4 text-right">
+                                {{if or (eq .Status "RECEIVED") (eq .Status "CONFIRMED")}}
+                                <a href="/admin/plano/faturas/{{.ID}}/comprovante" target="_blank"
+                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 hover:bg-slate-900 hover:border-slate-700 text-slate-300 hover:text-white transition-all text-xs font-semibold">
+                                    <span>Ver Recibo</span>
+                                </a>
+                                {{else}}
+                                <span class="text-slate-600 text-xs italic">—</span>
+                                {{end}}
+                            </td>
+                        </tr>
+                        {{end}}
+                    {{else}}
+                        <tr>
+                            <td colspan="6" class="py-8 text-center text-slate-500 italic">Nenhuma fatura registrada neste período.</td>
+                        </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Controles de Paginação -->
+        {{if gt .TotalPages 1}}
+        <div class="flex items-center justify-between border-t border-slate-800/60 pt-4 mt-4">
+            <div class="text-xs text-slate-500">
+                Página <span class="text-slate-300 font-bold">{{.CurrentPage}}</span> de <span class="text-slate-300 font-bold">{{.TotalPages}}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                {{$yearQuery := ""}}
+                {{if gt .SelectedYear 0}}
+                    {{$yearQuery = printf "&year=%d" .SelectedYear}}
+                {{end}}
+
+                {{if .HasPrevPage}}
+                <a href="?page={{.PrevPage}}{{$yearQuery}}" class="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 hover:bg-slate-900 text-slate-300 hover:text-white transition-all text-xs font-semibold">
+                    &larr; Anterior
+                </a>
+                {{else}}
+                <button disabled class="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800/50 text-slate-600 text-xs font-semibold cursor-not-allowed">
+                    &larr; Anterior
+                </button>
+                {{end}}
+
+                {{if .HasNextPage}}
+                <a href="?page={{.NextPage}}{{$yearQuery}}" class="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 hover:bg-slate-900 text-slate-300 hover:text-white transition-all text-xs font-semibold">
+                    Próxima &rarr;
+                </a>
+                {{else}}
+                <button disabled class="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800/50 text-slate-600 text-xs font-semibold cursor-not-allowed">
+                    Próxima &rarr;
+                </button>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+    </div>
+</div>
+
+<script>
+function filterByYear(val) {
+    const url = new URL(window.location.href);
+    if (val === "0") {
+        url.searchParams.delete("year");
+    } else {
+        url.searchParams.set("year", val);
+    }
+    url.searchParams.set("page", "1"); // reseta para primeira página ao filtrar
+    window.location.href = url.pathname + url.search;
+}
+</script>
+{{end}}

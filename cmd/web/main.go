@@ -64,6 +64,9 @@ func main() {
 	// Arquivos estáticos
 	fileServer := http.FileServer(http.Dir("public"))
 	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
+	r.Get("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "public/favicon.png")
+	})
 
 	// ==================== ROTAS PÚBLICAS ====================
 
@@ -113,9 +116,12 @@ func main() {
 
 		// Assinatura e Faturamento
 		r.Get("/admin/plano", h.HandleShopBilling)
+		r.Get("/admin/plano/faturas", h.HandleShopInvoices)
+		r.Get("/admin/plano/faturas/{id}/comprovante", h.HandlePrintInvoiceReceipt)
 		r.Post("/admin/plano/upgrade", h.HandleUpgradeInitiate)           // PIX: inicia cobrança no Asaas
 		r.Post("/admin/plano/upgrade/cartao", h.HandleUpgradeCardPost)     // Cartão: processa cartão no Asaas
 		r.Get("/admin/plano/status/{charge_id}", h.HandleCheckChargeStatus) // Polling de status
+
 
 		// Relatórios de Vendas
 		r.Get("/admin/relatorios", h.HandleReportsPage)

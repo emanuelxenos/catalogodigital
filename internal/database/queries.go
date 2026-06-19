@@ -1056,19 +1056,32 @@ func (db *DB) GetShopByAsaasCustomerID(ctx context.Context, customerID string) (
 	return shop, nil
 }
 
-// ListChargesByShop recupera o histórico de cobranças de uma loja de forma paginada
-func (db *DB) ListChargesByShop(ctx context.Context, shopID int, limit, offset int) ([]PaymentCharge, int, error) {
+// ListChargesByShop recupera o histórico de cobranças de uma loja de forma paginada e opcionalmente filtrada por ano
+func (db *DB) ListChargesByShop(ctx context.Context, shopID int, limit, offset int, year int) ([]PaymentCharge, int, error) {
 	var total int
-	err := db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM payment_charges WHERE shop_id = $1`, shopID).Scan(&total)
+	var err error
+	if year > 0 {
+		err = db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM payment_charges WHERE shop_id = $1 AND EXTRACT(YEAR FROM created_at) = $2`, shopID, year).Scan(&total)
+	} else {
+		err = db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM payment_charges WHERE shop_id = $1`, shopID).Scan(&total)
+	}
 	if err != nil {
 		return nil, 0, fmt.Errorf("erro ao contar cobranças da loja: %w", err)
 	}
 
-	rows, err := db.Pool.Query(ctx,
-		`SELECT id, shop_id, plan_id, asaas_payment_id, billing_type, amount, status, pix_qr_code, pix_copy_paste, expires_at, created_at
-		 FROM payment_charges WHERE shop_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
-		shopID, limit, offset,
-	)
+	var query string
+	var args []interface{}
+	if year > 0 {
+		query = `SELECT id, shop_id, plan_id, asaas_payment_id, billing_type, amount, status, pix_qr_code, pix_copy_paste, expires_at, created_at
+		         FROM payment_charges WHERE shop_id = $1 AND EXTRACT(YEAR FROM created_at) = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4`
+		args = []interface{}{shopID, year, limit, offset}
+	} else {
+		query = `SELECT id, shop_id, plan_id, asaas_payment_id, billing_type, amount, status, pix_qr_code, pix_copy_paste, expires_at, created_at
+		         FROM payment_charges WHERE shop_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+		args = []interface{}{shopID, limit, offset}
+	}
+
+	rows, err := db.Pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("erro ao listar cobranças da loja: %w", err)
 	}
@@ -1086,6 +1099,28 @@ func (db *DB) ListChargesByShop(ctx context.Context, shopID int, limit, offset i
 	}
 	return charges, total, nil
 }
+
+// GetBillingYears retorna todos os anos distintos com faturamento para a loja
+func (db *DB) GetBillingYears(ctx context.Context, shopID int) ([]int, error) {
+	rows, err := db.Pool.Query(ctx, `SELECT DISTINCT EXTRACT(YEAR FROM created_at)::int as y FROM payment_charges WHERE shop_id = $1 ORDER BY y DESC`, shopID)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao listar anos de faturamento: %w", err)
+	}
+	defer rows.Close()
+
+	var years []int
+	for rows.Next() {
+		var y int
+		if err := rows.Scan(&y); err == nil {
+			years = append(years, y)
+		}
+	}
+	if len(years) == 0 {
+		years = append(years, time.Now().Year())
+	}
+	return years, nil
+}
+
 
 
 
