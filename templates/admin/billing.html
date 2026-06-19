@@ -282,6 +282,54 @@
         </div>
     </div>
 
+    <!-- Histórico de Faturamento -->
+    <div class="glass-dark p-6 rounded-3xl border border-slate-800/80">
+        <h3 class="text-lg font-bold text-white mb-4">Histórico de Cobranças</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-800/60 text-slate-500 uppercase font-bold tracking-wider">
+                        <th class="py-3 px-4">Data</th>
+                        <th class="py-3 px-4">ID da Transação</th>
+                        <th class="py-3 px-4">Método</th>
+                        <th class="py-3 px-4">Valor</th>
+                        <th class="py-3 px-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/40 text-slate-300">
+                    {{if .Charges}}
+                        {{range .Charges}}
+                        <tr class="hover:bg-slate-900/20 transition-colors">
+                            <td class="py-3.5 px-4 font-semibold">{{formatTime .CreatedAt}}</td>
+                            <td class="py-3.5 px-4 font-mono text-[11px] text-slate-400">{{.AsaasPaymentID}}</td>
+                            <td class="py-3.5 px-4">
+                                <span class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[10px] font-bold uppercase tracking-wider">
+                                    {{if eq .BillingType "CREDIT_CARD"}}Cartão{{else}}{{.BillingType}}{{end}}
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4 font-bold text-white">{{formatPrice .Amount}}</td>
+                            <td class="py-3.5 px-4">
+                                {{if or (eq .Status "RECEIVED") (eq .Status "CONFIRMED")}}
+                                    <span class="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">Pago</span>
+                                {{else if eq .Status "PENDING"}}
+                                    <span class="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider">Pendente</span>
+                                {{else}}
+                                    <span class="px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-wider">{{.Status}}</span>
+                                {{end}}
+                            </td>
+                        </tr>
+                        {{end}}
+                    {{else}}
+                        <tr>
+                            <td colspan="5" class="py-8 text-center text-slate-500 italic">Nenhuma cobrança registrada ainda.</td>
+                        </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
     <!-- ===== MODAL CHECKOUT REAL ===== -->
     <div x-show="showModal" 
          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"

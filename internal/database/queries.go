@@ -1056,4 +1056,30 @@ func (db *DB) GetShopByAsaasCustomerID(ctx context.Context, customerID string) (
 	return shop, nil
 }
 
+// ListChargesByShop recupera o histórico de cobranças de uma loja
+func (db *DB) ListChargesByShop(ctx context.Context, shopID int) ([]PaymentCharge, error) {
+	rows, err := db.Pool.Query(ctx,
+		`SELECT id, shop_id, plan_id, asaas_payment_id, billing_type, amount, status, pix_qr_code, pix_copy_paste, expires_at, created_at
+		 FROM payment_charges WHERE shop_id = $1 ORDER BY created_at DESC`,
+		shopID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao listar cobranças da loja: %w", err)
+	}
+	defer rows.Close()
+
+	var charges []PaymentCharge
+	for rows.Next() {
+		var c PaymentCharge
+		err := rows.Scan(&c.ID, &c.ShopID, &c.PlanID, &c.AsaasPaymentID, &c.BillingType, &c.Amount, &c.Status,
+			&c.PixQRCode, &c.PixCopyPaste, &c.ExpiresAt, &c.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		charges = append(charges, c)
+	}
+	return charges, nil
+}
+
+
 
