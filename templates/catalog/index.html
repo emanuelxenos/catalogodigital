@@ -856,10 +856,17 @@
             <!-- RIGHT SIDE (Product Details & Notes & Actions) -->
             <div class="w-full md:w-1/2 flex-grow min-h-0 flex flex-col justify-between overflow-y-auto custom-scrollbar bg-white p-6 sm:p-8">
                 <div class="space-y-4">
-                    <!-- Category Badge -->
-                    <template x-if="selectedProduct && selectedProduct.categoryName">
-                        <span class="inline-block text-[10px] font-bold text-primary bg-primary/10 border border-primary/15 px-3 py-1 rounded-full uppercase tracking-wider" x-text="selectedProduct.categoryName"></span>
-                    </template>
+                    <!-- Badges -->
+                    <div class="flex flex-wrap gap-2">
+                        <template x-if="selectedProduct && selectedProduct.categoryName">
+                            <span class="inline-block text-[10px] font-bold text-primary bg-primary/10 border border-primary/15 px-3 py-1 rounded-full uppercase tracking-wider" x-text="selectedProduct.categoryName"></span>
+                        </template>
+                        <template x-if="selectedProduct && selectedProduct.stockQty !== null && selectedProduct.stockQty !== undefined && selectedProduct.stockQty > 0">
+                            <span class="inline-block text-[10px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/15 px-3 py-1 rounded-full uppercase tracking-wider">
+                                Restam <span x-text="selectedProduct.stockQty"></span> un.
+                            </span>
+                        </template>
+                    </div>
 
                     <!-- Title -->
                     <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight" x-text="selectedProduct ? selectedProduct.name : ''"></h2>

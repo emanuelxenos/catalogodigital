@@ -260,10 +260,11 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true, deliveryZones = []) 
 
         // Formata valor em moeda brasileira
         formatCurrency(value) {
+            const num = parseFloat(value || 0);
             return new Intl.NumberFormat('pt-BR', {
                 style: 'currency',
                 currency: 'BRL'
-            }).format(value);
+            }).format(num);
         },
 
         // -------------------------------------------------------
@@ -551,15 +552,15 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true, deliveryZones = []) 
 
         getModalItemPrice() {
             if (!this.selectedProduct) return 0;
-            let price = this.selectedProduct.price;
+            let price = parseFloat(this.selectedProduct.price);
             Object.keys(this.selectedChoices).forEach(key => {
                 const val = this.selectedChoices[key];
                 if (Array.isArray(val)) {
                     val.forEach(c => {
-                        price += (c.price_adjust || 0);
+                        price += parseFloat(c.price_adjust || 0);
                     });
                 } else if (val) {
-                    price += (val.price_adjust || 0);
+                    price += parseFloat(val.price_adjust || 0);
                 }
             });
             return price;
