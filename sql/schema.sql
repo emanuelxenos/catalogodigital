@@ -207,3 +207,28 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(50) DEFAULT '
 -- Migration para adicionar e-mail do cliente nos pedidos
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255) DEFAULT '';
 
+
+-- =============================================================
+-- Integração Asaas - Gateway de Pagamento
+-- =============================================================
+
+-- ID do cliente no Asaas (reutilizado em cobranças futuras)
+ALTER TABLE shops ADD COLUMN IF NOT EXISTS asaas_customer_id TEXT DEFAULT '';
+
+-- Tabela de cobranças pendentes / pagas via Asaas
+CREATE TABLE IF NOT EXISTS payment_charges (
+    id SERIAL PRIMARY KEY,
+    shop_id INTEGER REFERENCES shops(id) ON DELETE CASCADE,
+    plan_id INTEGER REFERENCES plans(id),
+    asaas_payment_id TEXT UNIQUE NOT NULL,
+    billing_type VARCHAR(20) NOT NULL DEFAULT 'PIX', -- PIX ou CREDIT_CARD
+    amount DECIMAL(10,2) NOT NULL,
+    status VARCHAR(50) DEFAULT 'PENDING', -- PENDING, RECEIVED, CONFIRMED, OVERDUE, CANCELED
+    pix_qr_code TEXT DEFAULT '',  -- base64 da imagem PNG do QR Code
+    pix_copy_paste TEXT DEFAULT '', -- código copia-cola
+    expires_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_payment_charges_shop_id ON payment_charges(shop_id);
+CREATE INDEX IF NOT EXISTS idx_payment_charges_asaas_id ON payment_charges(asaas_payment_id);

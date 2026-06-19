@@ -1,17 +1,6 @@
 {{define "content"}}
-<div class="space-y-8" x-data="{ 
-    showModal: false, 
-    selectedPlanId: null, 
-    selectedPlanName: '', 
-    selectedPlanPrice: '', 
-    paymentMethod: 'pix',
-    copied: false,
-    copyPix() {
-        navigator.clipboard.writeText('00020101021226830014br.gov.bcb.pix2561api.pix.plataforma.com/v2/cobv/864e43ab051410bfb72a5078a6358dbb5e78');
-        this.copied = true;
-        setTimeout(() => this.copied = false, 2000);
-    }
-}">
+<div class="space-y-8" x-data="billingPage()">
+
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
@@ -55,6 +44,13 @@
     </div>
     {{end}}
 
+    <!-- Alert dinâmico de erro/sucesso -->
+    <div x-show="alertMsg" x-transition
+         :class="alertType === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-red-500/10 border-red-500/20 text-red-300'"
+         class="px-4 py-3 rounded-xl border text-sm flex items-center gap-2" style="display:none;">
+        <span x-text="alertMsg"></span>
+    </div>
+
     <!-- Usage Statistics & Limits -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Products Limit -->
@@ -77,9 +73,8 @@
             <!-- Progress Bar -->
             {{if ne .CurrentPlan.MaxProducts -1}}
             <div class="w-full bg-slate-950 rounded-full h-2">
-                <!-- Calcular a porcentagem com segurança -->
                 <div class="bg-gradient-to-r from-violet-600 to-indigo-500 h-2 rounded-full" 
-                     style="width: {{percent .CurrentProducts .CurrentPlan.MaxProducts}}%"></div>
+                     :style="'width: {{percent .CurrentProducts .CurrentPlan.MaxProducts}}%'"></div>
             </div>
             <p class="text-xs text-slate-500 mt-2">Você utilizou {{percent .CurrentProducts .CurrentPlan.MaxProducts}}% da sua cota de produtos.</p>
             {{else}}
@@ -110,8 +105,8 @@
             <!-- Progress Bar -->
             {{if ne .CurrentPlan.MaxCategories -1}}
             <div class="w-full bg-slate-950 rounded-full h-2">
-                <div class="bg-gradient-to-r from-indigo-600 to-violet-500 h-2 rounded-full" 
-                     style="width: {{percent .CurrentCategories .CurrentPlan.MaxCategories}}%"></div>
+                 <div class="bg-gradient-to-r from-indigo-600 to-violet-500 h-2 rounded-full" 
+                      :style="'width: {{percent .CurrentCategories .CurrentPlan.MaxCategories}}%'"></div>
             </div>
             <p class="text-xs text-slate-500 mt-2">Você utilizou {{percent .CurrentCategories .CurrentPlan.MaxCategories}}% da sua cota de categorias.</p>
             {{else}}
@@ -269,14 +264,14 @@
                     {{else if eq .ID 1}}
                     <!-- Downgrade/Voltar para grátis -->
                     <button 
-                        @click="showModal = true; selectedPlanId = {{.ID}}; selectedPlanName = '{{.Name}}'; selectedPlanPrice = '{{formatPrice .Price}}'; paymentMethod = 'gratis'" 
+                        @click="openModal({{.ID}}, '{{.Name}}', '{{formatPrice .Price}}', 'gratis')" 
                         class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider transition-colors active:scale-[0.98]">
                         Mudar para Grátis
                     </button>
                     {{else}}
                     <!-- Upgrade -->
                     <button 
-                        @click="showModal = true; selectedPlanId = {{.ID}}; selectedPlanName = '{{.Name}}'; selectedPlanPrice = '{{formatPrice .Price}}'; paymentMethod = 'pix'"
+                        @click="openModal({{.ID}}, '{{.Name}}', '{{formatPrice .Price}}', 'pix')"
                         class="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-violet-600/10 active:scale-[0.98] transition-all">
                         Assinar Agora
                     </button>
@@ -287,7 +282,7 @@
         </div>
     </div>
 
-    <!-- Premium Simulated Checkout Modal -->
+    <!-- ===== MODAL CHECKOUT REAL ===== -->
     <div x-show="showModal" 
          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
          x-transition:enter="transition ease-out duration-200"
@@ -299,14 +294,14 @@
          style="display: none;">
          
          <div class="glass-dark rounded-3xl border border-slate-800 shadow-2xl max-w-lg w-full overflow-hidden"
-              @click.away="showModal = false">
+              @click.away="closeModal()">
               <!-- Modal Header -->
               <div class="px-6 py-4 border-b border-slate-800/60 bg-slate-950/40 flex justify-between items-center">
                   <div>
-                      <h3 class="text-base font-bold text-white">Checkout Simulado</h3>
-                      <p class="text-xs text-slate-400">Assinatura do Plano: <strong x-text="selectedPlanName" class="text-violet-400"></strong></p>
+                      <h3 class="text-base font-bold text-white">Checkout</h3>
+                      <p class="text-xs text-slate-400">Plano: <strong x-text="selectedPlanName" class="text-violet-400"></strong></p>
                   </div>
-                  <button @click="showModal = false" class="text-slate-400 hover:text-white transition-colors">
+                  <button @click="closeModal()" class="text-slate-400 hover:text-white transition-colors">
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                       </svg>
@@ -314,133 +309,347 @@
               </div>
               
               <!-- Modal Body -->
-              <div class="p-6 space-y-6">
+              <div class="p-6 space-y-5">
                   <!-- Order Summary -->
                   <div class="p-4 rounded-2xl bg-slate-950/50 border border-slate-900 flex justify-between items-center">
                       <div>
                           <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Resumo</p>
                           <p class="text-sm font-semibold text-white mt-0.5" x-text="selectedPlanName"></p>
-                          <p class="text-xs text-slate-400">Validade de 30 dias (renovável)</p>
+                          <p class="text-xs text-slate-400">30 dias de acesso (renovável)</p>
                       </div>
                       <div class="text-right">
                           <p class="text-lg font-black text-white" x-text="selectedPlanPrice"></p>
-                          <span class="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Simulado</span>
                       </div>
                   </div>
 
-                  <!-- Free Plan Change Confirmation -->
+                  <!-- DOWNGRADE para grátis -->
                   <template x-if="paymentMethod === 'gratis'">
-                      <div class="space-y-4 text-center py-4">
-                          <div class="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-2xl">
-                              🔄
-                          </div>
+                      <div class="space-y-4 text-center py-2">
+                          <div class="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-2xl">🔄</div>
                           <h4 class="text-sm font-bold text-white">Deseja migrar para o plano Grátis?</h4>
-                           <p class="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                               Sua conta voltará para os limites do plano Bronze (Max 10 produtos e 3 categorias, sem cupons ou horários). Por ser o plano de teste gratuito, ele expira 7 dias após a data de criação da loja.
-                           </p>
-                          
-                          <form hx-post="/admin/plano/upgrade" hx-swap="none" class="pt-4">
-                              <input type="hidden" name="plan_id" :value="selectedPlanId">
-                              <button type="submit" 
-                                      class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider transition-colors">
-                                  Confirmar Mudança
-                              </button>
-                          </form>
+                          <p class="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                              Sua conta voltará para os limites do plano Bronze (Max 10 produtos e 3 categorias, sem cupons ou horários).
+                          </p>
+                          <button @click="submitDowngrade()" :disabled="loading"
+                                  class="w-full py-3 mt-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs uppercase tracking-wider transition-colors disabled:opacity-50">
+                              <span x-show="!loading">Confirmar Mudança</span>
+                              <span x-show="loading">Processando...</span>
+                          </button>
                       </div>
                   </template>
 
-                  <!-- Paid Plan Payment Tabs -->
+                  <!-- PLANOS PAGOS: abas PIX e Cartão -->
                   <template x-if="paymentMethod !== 'gratis'">
                       <div>
-                          <!-- Navigation Tabs -->
-                          <div class="flex rounded-xl bg-slate-950 p-1 border border-slate-900">
-                              <button @click="paymentMethod = 'pix'"
-                                      :class="paymentMethod === 'pix' ? 'bg-slate-900 text-white border-slate-800' : 'text-slate-450 hover:text-slate-200'"
-                                      class="flex-1 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider border border-transparent transition-all">
-                                  Pix Instantâneo
-                              </button>
-                              <button @click="paymentMethod = 'card'"
-                                      :class="paymentMethod === 'card' ? 'bg-slate-900 text-white border-slate-800' : 'text-slate-450 hover:text-slate-200'"
-                                      class="flex-1 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider border border-transparent transition-all">
-                                  Cartão de Crédito
-                              </button>
-                          </div>
+                          <div x-show="!pixData && !paymentSuccess && paymentMethod !== 'card_pending'" class="flex rounded-xl bg-slate-950 p-1 border border-slate-900 mb-5">
+                               <button @click="paymentMethod = 'pix'"
+                                       :class="paymentMethod === 'pix' ? 'bg-slate-900 text-white border-slate-800' : 'text-slate-450 hover:text-slate-200'"
+                                       class="flex-1 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider border border-transparent transition-all">
+                                   PIX
+                               </button>
+                               <button @click="paymentMethod = 'card'"
+                                       :class="paymentMethod === 'card' ? 'bg-slate-900 text-white border-slate-800' : 'text-slate-450 hover:text-slate-200'"
+                                       class="flex-1 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider border border-transparent transition-all">
+                                   Cartão de Crédito
+                               </button>
+                           </div>
 
-                          <!-- Tab Content: Pix -->
-                          <div x-show="paymentMethod === 'pix'" class="space-y-5 mt-6 animate-fadeIn">
-                              <div class="flex flex-col sm:flex-row items-center gap-6 p-4 bg-slate-950/30 rounded-2xl border border-slate-900/60">
-                                  <!-- QR Code Placeholder -->
-                                  <div class="w-32 h-32 bg-white rounded-xl p-2 shadow-inner flex-shrink-0 flex items-center justify-center">
-                                      <!-- Simple SVG simulating QR Code -->
-                                      <svg class="w-full h-full text-slate-950" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="8">
-                                          <path d="M10 10h20v20H10zM70 10h20v20H70zM10 70h20v20H10zM50 50h10v10H50z" fill="currentColor"/>
-                                          <path d="M40 10h10M40 25h15M10 40h20M50 30h10M70 40h15M10 50h5M40 70h10M65 70h15M70 85h20M55 85h5" stroke="currentColor"/>
-                                          <path d="M16 16h8v8h-8zM76 16h8v8h-8zM16 76h8v8h-8z" fill="currentColor"/>
-                                      </svg>
-                                  </div>
-                                  <div class="flex-1 space-y-3">
-                                      <h4 class="text-xs font-bold text-white uppercase tracking-wider">Instruções Pix</h4>
-                                      <ol class="list-decimal pl-4 text-slate-450 text-[11px] space-y-1">
-                                          <li>Abra o app do seu banco e escolha a opção Pix.</li>
-                                          <li>Aponte a câmera para o QR Code ao lado.</li>
-                                          <li>Ou clique em copiar chave Pix abaixo.</li>
-                                      </ol>
-                                      
-                                      <button @click="copyPix" 
-                                              class="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-900 transition-colors w-full">
-                                          <span x-text="copied ? 'Chave Copiada! ✅' : 'Copiar Chave Pix 📋'"></span>
-                                      </button>
-                                  </div>
-                              </div>
-                              
-                              <!-- Confirm Action -->
-                              <form hx-post="/admin/plano/upgrade" hx-swap="none">
-                                  <input type="hidden" name="plan_id" :value="selectedPlanId">
-                                  <button type="submit" 
-                                          class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/10 active:scale-[0.98] transition-all">
-                                      Confirmar Pagamento Pix (Simulado)
-                                  </button>
-                              </form>
-                          </div>
+                           <!-- ✅ PAGAMENTO CONFIRMADO -->
+                           <div x-show="paymentSuccess" class="text-center py-6 space-y-4">
+                               <div class="w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-4xl">✅</div>
+                               <h4 class="text-lg font-bold text-white">Pagamento Confirmado!</h4>
+                               <p class="text-xs text-slate-400">Seu plano foi ativado com sucesso. A página será atualizada em instantes.</p>
+                               <div class="w-full h-1 bg-slate-900 rounded-full overflow-hidden">
+                                   <div class="h-1 bg-emerald-500 rounded-full animate-pulse w-full"></div>
+                               </div>
+                           </div>
 
-                          <!-- Tab Content: Credit Card -->
-                          <div x-show="paymentMethod === 'card'" class="space-y-4 mt-6 animate-fadeIn">
-                              <form hx-post="/admin/plano/upgrade" hx-swap="none" class="space-y-4">
-                                  <input type="hidden" name="plan_id" :value="selectedPlanId">
-                                  
-                                  <div>
-                                      <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Número do Cartão</label>
-                                      <input type="text" placeholder="4444 5555 6666 7777" required
-                                             class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all">
-                                  </div>
-                                  <div>
-                                      <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Nome impresso no Cartão</label>
-                                      <input type="text" placeholder="SEU NOME COMPLETO" required
-                                             class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all">
-                                  </div>
-                                  <div class="grid grid-cols-2 gap-4">
-                                      <div>
-                                          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Validade</label>
-                                          <input type="text" placeholder="MM/AA" required
-                                                 class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all text-center">
-                                      </div>
-                                      <div>
-                                          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">CVV</label>
-                                          <input type="text" placeholder="123" required
-                                                 class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all text-center">
-                                      </div>
-                                  </div>
-                                  
-                                  <button type="submit" 
-                                          class="w-full py-3.5 mt-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-violet-600/10 active:scale-[0.98] transition-all">
-                                      Pagar e Ativar Plano (Simulado)
-                                  </button>
-                              </form>
-                          </div>
+                           <!-- ⏳ PROCESSANDO CARTÃO (AGUARDANDO ANÁLISE) -->
+                           <div x-show="paymentMethod === 'card_pending' && !paymentSuccess" class="text-center py-6 space-y-4">
+                               <div class="w-20 h-20 rounded-full bg-violet-500/10 border border-violet-500/30 flex items-center justify-center mx-auto text-4xl">
+                                   <svg class="animate-spin w-8 h-8 text-violet-400" fill="none" viewBox="0 0 24 24">
+                                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                   </svg>
+                               </div>
+                               <h4 class="text-base font-bold text-white">Processando Pagamento...</h4>
+                               <p class="text-xs text-slate-400">Aguardando a operadora do cartão confirmar a transação. Isso pode levar alguns segundos.</p>
+                           </div>
+
+                           <!-- PIX: Aguardando geração do QR Code -->
+                           <div x-show="paymentMethod === 'pix' && !pixData && !paymentSuccess">
+                               <button @click="initiatePix()" :disabled="loading"
+                                       class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/10 active:scale-[0.98] transition-all disabled:opacity-50">
+                                   <span x-show="!loading">Gerar QR Code PIX</span>
+                                   <span x-show="loading" class="flex items-center justify-center gap-2">
+                                       <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                       Gerando cobrança...
+                                   </span>
+                               </button>
+                           </div>
+
+                           <!-- PIX: QR Code gerado -->
+                           <div x-show="paymentMethod === 'pix' && pixData && !paymentSuccess" class="space-y-4">
+                               <div class="flex flex-col sm:flex-row items-center gap-5 p-4 bg-slate-950/30 rounded-2xl border border-slate-900/60">
+                                   <!-- QR Code real do Asaas (base64) -->
+                                   <div class="w-36 h-36 bg-white rounded-xl p-2 shadow-inner flex-shrink-0">
+                                       <img :src="pixData ? 'data:image/png;base64,' + pixData.pix_qr_code_base64 : ''" 
+                                            alt="QR Code PIX" class="w-full h-full object-contain">
+                                   </div>
+                                   <div class="flex-1 space-y-3">
+                                       <h4 class="text-xs font-bold text-white uppercase tracking-wider">Pague com PIX</h4>
+                                       <ol class="list-decimal pl-4 text-slate-400 text-[11px] space-y-1">
+                                           <li>Abra o app do banco e escolha PIX.</li>
+                                           <li>Aponte a câmera para o QR Code.</li>
+                                           <li>Ou use o código copia e cola abaixo.</li>
+                                       </ol>
+                                       <button @click="copyPixCode()" 
+                                               class="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-900 transition-colors w-full">
+                                           <span x-text="pixCopied ? '✅ Copiado!' : '📋 Copiar Código PIX'"></span>
+                                       </button>
+                                   </div>
+                               </div>
+                               <!-- Status do polling -->
+                               <div class="flex items-center gap-2 text-xs text-slate-500 justify-center">
+                                   <svg class="animate-spin w-3.5 h-3.5 text-violet-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                   Aguardando confirmação do pagamento...
+                               </div>
+                           </div>
+
+                           <!-- CARTÃO DE CRÉDITO -->
+                           <div x-show="paymentMethod === 'card' && !paymentSuccess" class="space-y-4">
+                               <div>
+                                   <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Número do Cartão</label>
+                                   <input type="text" x-model="card.number" placeholder="0000 0000 0000 0000" maxlength="19"
+                                          @input="formatCardNumber($event)"
+                                          class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all">
+                               </div>
+                               <div>
+                                   <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Nome no Cartão</label>
+                                   <input type="text" x-model="card.holder" placeholder="NOME COMPLETO"
+                                          class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all uppercase">
+                               </div>
+                               <div class="grid grid-cols-3 gap-3">
+                                   <div>
+                                       <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Mês</label>
+                                       <input type="text" x-model="card.expiryMonth" placeholder="MM" maxlength="2"
+                                              class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all text-center">
+                                   </div>
+                                   <div>
+                                       <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Ano</label>
+                                       <input type="text" x-model="card.expiryYear" placeholder="AAAA" maxlength="4"
+                                              class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all text-center">
+                                   </div>
+                                   <div>
+                                       <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">CVV</label>
+                                       <input type="text" x-model="card.cvv" placeholder="123" maxlength="4"
+                                              class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all text-center">
+                                   </div>
+                               </div>
+                               <div>
+                                   <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">CPF ou CNPJ do Titular</label>
+                                   <input type="text" x-model="card.cpfCnpj" placeholder="000.000.000-00"
+                                          class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all">
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                   <div>
+                                       <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">CEP do Titular</label>
+                                       <input type="text" x-model="card.postalCode" placeholder="00000-000" maxlength="9"
+                                              class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all">
+                                   </div>
+                                   <div>
+                                       <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Número do Endereço</label>
+                                       <input type="text" x-model="card.addressNumber" placeholder="Ex: 123"
+                                              class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-xs font-semibold focus:outline-none transition-all">
+                                   </div>
+                               </div>
+                               <!-- Erro de cartão -->
+                               <div x-show="cardError" class="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-xs" x-text="cardError"></div>
+
+                               <button @click="submitCard()" :disabled="loading"
+                                       class="w-full py-3.5 mt-1 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-violet-600/10 active:scale-[0.98] transition-all disabled:opacity-50">
+                                   <span x-show="!loading">Pagar com Cartão</span>
+                                   <span x-show="loading" class="flex items-center justify-center gap-2">
+                                       <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                       Processando...
+                                   </span>
+                               </button>
+                               <p class="text-[10px] text-slate-500 text-center">🔒 Dados protegidos e transmitidos de forma segura via Asaas</p>
+                           </div>
                       </div>
                   </template>
               </div>
          </div>
     </div>
 </div>
+
+<script>
+function billingPage() {
+    return {
+        // Estado do modal
+        showModal: false,
+        selectedPlanId: null,
+        selectedPlanName: '',
+        selectedPlanPrice: '',
+        paymentMethod: 'pix',
+        loading: false,
+        paymentSuccess: false,
+        
+        // PIX
+        pixData: null,
+        pixCopied: false,
+        pollingInterval: null,
+        currentChargeId: null,
+
+        // Cartão
+        card: { number: '', holder: '', expiryMonth: '', expiryYear: '', cvv: '', cpfCnpj: '', postalCode: '', addressNumber: '' },
+        cardError: '',
+
+        // Alertas globais
+        alertMsg: '',
+        alertType: 'error',
+
+        openModal(planId, planName, planPrice, method) {
+            this.selectedPlanId = planId;
+            this.selectedPlanName = planName;
+            this.selectedPlanPrice = planPrice;
+            this.paymentMethod = method;
+            this.pixData = null;
+            this.pixCopied = false;
+            this.paymentSuccess = false;
+            this.loading = false;
+            this.cardError = '';
+            this.card = { number: '', holder: '', expiryMonth: '', expiryYear: '', cvv: '', cpfCnpj: '', postalCode: '', addressNumber: '' };
+            this.showModal = true;
+        },
+
+        closeModal() {
+            this.showModal = false;
+            this.stopPolling();
+        },
+
+        showAlert(msg, type = 'error') {
+            this.alertMsg = msg;
+            this.alertType = type;
+            setTimeout(() => this.alertMsg = '', 5000);
+        },
+
+        // ========== DOWNGRADE ==========
+        async submitDowngrade() {
+            this.loading = true;
+            try {
+                const fd = new FormData();
+                fd.append('plan_id', this.selectedPlanId);
+                const resp = await fetch('/admin/plano/upgrade', { method: 'POST', body: fd });
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                this.paymentSuccess = true;
+                setTimeout(() => window.location.reload(), 2000);
+            } catch(e) {
+                this.showAlert(e.message || 'Erro ao alterar plano');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // ========== PIX ==========
+        async initiatePix() {
+            this.loading = true;
+            try {
+                const fd = new FormData();
+                fd.append('plan_id', this.selectedPlanId);
+                fd.append('billing_type', 'PIX');
+                const resp = await fetch('/admin/plano/upgrade', { method: 'POST', body: fd });
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                this.pixData = data;
+                this.currentChargeId = data.charge_id;
+                this.startPolling();
+            } catch(e) {
+                this.showAlert(e.message || 'Erro ao gerar cobrança PIX');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        copyPixCode() {
+            if (this.pixData?.pix_copy_paste) {
+                navigator.clipboard.writeText(this.pixData.pix_copy_paste);
+                this.pixCopied = true;
+                setTimeout(() => this.pixCopied = false, 2500);
+            }
+        },
+
+        // ========== POLLING ==========
+        startPolling() {
+            this.stopPolling();
+            this.pollingInterval = setInterval(async () => {
+                if (!this.currentChargeId || this.paymentSuccess) {
+                    this.stopPolling();
+                    return;
+                }
+                try {
+                    const resp = await fetch('/admin/plano/status/' + this.currentChargeId);
+                    const data = await resp.json();
+                    if (data.status === 'RECEIVED' || data.status === 'CONFIRMED') {
+                        this.stopPolling();
+                        this.paymentSuccess = true;
+                        setTimeout(() => window.location.reload(), 3000);
+                    }
+                } catch(e) { /* ignora erros de rede no polling */ }
+            }, 5000);
+        },
+
+        stopPolling() {
+            if (this.pollingInterval) {
+                clearInterval(this.pollingInterval);
+                this.pollingInterval = null;
+            }
+        },
+
+        // ========== CARTÃO ==========
+        formatCardNumber(e) {
+            let v = e.target.value.replace(/\D/g, '').substring(0, 16);
+            this.card.number = v.replace(/(.{4})/g, '$1 ').trim();
+        },
+
+        async submitCard() {
+            this.cardError = '';
+            if (!this.card.number || !this.card.holder || !this.card.expiryMonth || !this.card.expiryYear || !this.card.cvv || !this.card.cpfCnpj || !this.card.postalCode || !this.card.addressNumber) {
+                this.cardError = 'Preencha todos os campos do cartão e do endereço.';
+                return;
+            }
+            this.loading = true;
+            try {
+                const fd = new FormData();
+                fd.append('plan_id', this.selectedPlanId);
+                fd.append('card_number', this.card.number.replace(/\s/g, ''));
+                fd.append('card_holder', this.card.holder.toUpperCase());
+                fd.append('card_expiry_month', this.card.expiryMonth);
+                fd.append('card_expiry_year', this.card.expiryYear);
+                fd.append('card_cvv', this.card.cvv);
+                fd.append('cpf_cnpj', this.card.cpfCnpj.replace(/\D/g, ''));
+                fd.append('postal_code', this.card.postalCode.replace(/\D/g, ''));
+                fd.append('address_number', this.card.addressNumber);
+                const resp = await fetch('/admin/plano/upgrade/cartao', { method: 'POST', body: fd });
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                
+                this.currentChargeId = data.charge_id;
+                if (data.status === 'CONFIRMED' || data.status === 'RECEIVED') {
+                    this.paymentSuccess = true;
+                    setTimeout(() => window.location.reload(), 3000);
+                } else {
+                    this.paymentMethod = 'card_pending';
+                    this.startPolling();
+                }
+            } catch(e) {
+                this.cardError = e.message || 'Erro ao processar cartão. Verifique os dados e tente novamente.';
+            } finally {
+                this.loading = false;
+            }
+        }
+    }
+}
+</script>
 {{end}}

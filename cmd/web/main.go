@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"catalogo/internal/asaas"
 	"catalogo/internal/config"
 	"catalogo/internal/database"
 	"catalogo/internal/handlers"
@@ -43,8 +44,12 @@ func main() {
 	// Inicializa mailer
 	mailer := mail.NewMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.SMTPFrom)
 
+	// Inicializa client Asaas
+	asaasClient := asaas.NewClient(cfg.AsaasAPIKey, cfg.AsaasAPIURL)
+	log.Printf("💳 Asaas: usando URL %s", cfg.AsaasAPIURL)
+
 	// Inicializa handlers
-	h := handlers.NewHandlers(db, mailer, cfg.DevMode)
+	h := handlers.NewHandlers(db, mailer, cfg.DevMode, asaasClient)
 
 	// Cria roteador
 	r := chi.NewRouter()
@@ -108,7 +113,9 @@ func main() {
 
 		// Assinatura e Faturamento
 		r.Get("/admin/plano", h.HandleShopBilling)
-		r.Post("/admin/plano/upgrade", h.HandleUpgradeSimulatorPost)
+		r.Post("/admin/plano/upgrade", h.HandleUpgradeInitiate)           // PIX: inicia cobrança no Asaas
+		r.Post("/admin/plano/upgrade/cartao", h.HandleUpgradeCardPost)     // Cartão: processa cartão no Asaas
+		r.Get("/admin/plano/status/{charge_id}", h.HandleCheckChargeStatus) // Polling de status
 
 		// Relatórios de Vendas
 		r.Get("/admin/relatorios", h.HandleReportsPage)
@@ -136,6 +143,9 @@ func main() {
 		r.Post("/master/shops/{id}/plan", h.HandleMasterChangePlan)
 		r.Post("/master/configs", h.HandleMasterUpdateConfigs)
 	})
+
+	// Webhook Asaas (público, sem autenticação de sessão - valida token no header)
+	r.Post("/webhooks/asaas", h.HandleAsaasWebhook)
 
 	// ==================== ROTAS CATÁLOGO PÚBLICO ====================
 	// Deve ficar por último para não conflitar com as rotas acima

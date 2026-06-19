@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"catalogo/internal/asaas"
 	"catalogo/internal/database"
 	"catalogo/internal/mail"
 )
@@ -24,18 +25,20 @@ type TemplateEngine struct {
 
 // Handlers encapsula as dependências compartilhadas entre todos os handlers
 type Handlers struct {
-	DB     *database.DB
-	Tmpl   *TemplateEngine
-	Mailer *mail.Mailer
+	DB          *database.DB
+	Tmpl        *TemplateEngine
+	Mailer      *mail.Mailer
+	AsaasClient *asaas.Client
 }
 
 // NewHandlers cria uma nova instância de Handlers
-func NewHandlers(db *database.DB, mailer *mail.Mailer, devMode bool) *Handlers {
+func NewHandlers(db *database.DB, mailer *mail.Mailer, devMode bool, asaasClient *asaas.Client) *Handlers {
 	tmpl := NewTemplateEngine("templates", devMode)
 	return &Handlers{
-		DB:     db,
-		Tmpl:   tmpl,
-		Mailer: mailer,
+		DB:          db,
+		Tmpl:        tmpl,
+		Mailer:      mailer,
+		AsaasClient: asaasClient,
 	}
 }
 

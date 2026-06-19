@@ -57,12 +57,13 @@ func (db *DB) GetShopBySlug(ctx context.Context, slug string) (*Shop, error) {
 	shop := &Shop{}
 	err := db.Pool.QueryRow(ctx,
 		`SELECT id, user_id, name, slug, whatsapp_number, logo_url, primary_color, is_active, created_at,
-		        banner_url, delivery_fee, business_hours, plan_id, plan_expires_at
+		        banner_url, delivery_fee, business_hours, plan_id, plan_expires_at, COALESCE(asaas_customer_id, '')
 		 FROM shops WHERE slug = $1`,
 		slug,
 	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.WhatsappNumber,
 		&shop.LogoURL, &shop.PrimaryColor, &shop.IsActive, &shop.CreatedAt,
-		&shop.BannerURL, &shop.DeliveryFee, &shop.BusinessHours, &shop.PlanID, &shop.PlanExpiresAt)
+		&shop.BannerURL, &shop.DeliveryFee, &shop.BusinessHours, &shop.PlanID, &shop.PlanExpiresAt,
+		&shop.AsaasCustomerID)
 	if err != nil {
 		return nil, fmt.Errorf("loja não encontrada: %w", err)
 	}
@@ -74,12 +75,13 @@ func (db *DB) GetShopByUserID(ctx context.Context, userID int) (*Shop, error) {
 	shop := &Shop{}
 	err := db.Pool.QueryRow(ctx,
 		`SELECT id, user_id, name, slug, whatsapp_number, logo_url, primary_color, is_active, created_at,
-		        banner_url, delivery_fee, business_hours, plan_id, plan_expires_at
+		        banner_url, delivery_fee, business_hours, plan_id, plan_expires_at, COALESCE(asaas_customer_id, '')
 		 FROM shops WHERE user_id = $1`,
 		userID,
 	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.WhatsappNumber,
 		&shop.LogoURL, &shop.PrimaryColor, &shop.IsActive, &shop.CreatedAt,
-		&shop.BannerURL, &shop.DeliveryFee, &shop.BusinessHours, &shop.PlanID, &shop.PlanExpiresAt)
+		&shop.BannerURL, &shop.DeliveryFee, &shop.BusinessHours, &shop.PlanID, &shop.PlanExpiresAt,
+		&shop.AsaasCustomerID)
 	if err != nil {
 		return nil, fmt.Errorf("loja não encontrada: %w", err)
 	}
@@ -952,5 +954,74 @@ func (db *DB) GetDailySalesLast30Days(ctx context.Context, shopID int) ([]DailyS
 	return sales, nil
 }
 
+// ==================== ASAAS PAYMENT CHARGES ====================
 
+// SaveAsaasCustomerID salva o ID do cliente no Asaas para reutilização
+func (db *DB) SaveAsaasCustomerID(ctx context.Context, shopID int, customerID string) error {
+	_, err := db.Pool.Exec(ctx,
+		`UPDATE shops SET asaas_customer_id = $1 WHERE id = $2`,
+		customerID, shopID,
+	)
+	if err != nil {
+		return fmt.Errorf("erro ao salvar asaas_customer_id: %w", err)
+	}
+	return nil
+}
+
+// CreatePaymentCharge registra uma nova cobrança pendente no banco
+func (db *DB) CreatePaymentCharge(ctx context.Context, c *PaymentCharge) error {
+	err := db.Pool.QueryRow(ctx,
+		`INSERT INTO payment_charges (shop_id, plan_id, asaas_payment_id, billing_type, amount, status, pix_qr_code, pix_copy_paste, expires_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		 RETURNING id, created_at`,
+		c.ShopID, c.PlanID, c.AsaasPaymentID, c.BillingType, c.Amount, c.Status,
+		c.PixQRCode, c.PixCopyPaste, c.ExpiresAt,
+	).Scan(&c.ID, &c.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("erro ao criar payment_charge: %w", err)
+	}
+	return nil
+}
+
+// GetChargeByAsaasID busca uma cobrança pelo ID do Asaas
+func (db *DB) GetChargeByAsaasID(ctx context.Context, asaasID string) (*PaymentCharge, error) {
+	c := &PaymentCharge{}
+	err := db.Pool.QueryRow(ctx,
+		`SELECT id, shop_id, plan_id, asaas_payment_id, billing_type, amount, status, pix_qr_code, pix_copy_paste, expires_at, created_at
+		 FROM payment_charges WHERE asaas_payment_id = $1`,
+		asaasID,
+	).Scan(&c.ID, &c.ShopID, &c.PlanID, &c.AsaasPaymentID, &c.BillingType, &c.Amount, &c.Status,
+		&c.PixQRCode, &c.PixCopyPaste, &c.ExpiresAt, &c.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("cobrança não encontrada: %w", err)
+	}
+	return c, nil
+}
+
+// GetChargeByID busca uma cobrança pelo ID interno (para polling de status)
+func (db *DB) GetChargeByID(ctx context.Context, id int) (*PaymentCharge, error) {
+	c := &PaymentCharge{}
+	err := db.Pool.QueryRow(ctx,
+		`SELECT id, shop_id, plan_id, asaas_payment_id, billing_type, amount, status, pix_qr_code, pix_copy_paste, expires_at, created_at
+		 FROM payment_charges WHERE id = $1`,
+		id,
+	).Scan(&c.ID, &c.ShopID, &c.PlanID, &c.AsaasPaymentID, &c.BillingType, &c.Amount, &c.Status,
+		&c.PixQRCode, &c.PixCopyPaste, &c.ExpiresAt, &c.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("cobrança não encontrada: %w", err)
+	}
+	return c, nil
+}
+
+// UpdateChargeStatus atualiza o status de uma cobrança
+func (db *DB) UpdateChargeStatus(ctx context.Context, asaasID, status string) error {
+	_, err := db.Pool.Exec(ctx,
+		`UPDATE payment_charges SET status = $1 WHERE asaas_payment_id = $2`,
+		status, asaasID,
+	)
+	if err != nil {
+		return fmt.Errorf("erro ao atualizar status da cobrança: %w", err)
+	}
+	return nil
+}
 

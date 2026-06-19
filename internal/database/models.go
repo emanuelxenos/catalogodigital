@@ -16,20 +16,21 @@ type User struct {
 
 // Shop representa uma loja (tenant)
 type Shop struct {
-	ID             int        `json:"id"`
-	UserID         int        `json:"user_id"`
-	Name           string     `json:"name"`
-	Slug           string     `json:"slug"`
-	WhatsappNumber string     `json:"whatsapp_number"`
-	LogoURL        string     `json:"logo_url"`
-	PrimaryColor   string     `json:"primary_color"`
-	IsActive       bool       `json:"is_active"`
-	CreatedAt      time.Time  `json:"created_at"`
-	BannerURL      string     `json:"banner_url"`
-	DeliveryFee    float64    `json:"delivery_fee"`
-	BusinessHours  *string    `json:"business_hours"` // JSON string
-	PlanID         int        `json:"plan_id"`
-	PlanExpiresAt  *time.Time `json:"plan_expires_at"`
+	ID               int        `json:"id"`
+	UserID           int        `json:"user_id"`
+	Name             string     `json:"name"`
+	Slug             string     `json:"slug"`
+	WhatsappNumber   string     `json:"whatsapp_number"`
+	LogoURL          string     `json:"logo_url"`
+	PrimaryColor     string     `json:"primary_color"`
+	IsActive         bool       `json:"is_active"`
+	CreatedAt        time.Time  `json:"created_at"`
+	BannerURL        string     `json:"banner_url"`
+	DeliveryFee      float64    `json:"delivery_fee"`
+	BusinessHours    *string    `json:"business_hours"` // JSON string
+	PlanID           int        `json:"plan_id"`
+	PlanExpiresAt    *time.Time `json:"plan_expires_at"`
+	AsaasCustomerID  string     `json:"asaas_customer_id"`
 }
 
 // Category representa uma categoria de produtos
@@ -179,4 +180,19 @@ type PaymentMethodStat struct {
 	Method       string  `json:"method"`
 	OrderCount   int     `json:"order_count"`
 	TotalRevenue float64 `json:"total_revenue"`
+}
+
+// PaymentCharge representa uma cobrança de assinatura via Asaas
+type PaymentCharge struct {
+	ID             int        `json:"id"`
+	ShopID         int        `json:"shop_id"`
+	PlanID         int        `json:"plan_id"`
+	AsaasPaymentID string     `json:"asaas_payment_id"`
+	BillingType    string     `json:"billing_type"`
+	Amount         float64    `json:"amount"`
+	Status         string     `json:"status"`
+	PixQRCode      string     `json:"pix_qr_code"`
+	PixCopyPaste   string     `json:"pix_copy_paste"`
+	ExpiresAt      *time.Time `json:"expires_at"`
+	CreatedAt      time.Time  `json:"created_at"`
 }
