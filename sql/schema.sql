@@ -234,3 +234,19 @@ CREATE TABLE IF NOT EXISTS payment_charges (
 
 CREATE INDEX IF NOT EXISTS idx_payment_charges_shop_id ON payment_charges(shop_id);
 CREATE INDEX IF NOT EXISTS idx_payment_charges_asaas_id ON payment_charges(asaas_payment_id);
+
+-- =============================================================
+-- Migrations: Delivery Zones and Stock Control
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS delivery_zones (
+    id SERIAL PRIMARY KEY,
+    shop_id INTEGER REFERENCES shops(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_shop_zone UNIQUE (shop_id, name)
+);
+
+ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_qty INTEGER DEFAULT NULL;
+

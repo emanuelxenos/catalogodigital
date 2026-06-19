@@ -88,6 +88,12 @@ func (h *Handlers) HandleCatalog(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Busca bairros de entrega da loja
+	deliveryZones, err := h.DB.ListDeliveryZones(r.Context(), shop.ID)
+	if err != nil {
+		log.Printf("Erro ao listar bairros de entrega: %v", err)
+	}
+
 	data := map[string]interface{}{
 		"Shop":          shop,
 		"Categories":    categories,
@@ -95,6 +101,7 @@ func (h *Handlers) HandleCatalog(w http.ResponseWriter, r *http.Request) {
 		"IsOpen":        isOpen,
 		"BusinessHours": parsedHours,
 		"Banners":       banners,
+		"DeliveryZones": deliveryZones,
 	}
 
 	if err := h.Tmpl.Render(w, "base", "catalog/index.html", data); err != nil {
@@ -241,6 +248,7 @@ type CheckoutRequest struct {
 	PaymentMethod  string         `json:"paymentMethod"`
 	CouponCode     string         `json:"couponCode"`
 	Items          []CheckoutItem `json:"items"`
+	DeliveryZoneID *int           `json:"deliveryZoneId"`
 }
 
 type ChosenChoice struct {
@@ -419,10 +427,21 @@ func (h *Handlers) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 4. Calcula taxa de entrega
+	// 4. Calcula taxa de entrega e formata o endereço
 	var deliveryFee float64
+	address := req.Address
 	if req.DeliveryMethod == "entrega" {
-		deliveryFee = shop.DeliveryFee
+		if req.DeliveryZoneID != nil && *req.DeliveryZoneID > 0 {
+			zone, err := h.DB.GetDeliveryZoneByID(r.Context(), *req.DeliveryZoneID, shop.ID)
+			if err == nil {
+				deliveryFee = zone.Fee
+				address = fmt.Sprintf("Bairro: %s\nEndereço: %s", zone.Name, req.Address)
+			} else {
+				deliveryFee = shop.DeliveryFee
+			}
+		} else {
+			deliveryFee = shop.DeliveryFee
+		}
 	}
 
 	total := subtotal - discount + deliveryFee
@@ -430,14 +449,14 @@ func (h *Handlers) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		total = 0
 	}
 
-	// 5. Salva o pedido no banco
+	// 5. Salva o pedido no banco usando a transação segura (ProcessCheckout)
 	dbOrder := &database.Order{
 		ShopID:         shop.ID,
 		CustomerName:   req.CustomerName,
 		CustomerPhone:  req.CustomerPhone,
 		CustomerEmail:  strings.TrimSpace(req.CustomerEmail),
 		DeliveryMethod: req.DeliveryMethod,
-		Address:        req.Address,
+		Address:        address,
 		PaymentMethod:  req.PaymentMethod,
 		CouponCode:     req.CouponCode,
 		Discount:       discount,
@@ -446,21 +465,14 @@ func (h *Handlers) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		Status:         "Pendente",
 	}
 
-	if err := h.DB.CreateOrder(r.Context(), dbOrder); err != nil {
-		log.Printf("Erro ao salvar pedido no banco: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
+	if err := h.DB.ProcessCheckout(r.Context(), dbOrder, orderItemsToSave); err != nil {
+		log.Printf("Erro ao processar checkout: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"message": "Erro interno ao processar pedido",
+			"message": err.Error(),
 		})
 		return
-	}
-
-	for _, item := range orderItemsToSave {
-		item.OrderID = dbOrder.ID
-		if err := h.DB.CreateOrderItem(r.Context(), &item); err != nil {
-			log.Printf("Erro ao salvar item de pedido %d: %v", dbOrder.ID, err)
-		}
 	}
 
 	// Busca o lojista (User) dono da loja para obter o e-mail de envio

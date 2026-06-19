@@ -241,6 +241,14 @@
                     </select>
                 </div>
                 
+                <a 
+                    href="/admin/pedidos/{{.ID}}/imprimir" 
+                    target="_blank"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-750 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+                >
+                    <span>🖨️ Imprimir Cupom</span>
+                </a>
+                
                 {{if .CustomerPhone}}
                 <button 
                     onclick="sendWhatsAppNotification(event, '{{.ID}}', '{{.CustomerPhone}}', '{{.CustomerName}}', '{{$.Shop.Name}}')"

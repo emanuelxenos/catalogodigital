@@ -180,7 +180,7 @@ func (db *DB) DeleteCategory(ctx context.Context, id, shopID int) error {
 func (db *DB) ListProductsByShop(ctx context.Context, shopID int) ([]Product, error) {
 	rows, err := db.Pool.Query(ctx,
 		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
-		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options, p.images
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options, p.images, p.stock_qty
 		 FROM products p
 		 LEFT JOIN categories c ON p.category_id = c.id
 		 WHERE p.shop_id = $1
@@ -196,7 +196,7 @@ func (db *DB) ListProductsByShop(ctx context.Context, shopID int) ([]Product, er
 	for rows.Next() {
 		var p Product
 		if err := rows.Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
-			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options, &p.Images); err != nil {
+			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options, &p.Images, &p.StockQty); err != nil {
 			return nil, err
 		}
 		products = append(products, p)
@@ -208,7 +208,7 @@ func (db *DB) ListProductsByShop(ctx context.Context, shopID int) ([]Product, er
 func (db *DB) ListProductsByCategory(ctx context.Context, shopID, categoryID int) ([]Product, error) {
 	rows, err := db.Pool.Query(ctx,
 		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
-		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options, p.images
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options, p.images, p.stock_qty
 		 FROM products p
 		 LEFT JOIN categories c ON p.category_id = c.id
 		 WHERE p.shop_id = $1 AND p.category_id = $2 AND p.is_available = TRUE
@@ -224,7 +224,7 @@ func (db *DB) ListProductsByCategory(ctx context.Context, shopID, categoryID int
 	for rows.Next() {
 		var p Product
 		if err := rows.Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
-			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options, &p.Images); err != nil {
+			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options, &p.Images, &p.StockQty); err != nil {
 			return nil, err
 		}
 		products = append(products, p)
@@ -236,7 +236,7 @@ func (db *DB) ListProductsByCategory(ctx context.Context, shopID, categoryID int
 func (db *DB) ListAvailableProductsByShop(ctx context.Context, shopID int) ([]Product, error) {
 	rows, err := db.Pool.Query(ctx,
 		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
-		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options, p.images
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options, p.images, p.stock_qty
 		 FROM products p
 		 LEFT JOIN categories c ON p.category_id = c.id
 		 WHERE p.shop_id = $1 AND p.is_available = TRUE
@@ -252,7 +252,7 @@ func (db *DB) ListAvailableProductsByShop(ctx context.Context, shopID int) ([]Pr
 	for rows.Next() {
 		var p Product
 		if err := rows.Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
-			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options, &p.Images); err != nil {
+			&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options, &p.Images, &p.StockQty); err != nil {
 			return nil, err
 		}
 		products = append(products, p)
@@ -263,10 +263,10 @@ func (db *DB) ListAvailableProductsByShop(ctx context.Context, shopID int) ([]Pr
 // CreateProduct cria um novo produto
 func (db *DB) CreateProduct(ctx context.Context, p *Product) error {
 	err := db.Pool.QueryRow(ctx,
-		`INSERT INTO products (shop_id, category_id, name, description, price, image_url, is_available, options, images)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		`INSERT INTO products (shop_id, category_id, name, description, price, image_url, is_available, options, images, stock_qty)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		 RETURNING id, created_at`,
-		p.ShopID, p.CategoryID, p.Name, p.Description, p.Price, p.ImageURL, p.IsAvailable, p.Options, p.Images,
+		p.ShopID, p.CategoryID, p.Name, p.Description, p.Price, p.ImageURL, p.IsAvailable, p.Options, p.Images, p.StockQty,
 	).Scan(&p.ID, &p.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("erro ao criar produto: %w", err)
@@ -278,8 +278,8 @@ func (db *DB) CreateProduct(ctx context.Context, p *Product) error {
 func (db *DB) UpdateProduct(ctx context.Context, p *Product) error {
 	_, err := db.Pool.Exec(ctx,
 		`UPDATE products SET category_id = $1, name = $2, description = $3, price = $4,
-		 image_url = $5, is_available = $6, options = $7, images = $8 WHERE id = $9 AND shop_id = $10`,
-		p.CategoryID, p.Name, p.Description, p.Price, p.ImageURL, p.IsAvailable, p.Options, p.Images, p.ID, p.ShopID,
+		 image_url = $5, is_available = $6, options = $7, images = $8, stock_qty = $9 WHERE id = $10 AND shop_id = $11`,
+		p.CategoryID, p.Name, p.Description, p.Price, p.ImageURL, p.IsAvailable, p.Options, p.Images, p.StockQty, p.ID, p.ShopID,
 	)
 	if err != nil {
 		return fmt.Errorf("erro ao atualizar produto: %w", err)
@@ -308,10 +308,10 @@ func (db *DB) ToggleProductAvailability(ctx context.Context, id, shopID int) (*P
 	err := db.Pool.QueryRow(ctx,
 		`UPDATE products SET is_available = NOT is_available
 		 WHERE id = $1 AND shop_id = $2
-		 RETURNING id, shop_id, category_id, name, description, price, image_url, is_available, created_at, options, images`,
+		 RETURNING id, shop_id, category_id, name, description, price, image_url, is_available, created_at, options, images, stock_qty`,
 		id, shopID,
 	).Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
-		&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.Options, &p.Images)
+		&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.Options, &p.Images, &p.StockQty)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao alternar disponibilidade: %w", err)
 	}
@@ -323,13 +323,13 @@ func (db *DB) GetProduct(ctx context.Context, id, shopID int) (*Product, error) 
 	p := &Product{}
 	err := db.Pool.QueryRow(ctx,
 		`SELECT p.id, p.shop_id, p.category_id, p.name, p.description, p.price,
-		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options, p.images
+		        p.image_url, p.is_available, p.created_at, COALESCE(c.name, 'Sem categoria') as category_name, p.options, p.images, p.stock_qty
 		 FROM products p
 		 LEFT JOIN categories c ON p.category_id = c.id
 		 WHERE p.id = $1 AND p.shop_id = $2`,
 		id, shopID,
 	).Scan(&p.ID, &p.ShopID, &p.CategoryID, &p.Name, &p.Description,
-		&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options, &p.Images)
+		&p.Price, &p.ImageURL, &p.IsAvailable, &p.CreatedAt, &p.CategoryName, &p.Options, &p.Images, &p.StockQty)
 	if err != nil {
 		return nil, fmt.Errorf("produto não encontrado: %w", err)
 	}
@@ -1120,6 +1120,157 @@ func (db *DB) GetBillingYears(ctx context.Context, shopID int) ([]int, error) {
 	}
 	return years, nil
 }
+
+// ==================== DELIVERY ZONES ====================
+
+// CreateDeliveryZone cadastra um novo bairro e taxa de entrega
+func (db *DB) CreateDeliveryZone(ctx context.Context, z *DeliveryZone) error {
+	err := db.Pool.QueryRow(ctx,
+		`INSERT INTO delivery_zones (shop_id, name, fee) VALUES ($1, $2, $3)
+		 RETURNING id, created_at`,
+		z.ShopID, z.Name, z.Fee,
+	).Scan(&z.ID, &z.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("erro ao criar bairro de entrega: %w", err)
+	}
+	return nil
+}
+
+// ListDeliveryZones lista todas as zonas de entrega de uma loja
+func (db *DB) ListDeliveryZones(ctx context.Context, shopID int) ([]DeliveryZone, error) {
+	rows, err := db.Pool.Query(ctx,
+		`SELECT id, shop_id, name, fee, created_at FROM delivery_zones
+		 WHERE shop_id = $1 ORDER BY name ASC`,
+		shopID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao listar bairros de entrega: %w", err)
+	}
+	defer rows.Close()
+
+	var zones []DeliveryZone
+	for rows.Next() {
+		var z DeliveryZone
+		if err := rows.Scan(&z.ID, &z.ShopID, &z.Name, &z.Fee, &z.CreatedAt); err != nil {
+			return nil, err
+		}
+		zones = append(zones, z)
+	}
+	return zones, nil
+}
+
+// DeleteDeliveryZone remove um bairro de entrega
+func (db *DB) DeleteDeliveryZone(ctx context.Context, id, shopID int) error {
+	res, err := db.Pool.Exec(ctx,
+		`DELETE FROM delivery_zones WHERE id = $1 AND shop_id = $2`,
+		id, shopID,
+	)
+	if err != nil {
+		return fmt.Errorf("erro ao deletar bairro de entrega: %w", err)
+	}
+	if res.RowsAffected() == 0 {
+		return fmt.Errorf("bairro de entrega não encontrado")
+	}
+	return nil
+}
+
+// GetDeliveryZoneByID busca um bairro pelo ID
+func (db *DB) GetDeliveryZoneByID(ctx context.Context, id, shopID int) (*DeliveryZone, error) {
+	z := &DeliveryZone{}
+	err := db.Pool.QueryRow(ctx,
+		`SELECT id, shop_id, name, fee, created_at FROM delivery_zones WHERE id = $1 AND shop_id = $2`,
+		id, shopID,
+	).Scan(&z.ID, &z.ShopID, &z.Name, &z.Fee, &z.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("bairro de entrega não encontrado: %w", err)
+	}
+	return z, nil
+}
+
+// ==================== TRANSACTIONAL CHECKOUT ====================
+
+// ProcessCheckout realiza o checkout decrementando estoque dentro de uma transação segura
+func (db *DB) ProcessCheckout(ctx context.Context, o *Order, items []OrderItem) error {
+	tx, err := db.Pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("erro ao iniciar transação de checkout: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// 1. Valida e decrementa estoque de cada produto
+	for idx, item := range items {
+		if item.ProductID == nil {
+			continue
+		}
+
+		var name string
+		var isAvailable bool
+		var stockQty *int
+		
+		// Usa SELECT FOR UPDATE para bloquear a linha do produto e evitar concorrência
+		err := tx.QueryRow(ctx,
+			`SELECT name, is_available, stock_qty FROM products WHERE id = $1 AND shop_id = $2 FOR UPDATE`,
+			*item.ProductID, o.ShopID,
+		).Scan(&name, &isAvailable, &stockQty)
+		if err != nil {
+			return fmt.Errorf("produto '%s' não encontrado no banco: %w", item.Name, err)
+		}
+
+		if !isAvailable {
+			return fmt.Errorf("o produto '%s' não está mais disponível no momento", name)
+		}
+
+		// Se o estoque é controlado (não nulo)
+		if stockQty != nil {
+			if *stockQty < item.Qty {
+				return fmt.Errorf("o produto '%s' não possui estoque suficiente (Estoque disponível: %d)", name, *stockQty)
+			}
+
+			// Decrementa o estoque
+			_, err = tx.Exec(ctx,
+				`UPDATE products SET stock_qty = stock_qty - $1 WHERE id = $2`,
+				item.Qty, *item.ProductID,
+			)
+			if err != nil {
+				return fmt.Errorf("erro ao atualizar o estoque do produto '%s': %w", name, err)
+			}
+		}
+
+		// Garante que o nome do item salvo seja exatamente o nome do produto no banco
+		items[idx].Name = name
+	}
+
+	// 2. Grava o pedido
+	err = tx.QueryRow(ctx,
+		`INSERT INTO orders (shop_id, customer_name, customer_phone, customer_email, delivery_method, address, payment_method, coupon_code, discount, subtotal, total, status)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		 RETURNING id, created_at`,
+		o.ShopID, o.CustomerName, o.CustomerPhone, o.CustomerEmail, o.DeliveryMethod, o.Address, o.PaymentMethod, o.CouponCode, o.Discount, o.Subtotal, o.Total, o.Status,
+	).Scan(&o.ID, &o.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("erro ao gravar o pedido: %w", err)
+	}
+
+	// 3. Grava os itens do pedido
+	for _, item := range items {
+		_, err = tx.Exec(ctx,
+			`INSERT INTO order_items (order_id, product_id, name, price, qty, note, options)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+			o.ID, item.ProductID, item.Name, item.Price, item.Qty, item.Note, item.Options,
+		)
+		if err != nil {
+			return fmt.Errorf("erro ao gravar item '%s' do pedido: %w", item.Name, err)
+		}
+	}
+
+	// 4. Confirma a transação
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("erro ao confirmar pedido no banco de dados: %w", err)
+	}
+
+	return nil
+}
+
 
 
 

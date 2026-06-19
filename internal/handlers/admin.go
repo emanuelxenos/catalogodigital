@@ -370,6 +370,18 @@ func (h *Handlers) HandleCreateProduct(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var stockQty *int
+	if r.FormValue("track_stock") == "true" {
+		qtyStr := r.FormValue("stock_qty")
+		qty, err := strconv.Atoi(qtyStr)
+		if err == nil {
+			stockQty = &qty
+		} else {
+			zero := 0
+			stockQty = &zero
+		}
+	}
+
 	product := &database.Product{
 		ShopID:      shop.ID,
 		CategoryID:  categoryID,
@@ -380,6 +392,7 @@ func (h *Handlers) HandleCreateProduct(w http.ResponseWriter, r *http.Request) {
 		IsAvailable: true,
 		Options:     optPtr,
 		Images:      imgPtr,
+		StockQty:    stockQty,
 	}
 
 	if err := h.DB.CreateProduct(r.Context(), product); err != nil {
@@ -498,6 +511,18 @@ func (h *Handlers) HandleUpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var stockQty *int
+	if r.FormValue("track_stock") == "true" {
+		qtyStr := r.FormValue("stock_qty")
+		qty, err := strconv.Atoi(qtyStr)
+		if err == nil {
+			stockQty = &qty
+		} else {
+			zero := 0
+			stockQty = &zero
+		}
+	}
+
 	product := &database.Product{
 		ID:          existingProduct.ID,
 		ShopID:      shop.ID,
@@ -509,6 +534,7 @@ func (h *Handlers) HandleUpdateProduct(w http.ResponseWriter, r *http.Request) {
 		IsAvailable: existingProduct.IsAvailable, // Mantém status de disponibilidade
 		Options:     optPtr,
 		Images:      imgPtr,
+		StockQty:    stockQty,
 	}
 
 	if err := h.DB.UpdateProduct(r.Context(), product); err != nil {
@@ -701,12 +727,23 @@ func (h *Handlers) HandleShopConfig(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Busca bairros de entrega
+	var zones []database.DeliveryZone
+	if shop != nil {
+		var err error
+		zones, err = h.DB.ListDeliveryZones(r.Context(), shop.ID)
+		if err != nil {
+			log.Printf("[CONFIG] Erro ao listar bairros de entrega: %v", err)
+		}
+	}
+
 	data := map[string]interface{}{
-		"User":         user,
-		"Shop":         shop,
+		"User":          user,
+		"Shop":          shop,
 		"BusinessHours": businessHoursMap,
-		"Success":      r.URL.Query().Get("success"),
-		"Error":        r.URL.Query().Get("error"),
+		"DeliveryZones": zones,
+		"Success":       r.URL.Query().Get("success"),
+		"Error":         r.URL.Query().Get("error"),
 	}
 
 	if err := h.Tmpl.Render(w, "admin", "admin/config.html", data); err != nil {
@@ -1165,6 +1202,105 @@ func (h *Handlers) HandleOrderNotifyEmailPost(w http.ResponseWriter, r *http.Req
 	// Retorna uma resposta amigável para o HTMX
 	w.Header().Set("Content-Type", "text/html")
 	w.Write([]byte(`<span class="text-xs font-bold text-emerald-400">📧 E-mail Enviado!</span>`))
+}
+
+// HandleCreateDeliveryZone cadastra um novo bairro e taxa de entrega
+func (h *Handlers) HandleCreateDeliveryZone(w http.ResponseWriter, r *http.Request) {
+	shop := middleware.GetShopFromContext(r)
+	if shop == nil {
+		http.Redirect(w, r, "/admin/config?error=Loja não configurada", http.StatusSeeOther)
+		return
+	}
+
+	name := strings.TrimSpace(r.FormValue("name"))
+	feeStr := strings.TrimSpace(r.FormValue("fee"))
+
+	if name == "" || feeStr == "" {
+		http.Redirect(w, r, "/admin/config?error=Preencha todos os campos do bairro", http.StatusSeeOther)
+		return
+	}
+
+	feeStr = strings.Replace(feeStr, ",", ".", 1)
+	fee, err := strconv.ParseFloat(feeStr, 64)
+	if err != nil {
+		http.Redirect(w, r, "/admin/config?error=Valor de taxa inválido", http.StatusSeeOther)
+		return
+	}
+
+	zone := &database.DeliveryZone{
+		ShopID: shop.ID,
+		Name:   name,
+		Fee:    fee,
+	}
+
+	if err := h.DB.CreateDeliveryZone(r.Context(), zone); err != nil {
+		log.Printf("Erro ao cadastrar bairro de entrega: %v", err)
+		http.Redirect(w, r, "/admin/config?error=Erro ao cadastrar bairro", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/admin/config?success=Bairro cadastrado com sucesso!#zones-section", http.StatusSeeOther)
+}
+
+// HandleDeleteDeliveryZone remove um bairro cadastrado via HTMX
+func (h *Handlers) HandleDeleteDeliveryZone(w http.ResponseWriter, r *http.Request) {
+	shop := middleware.GetShopFromContext(r)
+	if shop == nil {
+		http.Error(w, "Loja não configurada", http.StatusBadRequest)
+		return
+	}
+
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.DB.DeleteDeliveryZone(r.Context(), id, shop.ID); err != nil {
+		log.Printf("Erro ao deletar bairro de entrega: %v", err)
+		http.Error(w, "Erro ao deletar bairro", http.StatusInternalServerError)
+		return
+	}
+
+	// Retorna 200 OK vazio para o HTMX (para remover a linha do bairro da tabela)
+	w.WriteHeader(http.StatusOK)
+}
+
+// HandlePrintOrderReceipt renderiza o cupom de pedido standalone para impressão térmica
+func (h *Handlers) HandlePrintOrderReceipt(w http.ResponseWriter, r *http.Request) {
+	shop := middleware.GetShopFromContext(r)
+	if shop == nil {
+		http.Error(w, "Loja não configurada", http.StatusBadRequest)
+		return
+	}
+
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	// Busca o pedido no banco
+	order, err := h.DB.GetOrderByID(r.Context(), id, shop.ID)
+	if err != nil {
+		log.Printf("Erro ao buscar pedido para impressão: %v", err)
+		http.Error(w, "Pedido não encontrado", http.StatusNotFound)
+		return
+	}
+
+	data := map[string]interface{}{
+		"Shop":  shop,
+		"Order": order,
+		"Now":   time.Now(),
+	}
+
+	// Renderiza o template standalone sem o layout administrativo geral
+	if err := h.Tmpl.RenderPage(w, "admin/print_order.html", data); err != nil {
+		log.Printf("Erro ao renderizar cupom de impressão do pedido: %v", err)
+		http.Error(w, "Erro interno", http.StatusInternalServerError)
+	}
 }
 
 

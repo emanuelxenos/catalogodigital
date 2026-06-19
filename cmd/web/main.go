@@ -103,11 +103,14 @@ func main() {
 		// Configurações da loja
 		r.Get("/admin/config", h.HandleShopConfig)
 		r.Post("/admin/config", h.HandleShopConfigPost)
+		r.Post("/admin/config/bairros", h.HandleCreateDeliveryZone)
+		r.Delete("/admin/config/bairros/{id}", h.HandleDeleteDeliveryZone)
 
 		// Pedidos do lojista
 		r.Get("/admin/pedidos", h.HandleOrders)
 		r.Post("/admin/pedidos/{id}/status", h.HandleOrderStatusPost)
 		r.Post("/admin/pedidos/{id}/notificar-email", h.HandleOrderNotifyEmailPost)
+		r.Get("/admin/pedidos/{id}/imprimir", h.HandlePrintOrderReceipt)
 
 		// Cupons de desconto
 		r.Get("/admin/cupons", h.HandleCoupons)

@@ -1,12 +1,12 @@
 {{define "content"}}
-<div class="space-y-8" x-data="{ showModal: false, showEditModal: false, optionsList: [], editProduct: { id: 0, name: '', description: '', price: '', category_id: 0, options: '', images: [], optionsList: [] } }">
+<div class="space-y-8" x-data="{ showModal: false, showEditModal: false, trackStockCreate: false, trackStockEdit: false, optionsList: [], editProduct: { id: 0, name: '', description: '', price: '', category_id: 0, options: '', images: [], optionsList: [], stock_qty: null } }">
     <!-- Page Header -->
     <div class="flex items-center justify-between">
         <div>
             <h1 class="text-2xl font-bold text-white">Produtos</h1>
             <p class="text-slate-400 mt-1">Gerencie os itens do seu catálogo</p>
         </div>
-        <button @click="showModal = true" id="btn-new-product" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-medium text-sm shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all">
+        <button @click="trackStockCreate = false; showModal = true" id="btn-new-product" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-medium text-sm shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
             Novo Produto
         </button>
@@ -35,6 +35,7 @@
                         <th class="text-left px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Produto</th>
                         <th class="text-left px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">Categoria</th>
                         <th class="text-left px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Preço</th>
+                        <th class="text-center px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Estoque</th>
                         <th class="text-center px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
                         <th class="text-right px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Ações</th>
                     </tr>
@@ -68,6 +69,19 @@
                             <span class="text-sm font-semibold text-white">{{formatPrice .Price}}</span>
                         </td>
                         <td class="px-6 py-4 text-center">
+                            {{if isNil .StockQty}}
+                            <span class="text-xs text-slate-500 font-medium italic">Ilimitado</span>
+                            {{else}}
+                            {{if le (derefInt .StockQty) 0}}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-red-500/10 text-red-400 border border-red-500/20">Esgotado (0)</span>
+                            {{else if le (derefInt .StockQty) 5}}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">Baixo ({{derefInt .StockQty}})</span>
+                            {{else}}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700/50">{{derefInt .StockQty}} un.</span>
+                            {{end}}
+                            {{end}}
+                        </td>
+                        <td class="px-6 py-4 text-center">
                             <div id="status-{{.ID}}"
                                  hx-patch="/admin/produtos/{{.ID}}/toggle"
                                  hx-target="#status-{{.ID}}"
@@ -89,12 +103,14 @@
                                     price: '{{.Price}}',
                                     category_id: {{if .CategoryID}}{{.CategoryID}}{{else}}0{{end}},
                                     images: parseJSON($el.getAttribute('data-images'), []),
-                                    optionsList: parseJSON($el.getAttribute('data-options'), [])
-                                }; showEditModal = true;"
+                                    optionsList: parseJSON($el.getAttribute('data-options'), []),
+                                    stock_qty: $el.getAttribute('data-stock') === 'unlimited' ? null : parseInt($el.getAttribute('data-stock'))
+                                }; trackStockEdit = editProduct.stock_qty !== null; showEditModal = true;"
                                 data-name="{{.Name}}"
                                 data-desc="{{.Description}}"
                                 data-options="{{if .Options}}{{.Options}}{{else}}[]{{end}}"
                                 data-images="{{if .Images}}{{.Images}}{{else}}[]{{end}}"
+                                data-stock="{{if isNil .StockQty}}unlimited{{else}}{{derefInt .StockQty}}{{end}}"
                                 class="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors mr-2"
                                 title="Editar Produto"
                             >
@@ -164,6 +180,18 @@
                             <option value="{{.ID}}">{{.Name}}</option>
                             {{end}}
                         </select>
+                    </div>
+                </div>
+                
+                <!-- Controle de Estoque -->
+                <div class="p-4 rounded-2xl bg-slate-850/50 border border-slate-800/40 space-y-3">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" name="track_stock" value="true" x-model="trackStockCreate" class="w-4 h-4 rounded border-slate-700/50 text-violet-650 bg-slate-800/50 focus:ring-violet-550/20 cursor-pointer" id="create-track-stock">
+                        <label for="create-track-stock" class="text-sm font-medium text-slate-300 cursor-pointer">Controlar estoque deste produto?</label>
+                    </div>
+                    <div x-show="trackStockCreate" x-transition class="space-y-1 pl-7">
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Quantidade em Estoque</label>
+                        <input type="number" name="stock_qty" min="0" placeholder="Ex: 50" class="w-full sm:w-1/2 px-4 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all text-sm">
                     </div>
                 </div>
                 
@@ -296,6 +324,18 @@
                             <option value="{{.ID}}">{{.Name}}</option>
                             {{end}}
                         </select>
+                    </div>
+                </div>
+                
+                <!-- Controle de Estoque (Edição) -->
+                <div class="p-4 rounded-2xl bg-slate-850/50 border border-slate-800/40 space-y-3">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" name="track_stock" value="true" x-model="trackStockEdit" class="w-4 h-4 rounded border-slate-700/50 text-violet-650 bg-slate-800/50 focus:ring-violet-550/20 cursor-pointer" id="edit-track-stock">
+                        <label for="edit-track-stock" class="text-sm font-medium text-slate-300 cursor-pointer">Controlar estoque deste produto?</label>
+                    </div>
+                    <div x-show="trackStockEdit" x-transition class="space-y-1 pl-7">
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Quantidade em Estoque</label>
+                        <input type="number" name="stock_qty" x-model.number="editProduct.stock_qty" min="0" placeholder="Ex: 50" class="w-full sm:w-1/2 px-4 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all text-sm">
                     </div>
                 </div>
                 

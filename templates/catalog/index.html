@@ -1,5 +1,9 @@
 {{define "content"}}
-<div class="min-h-screen bg-slate-50/70 pb-16 mesh-grid" x-data="carrinhoGlobal({{.Shop.DeliveryFee}}, {{if .IsOpen}}true{{else}}false{{end}})">
+<div class="min-h-screen bg-slate-50/70 pb-16 mesh-grid" x-data="carrinhoGlobal({{.Shop.DeliveryFee}}, {{if .IsOpen}}true{{else}}false{{end}}, [
+    {{range .DeliveryZones}}
+    { id: {{.ID}}, name: '{{.Name}}', fee: {{.Fee}} },
+    {{end}}
+])">
     
     <!-- Cover Banner -->
     <div class="relative h-44 sm:h-52 w-full bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 overflow-hidden flex items-center">
@@ -595,14 +599,35 @@
                     </div>
                     
                     <!-- Address area -->
-                    <div x-show="deliveryMethod === 'entrega'" x-transition:enter="transition ease-out duration-200 transform" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
-                        <textarea 
-                            x-model="address" 
-                            placeholder="Endereço de entrega (Rua, nº, bairro e referências)"
-                            rows="2"
-                            class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all resize-none font-medium"
-                            id="customer-address"
-                        ></textarea>
+                    <div x-show="deliveryMethod === 'entrega'" class="space-y-3" x-transition:enter="transition ease-out duration-200 transform" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+                        <!-- Neighborhood / Zone Selection -->
+                        <template x-if="deliveryZones && deliveryZones.length > 0">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bairro / Região de Entrega</label>
+                                <select 
+                                    x-model="selectedZoneId"
+                                    @change="updateDeliveryZone()"
+                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-xs"
+                                    id="delivery-zone"
+                                >
+                                    <option value="" disabled :selected="selectedZoneId === null">Selecione seu bairro...</option>
+                                    <template x-for="zone in deliveryZones" :key="zone.id">
+                                        <option :value="zone.id" :selected="String(zone.id) === String(selectedZoneId)" x-text="`${zone.name} (${formatCurrency(zone.fee)})`"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </template>
+
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider" x-show="deliveryZones && deliveryZones.length > 0">Endereço Completo</label>
+                            <textarea 
+                                x-model="address" 
+                                placeholder="Endereço de entrega (Rua, nº, e referências)"
+                                rows="2"
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all resize-none font-medium"
+                                id="customer-address"
+                            ></textarea>
+                        </div>
                     </div>
                     
                     <!-- Custom Payment Button Selectors (No select option) -->
@@ -653,8 +678,8 @@
                 <template x-if="shopIsOpen">
                     <button 
                         @click="finalizeOrder()"
-                        :disabled="!customerName || !customerPhone || !paymentMethod || (deliveryMethod === 'entrega' && !address)"
-                        :class="(!customerName || !customerPhone || !paymentMethod || (deliveryMethod === 'entrega' && !address)) ? 'opacity-55 cursor-not-allowed shadow-none' : 'hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-primary/20 hover:shadow-primary/35'"
+                        :disabled="!customerName || !customerPhone || !paymentMethod || (deliveryMethod === 'entrega' && (!address || (deliveryZones.length > 0 && !selectedZoneId)))"
+                        :class="(!customerName || !customerPhone || !paymentMethod || (deliveryMethod === 'entrega' && (!address || (deliveryZones.length > 0 && !selectedZoneId)))) ? 'opacity-55 cursor-not-allowed shadow-none' : 'hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-primary/20 hover:shadow-primary/35'"
                         class="btn-primary w-full py-4 rounded-2xl text-white font-bold flex items-center justify-center gap-3 text-base transition-all duration-300"
                         id="btn-checkout"
                     >
@@ -821,7 +846,7 @@
                 </template>
                 
                 <!-- Out of stock display -->
-                <template x-if="selectedProduct && !selectedProduct.isAvailable">
+                <template x-if="selectedProduct && (!selectedProduct.isAvailable || (selectedProduct.stockQty !== null && selectedProduct.stockQty <= 0))">
                     <div class="absolute inset-0 bg-slate-950/70 flex items-center justify-center backdrop-blur-xs z-20">
                         <span class="text-white text-sm font-bold px-4 py-2.5 bg-red-500 rounded-full shadow-lg">Produto Esgotado</span>
                     </div>
@@ -872,7 +897,7 @@
                     </template>
 
                     <!-- Custom Customer Product Note (observação) -->
-                    <div class="border-t border-slate-100 pt-3 space-y-1.5" x-show="selectedProduct && selectedProduct.isAvailable">
+                    <div class="border-t border-slate-100 pt-3 space-y-1.5" x-show="selectedProduct && selectedProduct.isAvailable && (selectedProduct.stockQty === null || selectedProduct.stockQty > 0)">
                         <label class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                             <span>📝 Observações do Item</span>
                             <span class="text-[10px] font-medium text-slate-400 lowercase">(opcional)</span>
@@ -887,7 +912,7 @@
                 </div>
 
                 <!-- Footer (Qty + Buy Action) -->
-                <div class="border-t border-slate-100 pt-5 mt-6 flex items-center justify-between gap-4" x-show="selectedProduct && selectedProduct.isAvailable">
+                <div class="border-t border-slate-100 pt-5 mt-6 flex items-center justify-between gap-4" x-show="selectedProduct && selectedProduct.isAvailable && (selectedProduct.stockQty === null || selectedProduct.stockQty > 0)">
                     <!-- Qty selector controls -->
                     <div class="flex items-center gap-3 bg-slate-100 border border-slate-200 rounded-2xl p-1 shadow-xs flex-shrink-0">
                         <button @click="decreaseModalQty()" class="w-9 h-9 rounded-xl bg-white hover:bg-slate-50 flex items-center justify-center text-slate-600 active:scale-95 transition-all">

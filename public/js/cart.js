@@ -1,6 +1,6 @@
 // carrinhoGlobal - Alpine.js store para o carrinho de compras
 // Persiste no localStorage para manter o estado entre navegações
-function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
+function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true, deliveryZones = []) {
     return {
         items: JSON.parse(localStorage.getItem('cart_items') || '[]'),
         isOpen: false,
@@ -14,6 +14,8 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
         toastMessage: '',
         deliveryFee: parseFloat(deliveryFee),
         shopIsOpen: shopIsOpen, // Recebido do servidor via template Go
+        deliveryZones: deliveryZones,
+        selectedZoneId: localStorage.getItem('cart_selectedZoneId') ? parseInt(localStorage.getItem('cart_selectedZoneId')) : null,
         phoneError: '',
         emailError: '',
         
@@ -44,6 +46,9 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
                 let descText = this.couponType === 'percentage' ? `${this.couponValue}% OFF` : `R$ ${this.couponValue.toFixed(2)} OFF`;
                 this.couponSuccess = `Cupom ativo: ${descText}`;
             }
+            if (this.deliveryZones && this.deliveryZones.length > 0) {
+                this.updateDeliveryZone();
+            }
         },
 
         // Salva o estado no localStorage
@@ -58,12 +63,31 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
             localStorage.setItem('cart_couponCode', this.couponCode);
             localStorage.setItem('cart_couponType', this.couponType || '');
             localStorage.setItem('cart_couponValue', String(this.couponValue || 0));
+            localStorage.setItem('cart_selectedZoneId', this.selectedZoneId || '');
+        },
+
+        updateDeliveryZone() {
+            if (this.deliveryZones && this.deliveryZones.length > 0) {
+                const zone = this.deliveryZones.find(z => String(z.id) === String(this.selectedZoneId));
+                if (zone) {
+                    this.deliveryFee = parseFloat(zone.fee);
+                } else {
+                    this.deliveryFee = 0;
+                }
+            }
+            this.save();
         },
 
         // Adiciona um item simples ao carrinho (card de compra rápida)
         addItem(product) {
             const existing = this.items.find(i => i.id === product.id && i.note === '' && !i.options_json);
             if (existing) {
+                if (product.stockQty !== null && product.stockQty !== undefined) {
+                    if (existing.qty >= product.stockQty) {
+                        this.showToast(`⚠️ Apenas ${product.stockQty} unidades em estoque`);
+                        return;
+                    }
+                }
                 existing.qty++;
             } else {
                 this.items.push({
@@ -75,7 +99,8 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
                     note: '',
                     options: {},
                     options_json: '',
-                    options_text: ''
+                    options_text: '',
+                    stockQty: product.stockQty
                 });
             }
             this.save();
@@ -97,6 +122,13 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
             const item = this.items.find(i => i.id === id);
             if (!item) return;
             
+            if (delta > 0 && item.stockQty !== null && item.stockQty !== undefined) {
+                if (item.qty >= item.stockQty) {
+                    this.showToast(`⚠️ Apenas ${item.stockQty} unidades em estoque`);
+                    return;
+                }
+            }
+            
             item.qty += delta;
             if (item.qty <= 0) {
                 this.removeItem(id);
@@ -115,6 +147,12 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
         updateCardQty(product, delta) {
             const existing = this.items.find(i => i.id === product.id && i.note === '' && !i.options_json);
             if (existing) {
+                if (delta > 0 && product.stockQty !== null && product.stockQty !== undefined) {
+                    if (existing.qty >= product.stockQty) {
+                        this.showToast(`⚠️ Apenas ${product.stockQty} unidades em estoque`);
+                        return;
+                    }
+                }
                 existing.qty += delta;
                 if (existing.qty <= 0) {
                     this.items = this.items.filter(i => !(i.id === product.id && i.note === '' && !i.options_json));
@@ -129,7 +167,8 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
                     note: '',
                     options: {},
                     options_json: '',
-                    options_text: ''
+                    options_text: '',
+                    stockQty: product.stockQty
                 });
             }
             this.save();
@@ -305,9 +344,15 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
                 this.showToast('⚠️ Selecione a forma de pagamento');
                 return;
             }
-            if (this.deliveryMethod === 'entrega' && !this.address) {
-                this.showToast('⚠️ Informe o endereço de entrega');
-                return;
+            if (this.deliveryMethod === 'entrega') {
+                if (this.deliveryZones && this.deliveryZones.length > 0 && !this.selectedZoneId) {
+                    this.showToast('⚠️ Por favor, selecione seu bairro para entrega');
+                    return;
+                }
+                if (!this.address) {
+                    this.showToast('⚠️ Informe o endereço de entrega');
+                    return;
+                }
             }
 
             const slug = window.location.pathname.split('/').filter(Boolean).pop() || '';
@@ -325,6 +370,7 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
                 address: this.address,
                 paymentMethod: this.paymentMethod,
                 couponCode: this.couponCode,
+                deliveryZoneId: this.deliveryZones && this.deliveryZones.length > 0 ? parseInt(this.selectedZoneId) : null,
                 items: this.items.map(item => ({
                     id: item.id,
                     name: item.name,
@@ -456,6 +502,12 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
         },
 
         increaseModalQty() {
+            if (this.selectedProduct && this.selectedProduct.stockQty !== null && this.selectedProduct.stockQty !== undefined) {
+                if (this.modalQty >= this.selectedProduct.stockQty) {
+                    this.showToast(`⚠️ Apenas ${this.selectedProduct.stockQty} unidades em estoque`);
+                    return;
+                }
+            }
             this.modalQty++;
         },
 
@@ -555,6 +607,12 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
             );
 
             if (existing) {
+                if (product.stockQty !== null && product.stockQty !== undefined) {
+                    if (existing.qty + this.modalQty > product.stockQty) {
+                        this.showToast(`⚠️ Apenas ${product.stockQty} unidades em estoque`);
+                        return;
+                    }
+                }
                 existing.qty += this.modalQty;
             } else {
                 this.items.push({
@@ -566,7 +624,8 @@ function carrinhoGlobal(deliveryFee = 0, shopIsOpen = true) {
                     note: this.modalNote.trim(),
                     options: { ...this.selectedChoices },
                     options_json: optionsJson,
-                    options_text: optionsText
+                    options_text: optionsText,
+                    stockQty: product.stockQty
                 });
             }
             this.save();

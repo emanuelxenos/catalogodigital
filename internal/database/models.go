@@ -57,7 +57,18 @@ type Product struct {
 	CategoryName string    `json:"category_name,omitempty"` // JOIN auxiliar
 	Options      *string   `json:"options"`                 // JSON string
 	Images       *string   `json:"images"`                  // JSON string contendo array de URLs
+	StockQty     *int      `json:"stock_qty"`               // NULL para ilimitado, >=0 para quantidade de estoque
 }
+
+// DeliveryZone representa uma taxa de entrega por bairro/região
+type DeliveryZone struct {
+	ID        int       `json:"id"`
+	ShopID    int       `json:"shop_id"`
+	Name      string    `json:"name"`
+	Fee       float64   `json:"fee"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 
 // Session representa uma sessão de autenticação
 type Session struct {
