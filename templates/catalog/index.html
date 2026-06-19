@@ -268,7 +268,7 @@
                         x-transition:enter-end="opacity-100 scale-100"
                         data-options="{{if .Options}}{{.Options}}{{else}}[]{{end}}"
                         data-images="{{if .Images}}{{.Images}}{{else}}[]{{end}}"
-                        @click="openProductModal({ id: {{.ID}}, name: '{{.Name}}', description: '{{.Description}}', price: {{.Price}}, image: '{{.ImageURL}}', categoryName: '{{.CategoryName}}', isAvailable: {{.IsAvailable}} }, $el.getAttribute('data-options'), $el.getAttribute('data-images'))"
+                        @click="openProductModal({ id: {{.ID}}, name: '{{.Name}}', description: '{{.Description}}', price: {{.Price}}, image: '{{.ImageURL}}', categoryName: '{{.CategoryName}}', isAvailable: {{.IsAvailable}}, stockQty: {{if isNil .StockQty}}null{{else}}{{derefInt .StockQty}}{{end}} }, $el.getAttribute('data-options'), $el.getAttribute('data-images'))"
                     >
                         <!-- Product image container -->
                         <div class="aspect-square bg-slate-50 overflow-hidden relative flex-shrink-0">
@@ -286,7 +286,13 @@
                             </span>
                             {{end}}
 
-                            {{if not .IsAvailable}}
+                            {{if and (not (isNil .StockQty)) (gt (derefInt .StockQty) 0)}}
+                            <span class="absolute top-3.5 right-3.5 bg-slate-900/85 backdrop-blur-md text-[10px] font-bold text-white px-2 py-0.5 rounded-full shadow-xs border border-white/10">
+                                Restam {{derefInt .StockQty}} un.
+                            </span>
+                            {{end}}
+
+                            {{if or (not .IsAvailable) (and (not (isNil .StockQty)) (le (derefInt .StockQty) 0))}}
                             <div class="absolute inset-0 bg-slate-950/60 flex items-center justify-center backdrop-blur-xs">
                                 <span class="text-white text-xs font-bold px-3 py-1.5 bg-red-500 rounded-full shadow-md">Esgotado</span>
                             </div>
@@ -309,12 +315,12 @@
                                     {{formatPrice .Price}}
                                 </span>
                                 
-                                {{if .IsAvailable}}
+                                {{if and .IsAvailable (or (isNil .StockQty) (gt (derefInt .StockQty) 0))}}
                                 <div @click.stop="" class="h-9 relative z-10">
                                     <!-- 1. Add Trigger (when item quantity is 0) -->
                                     <button 
                                         x-show="getItemQty({{.ID}}) === 0"
-                                        @click="updateCardQty({id: {{.ID}}, name: '{{.Name}}', price: {{.Price}}, image: '{{.ImageURL}}'}, 1)"
+                                        @click="updateCardQty({id: {{.ID}}, name: '{{.Name}}', price: {{.Price}}, image: '{{.ImageURL}}', stockQty: {{if isNil .StockQty}}null{{else}}{{derefInt .StockQty}}{{end}} }, 1)"
                                         class="w-9 h-9 rounded-xl btn-primary flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-md shadow-primary/10"
                                         id="add-product-{{.ID}}"
                                     >
@@ -328,14 +334,14 @@
                                         class="card-qty-badge flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-xl p-0.5 shadow-xs"
                                     >
                                         <button 
-                                            @click="updateCardQty({id: {{.ID}}, name: '{{.Name}}', price: {{.Price}}, image: '{{.ImageURL}}'}, -1)" 
+                                            @click="updateCardQty({id: {{.ID}}, name: '{{.Name}}', price: {{.Price}}, image: '{{.ImageURL}}', stockQty: {{if isNil .StockQty}}null{{else}}{{derefInt .StockQty}}{{end}} }, -1)" 
                                             class="w-7.5 h-7.5 rounded-lg bg-white hover:bg-slate-50 flex items-center justify-center text-slate-600 active:scale-90 transition-all"
                                         >
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 12H4"></path></svg>
                                         </button>
                                         <span class="text-xs font-bold text-slate-800 w-4 text-center" x-text="getItemQty({{.ID}})"></span>
                                         <button 
-                                            @click="updateCardQty({id: {{.ID}}, name: '{{.Name}}', price: {{.Price}}, image: '{{.ImageURL}}'}, 1)" 
+                                            @click="updateCardQty({id: {{.ID}}, name: '{{.Name}}', price: {{.Price}}, image: '{{.ImageURL}}', stockQty: {{if isNil .StockQty}}null{{else}}{{derefInt .StockQty}}{{end}} }, 1)" 
                                             class="w-7.5 h-7.5 rounded-lg bg-primary text-white flex items-center justify-center active:scale-90 transition-all"
                                         >
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
@@ -854,8 +860,9 @@
             </div>
 
             <!-- RIGHT SIDE (Product Details & Notes & Actions) -->
-            <div class="w-full md:w-1/2 flex-grow min-h-0 flex flex-col justify-between overflow-y-auto custom-scrollbar bg-white p-6 sm:p-8">
-                <div class="space-y-4">
+            <div class="w-full md:w-1/2 flex-grow min-h-0 flex flex-col justify-between bg-white p-6 sm:p-8">
+                <!-- Inner scrollable container -->
+                <div class="flex-grow overflow-y-auto custom-scrollbar pr-1 space-y-4">
                     <!-- Badges -->
                     <div class="flex flex-wrap gap-2">
                         <template x-if="selectedProduct && selectedProduct.categoryName">
@@ -919,7 +926,7 @@
                 </div>
 
                 <!-- Footer (Qty + Buy Action) -->
-                <div class="border-t border-slate-100 pt-5 mt-6 flex items-center justify-between gap-4" x-show="selectedProduct && selectedProduct.isAvailable && (selectedProduct.stockQty === null || selectedProduct.stockQty > 0)">
+                <div class="border-t border-slate-100 pt-5 mt-4 flex items-center justify-between gap-4 flex-shrink-0" x-show="selectedProduct && selectedProduct.isAvailable && (selectedProduct.stockQty === null || selectedProduct.stockQty > 0)">
                     <!-- Qty selector controls -->
                     <div class="flex items-center gap-3 bg-slate-100 border border-slate-200 rounded-2xl p-1 shadow-xs flex-shrink-0">
                         <button @click="decreaseModalQty()" class="w-9 h-9 rounded-xl bg-white hover:bg-slate-50 flex items-center justify-center text-slate-600 active:scale-95 transition-all">
