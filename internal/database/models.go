@@ -31,6 +31,7 @@ type Shop struct {
 	PlanID           int        `json:"plan_id"`
 	PlanExpiresAt    *time.Time `json:"plan_expires_at"`
 	AsaasCustomerID  string     `json:"asaas_customer_id"`
+	AsaasSubscriptionID string  `json:"asaas_subscription_id"`
 }
 
 // Category representa uma categoria de produtos

@@ -57,13 +57,13 @@ func (db *DB) GetShopBySlug(ctx context.Context, slug string) (*Shop, error) {
 	shop := &Shop{}
 	err := db.Pool.QueryRow(ctx,
 		`SELECT id, user_id, name, slug, whatsapp_number, logo_url, primary_color, is_active, created_at,
-		        banner_url, delivery_fee, business_hours, plan_id, plan_expires_at, COALESCE(asaas_customer_id, '')
+		        banner_url, delivery_fee, business_hours, plan_id, plan_expires_at, COALESCE(asaas_customer_id, ''), COALESCE(asaas_subscription_id, '')
 		 FROM shops WHERE slug = $1`,
 		slug,
 	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.WhatsappNumber,
 		&shop.LogoURL, &shop.PrimaryColor, &shop.IsActive, &shop.CreatedAt,
 		&shop.BannerURL, &shop.DeliveryFee, &shop.BusinessHours, &shop.PlanID, &shop.PlanExpiresAt,
-		&shop.AsaasCustomerID)
+		&shop.AsaasCustomerID, &shop.AsaasSubscriptionID)
 	if err != nil {
 		return nil, fmt.Errorf("loja não encontrada: %w", err)
 	}
@@ -75,18 +75,19 @@ func (db *DB) GetShopByUserID(ctx context.Context, userID int) (*Shop, error) {
 	shop := &Shop{}
 	err := db.Pool.QueryRow(ctx,
 		`SELECT id, user_id, name, slug, whatsapp_number, logo_url, primary_color, is_active, created_at,
-		        banner_url, delivery_fee, business_hours, plan_id, plan_expires_at, COALESCE(asaas_customer_id, '')
+		        banner_url, delivery_fee, business_hours, plan_id, plan_expires_at, COALESCE(asaas_customer_id, ''), COALESCE(asaas_subscription_id, '')
 		 FROM shops WHERE user_id = $1`,
 		userID,
 	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.WhatsappNumber,
 		&shop.LogoURL, &shop.PrimaryColor, &shop.IsActive, &shop.CreatedAt,
 		&shop.BannerURL, &shop.DeliveryFee, &shop.BusinessHours, &shop.PlanID, &shop.PlanExpiresAt,
-		&shop.AsaasCustomerID)
+		&shop.AsaasCustomerID, &shop.AsaasSubscriptionID)
 	if err != nil {
 		return nil, fmt.Errorf("loja não encontrada: %w", err)
 	}
 	return shop, nil
 }
+
 
 // UpdateShop atualiza os dados de uma loja
 func (db *DB) UpdateShop(ctx context.Context, shop *Shop) error {
@@ -1024,4 +1025,35 @@ func (db *DB) UpdateChargeStatus(ctx context.Context, asaasID, status string) er
 	}
 	return nil
 }
+
+// SaveAsaasSubscriptionID associa o ID da assinatura ativa à loja
+func (db *DB) SaveAsaasSubscriptionID(ctx context.Context, shopID int, subscriptionID string) error {
+	_, err := db.Pool.Exec(ctx,
+		`UPDATE shops SET asaas_subscription_id = $1 WHERE id = $2`,
+		subscriptionID, shopID,
+	)
+	if err != nil {
+		return fmt.Errorf("erro ao salvar asaas_subscription_id: %w", err)
+	}
+	return nil
+}
+
+// GetShopByAsaasCustomerID localiza uma loja pelo ID do cliente no Asaas
+func (db *DB) GetShopByAsaasCustomerID(ctx context.Context, customerID string) (*Shop, error) {
+	shop := &Shop{}
+	err := db.Pool.QueryRow(ctx,
+		`SELECT id, user_id, name, slug, whatsapp_number, logo_url, primary_color, is_active, created_at,
+		        banner_url, delivery_fee, business_hours, plan_id, plan_expires_at, COALESCE(asaas_customer_id, ''), COALESCE(asaas_subscription_id, '')
+		 FROM shops WHERE asaas_customer_id = $1`,
+		customerID,
+	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.WhatsappNumber,
+		&shop.LogoURL, &shop.PrimaryColor, &shop.IsActive, &shop.CreatedAt,
+		&shop.BannerURL, &shop.DeliveryFee, &shop.BusinessHours, &shop.PlanID, &shop.PlanExpiresAt,
+		&shop.AsaasCustomerID, &shop.AsaasSubscriptionID)
+	if err != nil {
+		return nil, fmt.Errorf("loja não encontrada para o Asaas Customer ID %s: %w", customerID, err)
+	}
+	return shop, nil
+}
+
 

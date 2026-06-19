@@ -214,6 +214,8 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255) DEFAULT 
 
 -- ID do cliente no Asaas (reutilizado em cobranças futuras)
 ALTER TABLE shops ADD COLUMN IF NOT EXISTS asaas_customer_id TEXT DEFAULT '';
+ALTER TABLE shops ADD COLUMN IF NOT EXISTS asaas_subscription_id TEXT DEFAULT '';
+
 
 -- Tabela de cobranças pendentes / pagas via Asaas
 CREATE TABLE IF NOT EXISTS payment_charges (

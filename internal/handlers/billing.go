@@ -117,6 +117,15 @@ func (h *Handlers) HandleUpgradeInitiate(w http.ResponseWriter, r *http.Request)
 
 	// Plano grátis: downgrade direto, sem cobrar
 	if planID == 1 {
+		// Cancela assinatura no Asaas se existir
+		if shop.AsaasSubscriptionID != "" {
+			if err := h.AsaasClient.CancelSubscription(shop.AsaasSubscriptionID); err != nil {
+				log.Printf("Erro ao cancelar assinatura %s no Asaas: %v", shop.AsaasSubscriptionID, err)
+				// Continuamos mesmo assim para garantir o downgrade no banco
+			}
+			_ = h.DB.SaveAsaasSubscriptionID(r.Context(), shop.ID, "")
+		}
+
 		if err := h.DB.UpgradeShopPlan(r.Context(), shop.ID, 1, 0); err != nil {
 			log.Printf("Erro ao rebaixar plano da loja %d: %v", shop.ID, err)
 			jsonError(w, "Erro ao alterar plano", http.StatusInternalServerError)
@@ -162,17 +171,41 @@ func (h *Handlers) HandleUpgradeInitiate(w http.ResponseWriter, r *http.Request)
 		return // Cartão é tratado em HandleUpgradeCardPost
 	default:
 		// PIX (padrão)
-		charge, err := h.AsaasClient.CreatePixCharge(customerID, plan.Price, description)
+		subReq := asaas.CreateSubscriptionRequest{
+			Customer:    customerID,
+			BillingType: "PIX",
+			Value:       plan.Price,
+			NextDueDate: time.Now().Format("2006-01-02"), // Vence hoje o primeiro pagamento
+			Cycle:       "MONTHLY",
+			Description: description,
+		}
+		sub, err := h.AsaasClient.CreateSubscription(subReq)
 		if err != nil {
-			log.Printf("Erro ao criar cobrança PIX para loja %d: %v", shop.ID, err)
-			jsonError(w, "Erro ao gerar cobrança PIX: "+err.Error(), http.StatusInternalServerError)
+			log.Printf("Erro ao criar assinatura PIX para loja %d: %v", shop.ID, err)
+			jsonError(w, "Erro ao gerar assinatura PIX: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Busca QR Code
-		qr, err := h.AsaasClient.GetPixQRCode(charge.ID)
+		// Salva o asaas_subscription_id no banco
+		if err := h.DB.SaveAsaasSubscriptionID(r.Context(), shop.ID, sub.ID); err != nil {
+			log.Printf("Erro ao salvar asaas_subscription_id: %v", err)
+		}
+
+		// Buscar as cobranças geradas para esta assinatura para obter a primeira
+		payments, err := h.AsaasClient.GetSubscriptionPayments(sub.ID)
+		if err != nil || len(payments) == 0 {
+			log.Printf("Erro ao buscar cobranças da assinatura %s: %v", sub.ID, err)
+			jsonError(w, "Erro ao obter cobrança da assinatura", http.StatusInternalServerError)
+			return
+		}
+
+		// Pega o primeiro pagamento da assinatura (geralmente o único recém-criado)
+		firstPayment := payments[0]
+
+		// Busca QR Code do primeiro pagamento
+		qr, err := h.AsaasClient.GetPixQRCode(firstPayment.ID)
 		if err != nil {
-			log.Printf("Erro ao buscar QR Code da cobrança %s: %v", charge.ID, err)
+			log.Printf("Erro ao buscar QR Code da cobrança %s: %v", firstPayment.ID, err)
 			jsonError(w, "Erro ao obter QR Code PIX", http.StatusInternalServerError)
 			return
 		}
@@ -181,7 +214,7 @@ func (h *Handlers) HandleUpgradeInitiate(w http.ResponseWriter, r *http.Request)
 		dbCharge := &database.PaymentCharge{
 			ShopID:         shop.ID,
 			PlanID:         planID,
-			AsaasPaymentID: charge.ID,
+			AsaasPaymentID: firstPayment.ID,
 			BillingType:    "PIX",
 			Amount:         plan.Price,
 			Status:         "PENDING",
@@ -199,7 +232,7 @@ func (h *Handlers) HandleUpgradeInitiate(w http.ResponseWriter, r *http.Request)
 
 		_ = h.DB.CreatePlatformAuditLog(r.Context(),
 			"PAYMENT_PIX_INITIATED",
-			fmt.Sprintf("Cobrança PIX iniciada. Loja: %s (ID %d). Plano: %s. AsaasID: %s.", shop.Name, shop.ID, plan.Name, charge.ID),
+			fmt.Sprintf("Assinatura PIX iniciada. Loja: %s (ID %d). Plano: %s. AsaasID: %s. CobrançaID: %s.", shop.Name, shop.ID, plan.Name, sub.ID, firstPayment.ID),
 		)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -281,45 +314,73 @@ func (h *Handlers) HandleUpgradeCardPost(w http.ResponseWriter, r *http.Request)
 
 	description := fmt.Sprintf("Assinatura %s - %s", plan.Name, shop.Name)
 
-	charge, err := h.AsaasClient.CreateCardCharge(customerID, plan.Price, description, card, holder, remoteIP)
+	// Criar Assinatura no Asaas
+	subReq := asaas.CreateSubscriptionRequest{
+		Customer:         customerID,
+		BillingType:      "CREDIT_CARD",
+		Value:            plan.Price,
+		NextDueDate:      time.Now().Format("2006-01-02"), // Cobra hoje o primeiro pagamento
+		Cycle:            "MONTHLY",
+		Description:      description,
+		CreditCard:       &card,
+		CreditCardHolder: &holder,
+		RemoteIP:         remoteIP,
+	}
+
+	sub, err := h.AsaasClient.CreateSubscription(subReq)
 	if err != nil {
-		log.Printf("Erro ao criar cobrança de cartão para loja %d: %v", shop.ID, err)
-		jsonError(w, "Erro no pagamento: "+err.Error(), http.StatusBadRequest)
+		log.Printf("Erro ao criar assinatura de cartão para loja %d: %v", shop.ID, err)
+		jsonError(w, "Erro na assinatura: "+err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	// Salva o asaas_subscription_id no banco
+	if err := h.DB.SaveAsaasSubscriptionID(r.Context(), shop.ID, sub.ID); err != nil {
+		log.Printf("Erro ao salvar asaas_subscription_id: %v", err)
+	}
+
+	// Buscar as cobranças da assinatura para obter a primeira
+	payments, err := h.AsaasClient.GetSubscriptionPayments(sub.ID)
+	if err != nil || len(payments) == 0 {
+		log.Printf("Erro ao buscar cobranças da assinatura %s: %v", sub.ID, err)
+		jsonError(w, "Erro ao obter cobrança da assinatura", http.StatusInternalServerError)
+		return
+	}
+
+	firstPayment := payments[0]
 
 	// Salva cobrança
 	dbCharge := &database.PaymentCharge{
 		ShopID:         shop.ID,
 		PlanID:         planID,
-		AsaasPaymentID: charge.ID,
+		AsaasPaymentID: firstPayment.ID,
 		BillingType:    "CREDIT_CARD",
 		Amount:         plan.Price,
-		Status:         charge.Status,
+		Status:         firstPayment.Status,
 	}
 	if err := h.DB.CreatePaymentCharge(r.Context(), dbCharge); err != nil {
 		log.Printf("Erro ao salvar payment_charge cartão: %v", err)
 	}
 
 	// Se já foi confirmado instantaneamente (CONFIRMED ou RECEIVED), ativa o plano
-	if charge.Status == "CONFIRMED" || charge.Status == "RECEIVED" {
+	if firstPayment.Status == "CONFIRMED" || firstPayment.Status == "RECEIVED" {
 		if err := h.DB.UpgradeShopPlan(r.Context(), shop.ID, planID, 30); err != nil {
 			log.Printf("Erro ao ativar plano após cartão confirmado: %v", err)
 		}
-		_ = h.DB.UpdateChargeStatus(r.Context(), charge.ID, charge.Status)
-		details := fmt.Sprintf("Upgrade via cartão confirmado. Loja: %s. Plano: %s. Asaas: %s.", shop.Name, plan.Name, charge.ID)
+		_ = h.DB.UpdateChargeStatus(r.Context(), firstPayment.ID, firstPayment.Status)
+		details := fmt.Sprintf("Upgrade via assinatura cartão confirmado. Loja: %s. Plano: %s. Assinatura: %s.", shop.Name, plan.Name, sub.ID)
 		_ = h.DB.CreatePlatformAuditLog(r.Context(), "PLAN_UPGRADE_CARD", details)
 	}
 
 	_ = h.DB.CreatePlatformAuditLog(r.Context(), "PAYMENT_CARD_INITIATED",
-		fmt.Sprintf("Cobrança cartão. Loja: %s (ID %d). Plano: %s. Status: %s.", shop.Name, shop.ID, plan.Name, charge.Status))
+		fmt.Sprintf("Assinatura cartão. Loja: %s (ID %d). Plano: %s. Status: %s. AssinaturaID: %s.", shop.Name, shop.ID, plan.Name, firstPayment.Status, sub.ID))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(UpgradeInitiateResponse{
 		ChargeID:    dbCharge.ID,
 		BillingType: "CREDIT_CARD",
-		InvoiceURL:  charge.InvoiceURL,
-		Status:      charge.Status,
+		InvoiceURL:  firstPayment.InvoiceURL,
+		Status:      firstPayment.Status,
 	})
 }
 
@@ -422,10 +483,31 @@ func (h *Handlers) HandleAsaasWebhook(w http.ResponseWriter, r *http.Request) {
 	// Busca a cobrança no banco
 	dbCharge, err := h.DB.GetChargeByAsaasID(r.Context(), paymentID)
 	if err != nil {
-		log.Printf("[WEBHOOK] Cobrança não encontrada para Asaas ID %s: %v", paymentID, err)
-		// Responde 200 mesmo assim para o Asaas não reenviar
-		w.WriteHeader(http.StatusOK)
-		return
+		log.Printf("[WEBHOOK] Cobrança %s não encontrada. Tentando localizar loja pelo Asaas Customer ID %s...", paymentID, event.Payment.Customer)
+		
+		// Tenta buscar a loja pelo Customer ID do Asaas
+		shop, shopErr := h.DB.GetShopByAsaasCustomerID(r.Context(), event.Payment.Customer)
+		if shopErr != nil {
+			log.Printf("[WEBHOOK] Loja não encontrada para o Customer ID %s: %v", event.Payment.Customer, shopErr)
+			w.WriteHeader(http.StatusOK) // Responde 200 para o Asaas parar de reenviar caso seja um cliente inválido
+			return
+		}
+
+		// Cria a cobrança no banco
+		dbCharge = &database.PaymentCharge{
+			ShopID:         shop.ID,
+			PlanID:         shop.PlanID, // Assume o plano atual da loja para renovação
+			AsaasPaymentID: paymentID,
+			BillingType:    event.Payment.BillingType,
+			Amount:         event.Payment.Value,
+			Status:         "PENDING",
+		}
+		if err := h.DB.CreatePaymentCharge(r.Context(), dbCharge); err != nil {
+			log.Printf("[WEBHOOK] Erro ao criar payment_charge para renovação recorrente: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		log.Printf("[WEBHOOK] Nova cobrança %s criada no banco para renovação automática (Loja ID %d, Plano ID %d)", paymentID, shop.ID, shop.PlanID)
 	}
 
 	// Só ativa se ainda estava pendente
@@ -435,7 +517,7 @@ func (h *Handlers) HandleAsaasWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Ativa o plano
+	// Ativa o plano por mais 30 dias
 	if err := h.DB.UpgradeShopPlan(r.Context(), dbCharge.ShopID, dbCharge.PlanID, 30); err != nil {
 		log.Printf("[WEBHOOK] Erro ao ativar plano para shop %d: %v", dbCharge.ShopID, err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -456,7 +538,7 @@ func (h *Handlers) HandleAsaasWebhook(w http.ResponseWriter, r *http.Request) {
 		dbCharge.ShopID, planName, paymentID, event.Event)
 	_ = h.DB.CreatePlatformAuditLog(r.Context(), "PLAN_UPGRADE_WEBHOOK", details)
 
-	log.Printf("[WEBHOOK] ✅ Plano %s ativado para shop %d via evento %s", planName, dbCharge.ShopID, event.Event)
+	log.Printf("[WEBHOOK] ✅ Plano %s ativado/renovado para shop %d via evento %s", planName, dbCharge.ShopID, event.Event)
 	w.WriteHeader(http.StatusOK)
 }
 

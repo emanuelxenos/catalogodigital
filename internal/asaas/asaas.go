@@ -110,6 +110,8 @@ type WebhookPayment struct {
 		Value       float64 `json:"value"`
 		Customer    string  `json:"customer"`
 		Description string  `json:"description"`
+		BillingType string  `json:"billingType"`
+		Subscription string `json:"subscription,omitempty"`
 	} `json:"payment"`
 }
 
@@ -119,6 +121,34 @@ type asaasError struct {
 		Code        string `json:"code"`
 		Description string `json:"description"`
 	} `json:"errors"`
+}
+
+// CreateSubscriptionRequest payload para criar assinatura recorrente
+type CreateSubscriptionRequest struct {
+	Customer         string            `json:"customer"`
+	BillingType      string            `json:"billingType"`
+	Value            float64           `json:"value"`
+	NextDueDate      string            `json:"nextDueDate"`
+	Cycle            string            `json:"cycle"`
+	Description      string            `json:"description"`
+	CreditCard       *CreditCardData   `json:"creditCard,omitempty"`
+	CreditCardHolder *CreditCardHolder `json:"creditCardHolderInfo,omitempty"`
+	RemoteIP         string            `json:"remoteIp,omitempty"`
+}
+
+// SubscriptionResponse resposta da criação de assinatura
+type SubscriptionResponse struct {
+	ID          string  `json:"id"`
+	Customer    string  `json:"customer"`
+	BillingType string  `json:"billingType"`
+	Value       float64 `json:"value"`
+	Cycle       string  `json:"cycle"`
+	Status      string  `json:"status"`
+}
+
+// SubscriptionPaymentsResponse resposta da listagem de cobranças de uma assinatura
+type SubscriptionPaymentsResponse struct {
+	Data []ChargeResponse `json:"data"`
 }
 
 // ==================== MÉTODOS ====================
@@ -269,3 +299,43 @@ func (c *Client) GetPaymentStatus(paymentID string) (string, error) {
 
 	return resp.Status, nil
 }
+
+// CreateSubscription cria uma assinatura recorrente no Asaas
+func (c *Client) CreateSubscription(req CreateSubscriptionRequest) (*SubscriptionResponse, error) {
+	data, _, err := c.do("POST", "/subscriptions", req)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao criar assinatura no Asaas: %w", err)
+	}
+
+	var resp SubscriptionResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("erro ao parsear resposta de assinatura: %w", err)
+	}
+
+	return &resp, nil
+}
+
+// GetSubscriptionPayments lista as cobranças vinculadas a uma assinatura
+func (c *Client) GetSubscriptionPayments(subscriptionID string) ([]ChargeResponse, error) {
+	data, _, err := c.do("GET", "/subscriptions/"+subscriptionID+"/payments", nil)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar cobranças da assinatura no Asaas: %w", err)
+	}
+
+	var resp SubscriptionPaymentsResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("erro ao parsear cobranças da assinatura: %w", err)
+	}
+
+	return resp.Data, nil
+}
+
+// CancelSubscription cancela uma assinatura ativa no Asaas
+func (c *Client) CancelSubscription(subscriptionID string) error {
+	_, _, err := c.do("DELETE", "/subscriptions/"+subscriptionID, nil)
+	if err != nil {
+		return fmt.Errorf("erro ao cancelar assinatura no Asaas: %w", err)
+	}
+	return nil
+}
+
