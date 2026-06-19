@@ -327,6 +327,36 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Controles de Paginação -->
+        {{if gt .TotalPages 1}}
+        <div class="flex items-center justify-between border-t border-slate-800/60 pt-4 mt-4">
+            <div class="text-xs text-slate-500">
+                Página <span class="text-slate-300 font-bold">{{.CurrentPage}}</span> de <span class="text-slate-300 font-bold">{{.TotalPages}}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                {{if .HasPrevPage}}
+                <a href="?page={{.PrevPage}}" class="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 hover:bg-slate-900 text-slate-300 hover:text-white transition-all text-xs font-semibold">
+                    &larr; Anterior
+                </a>
+                {{else}}
+                <button disabled class="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800/50 text-slate-600 text-xs font-semibold cursor-not-allowed">
+                    &larr; Anterior
+                </button>
+                {{end}}
+
+                {{if .HasNextPage}}
+                <a href="?page={{.NextPage}}" class="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 hover:bg-slate-900 text-slate-300 hover:text-white transition-all text-xs font-semibold">
+                    Próxima &rarr;
+                </a>
+                {{else}}
+                <button disabled class="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800/50 text-slate-600 text-xs font-semibold cursor-not-allowed">
+                    Próxima &rarr;
+                </button>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
     </div>
 
 

@@ -60,11 +60,25 @@ func (h *Handlers) HandleShopBilling(w http.ResponseWriter, r *http.Request) {
 		currentPlan.MaxCategories = 1
 	}
 
-	// 4. Carrega histórico de faturamento da loja
-	charges, err := h.DB.ListChargesByShop(r.Context(), shop.ID)
+	// 4. Carrega histórico de faturamento da loja (paginado)
+	page := 1
+	if pStr := r.URL.Query().Get("page"); pStr != "" {
+		if p, err := strconv.Atoi(pStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	limit := 10
+	offset := (page - 1) * limit
+
+	charges, totalCharges, err := h.DB.ListChargesByShop(r.Context(), shop.ID, limit, offset)
 	if err != nil {
 		log.Printf("Erro ao buscar histórico de cobranças da loja %d: %v", shop.ID, err)
 		charges = []database.PaymentCharge{}
+	}
+
+	totalPages := (totalCharges + limit - 1) / limit
+	if totalPages < 1 {
+		totalPages = 1
 	}
 
 	data := map[string]interface{}{
@@ -76,9 +90,16 @@ func (h *Handlers) HandleShopBilling(w http.ResponseWriter, r *http.Request) {
 		"CurrentCategories": currentCategories,
 		"IsExpired":         isExpired,
 		"Charges":           charges,
+		"CurrentPage":       page,
+		"TotalPages":        totalPages,
+		"HasPrevPage":       page > 1,
+		"HasNextPage":       page < totalPages,
+		"PrevPage":          page - 1,
+		"NextPage":          page + 1,
 		"Success":           r.URL.Query().Get("success"),
 		"Error":             r.URL.Query().Get("error"),
 	}
+
 
 
 	if err := h.Tmpl.Render(w, "admin", "admin/billing.html", data); err != nil {
