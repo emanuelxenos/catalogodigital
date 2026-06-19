@@ -203,10 +203,31 @@
                 </a>
 
             </nav>
+            
+            <!-- User Info & Logout (Mobile) -->
+            <div class="p-4 border-t border-slate-800/50 flex-shrink-0">
+                {{if .User}}
+                <div class="flex items-center gap-3 px-3 py-2">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-xs font-bold text-white">
+                        {{if .User.Name}}{{slice .User.Name 0 1}}{{end}}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-white truncate">{{.User.Name}}</p>
+                        <p class="text-xs text-slate-400 truncate">{{.User.Email}}</p>
+                    </div>
+                </div>
+                {{end}}
+                <a href="/admin/logout" class="flex items-center gap-3 px-3 py-2 mt-2 rounded-xl text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                    Sair
+                </a>
+            </div>
         </aside>
         
         <!-- Main Content -->
-        <div class="flex-1 lg:pl-64">
+        <div class="flex-1 lg:pl-64 min-w-0">
             <!-- Top Bar -->
             <header class="sticky top-0 z-30 h-16 flex items-center gap-4 px-6 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/50">
                 <button @click="sidebarOpen = true" class="lg:hidden text-slate-400 hover:text-white">
