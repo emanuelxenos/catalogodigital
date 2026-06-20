@@ -972,6 +972,29 @@ func (h *Handlers) HandleOrders(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// HandleGetOrdersCount retorna a quantidade de pedidos no banco em JSON
+func (h *Handlers) HandleGetOrdersCount(w http.ResponseWriter, r *http.Request) {
+	shop := middleware.GetShopFromContext(r)
+	if shop == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": "Unauthorized"})
+		return
+	}
+
+	count, err := h.DB.GetOrdersCountByShop(r.Context(), shop.ID)
+	if err != nil {
+		log.Printf("Erro ao contar pedidos: %v", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": "Internal server error"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"count": count})
+}
+
 // HandleOrderStatusPost altera o status de um pedido via HTMX
 func (h *Handlers) HandleOrderStatusPost(w http.ResponseWriter, r *http.Request) {
 	shop := middleware.GetShopFromContext(r)

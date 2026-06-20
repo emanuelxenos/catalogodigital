@@ -98,6 +98,7 @@ func (h *Handlers) HandleShopBilling(w http.ResponseWriter, r *http.Request) {
 		"NextPage":          page + 1,
 		"Success":           r.URL.Query().Get("success"),
 		"Error":             r.URL.Query().Get("error"),
+		"Expired":           r.URL.Query().Get("expired") != "",
 	}
 
 

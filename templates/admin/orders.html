@@ -1,7 +1,9 @@
 {{define "content"}}
 <div class="space-y-8" x-data="{
-    statusFilter: 'todos',
-    dateFilter: 'todos',
+    statusFilter: sessionStorage.getItem('orders_statusFilter') || 'todos',
+    dateFilter: sessionStorage.getItem('orders_dateFilter') || 'todos',
+    initialCount: {{len .Orders}},
+    muted: localStorage.getItem('orders_sound_muted') === 'true',
     orderStatuses: {
         {{range .Orders}}
         '{{.ID}}': '{{.Status}}',
@@ -11,6 +13,58 @@
         {{range .Orders}}
         '{{.ID}}': '{{.CreatedAt.Format "2006-01-02"}}',
         {{end}}
+    },
+    init() {
+        this.$watch('statusFilter', val => sessionStorage.setItem('orders_statusFilter', val));
+        this.$watch('dateFilter', val => sessionStorage.setItem('orders_dateFilter', val));
+        setInterval(() => {
+            this.checkNewOrders();
+        }, 15000);
+    },
+    toggleMute() {
+        this.muted = !this.muted;
+        localStorage.setItem('orders_sound_muted', String(this.muted));
+    },
+    playOrderSound(volume = 0.25) {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const playNote = (frequency, startTime, duration) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(frequency, startTime);
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(volume, startTime + 0.03);
+                gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+                osc.start(startTime);
+                osc.stop(startTime + duration);
+            };
+            const now = audioCtx.currentTime;
+            playNote(587.33, now, 0.25); // D5
+            playNote(880.00, now + 0.1, 0.5); // A5
+        } catch(e) {
+            console.error('Audio synthesis failed:', e);
+        }
+    },
+    playTestSound() {
+        this.playOrderSound(0.2);
+    },
+    checkNewOrders() {
+        fetch('/admin/pedidos/count')
+            .then(res => res.json())
+            .then(data => {
+                if (data.count !== undefined && data.count > this.initialCount) {
+                    if (!this.muted) {
+                        this.playOrderSound(0.3);
+                    }
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1200);
+                }
+            })
+            .catch(err => console.error('Erro ao verificar novos pedidos:', err));
     },
     getSPTime(d) {
         const spStr = d.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
@@ -51,6 +105,37 @@
         <div>
             <h1 class="text-2xl font-bold text-white">Pedidos Recebidos</h1>
             <p class="text-slate-400 mt-1">Gerencie a preparação e entrega dos pedidos em tempo real</p>
+        </div>
+        
+        <!-- Controles de Som/Alerta -->
+        <div class="flex items-center gap-2">
+            <button 
+                type="button" 
+                @click="toggleMute()" 
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-sm border"
+                :class="muted ? 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/15' : 'bg-slate-800 border-slate-700/60 text-slate-350 hover:bg-slate-750 hover:text-white'"
+            >
+                <template x-if="muted">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6L4.5 9H1.5v6h3l4.5 3.75V5.25z"/></svg>
+                        Alerta Mutado
+                    </span>
+                </template>
+                <template x-if="!muted">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-emerald-400 animate-pulse" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z"/></svg>
+                        Som Ativo
+                    </span>
+                </template>
+            </button>
+            <button 
+                type="button" 
+                @click="playTestSound()" 
+                class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-slate-800 border border-slate-700/60 text-slate-350 hover:bg-slate-750 hover:text-white text-xs font-bold transition-all shadow-sm active:scale-95"
+            >
+                <svg class="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+                Testar Som
+            </button>
         </div>
     </div>
 

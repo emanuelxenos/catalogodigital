@@ -108,6 +108,7 @@ func main() {
 
 		// Pedidos do lojista
 		r.Get("/admin/pedidos", h.HandleOrders)
+		r.Get("/admin/pedidos/count", h.HandleGetOrdersCount)
 		r.Post("/admin/pedidos/{id}/status", h.HandleOrderStatusPost)
 		r.Post("/admin/pedidos/{id}/notificar-email", h.HandleOrderNotifyEmailPost)
 		r.Get("/admin/pedidos/{id}/imprimir", h.HandlePrintOrderReceipt)

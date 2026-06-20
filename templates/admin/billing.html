@@ -27,6 +27,17 @@
     </div>
 
     <!-- Alert Messages -->
+    {{if .Expired}}
+    <div class="px-5 py-4 rounded-2xl bg-red-500/10 border border-red-500/25 text-red-300 text-sm flex items-start gap-3 shadow-lg shadow-red-500/5">
+        <svg class="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div>
+            <p class="font-bold text-red-200">Seu plano de assinatura está expirado!</p>
+            <p class="text-xs text-red-350 mt-1">Seu catálogo público foi temporariamente desativado para os clientes e as demais áreas do painel administrativo estão bloqueadas. Por favor, regularize sua assinatura realizando um pagamento abaixo para restabelecer o serviço imediatamente.</p>
+        </div>
+    </div>
+    {{end}}
     {{if .Success}}
     <div class="px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-350 text-sm flex items-center gap-2">
         <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

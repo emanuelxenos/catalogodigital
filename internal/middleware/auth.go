@@ -3,6 +3,8 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"strings"
+	"time"
 
 	"catalogo/internal/database"
 )
@@ -58,6 +60,23 @@ func RequireAuth(db *database.DB) func(http.Handler) http.Handler {
 			// Injeta user e shop no contexto
 			ctx := context.WithValue(r.Context(), UserContextKey, user)
 			ctx = context.WithValue(ctx, ShopContextKey, shop)
+
+			// Valida se o plano do lojista está expirado (se não for plano bronze/grátis ID 1)
+			if shop != nil && shop.PlanID != 1 {
+				if shop.PlanExpiresAt != nil && time.Now().After(*shop.PlanExpiresAt) {
+					path := r.URL.Path
+					// Permite apenas rotas de fatura/plano e logout
+					isBillingRoute := path == "/admin/plano" || path == "/admin/plano/faturas" ||
+						strings.HasPrefix(path, "/admin/plano/faturas/") || path == "/admin/plano/upgrade" ||
+						path == "/admin/plano/upgrade/cartao" || strings.HasPrefix(path, "/admin/plano/status/") ||
+						path == "/admin/logout"
+					if !isBillingRoute {
+						http.Redirect(w, r, "/admin/plano?expired=true", http.StatusSeeOther)
+						return
+					}
+				}
+			}
+
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

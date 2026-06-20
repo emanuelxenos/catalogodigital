@@ -533,6 +533,19 @@ func (db *DB) ListOrdersByShop(ctx context.Context, shopID int) ([]Order, error)
 	return orders, nil
 }
 
+// GetOrdersCountByShop retorna o número total de pedidos de uma loja
+func (db *DB) GetOrdersCountByShop(ctx context.Context, shopID int) (int, error) {
+	var count int
+	err := db.Pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM orders WHERE shop_id = $1`,
+		shopID,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("erro ao contar pedidos: %w", err)
+	}
+	return count, nil
+}
+
 // GetOrderByID busca um pedido pelo ID e shopID
 func (db *DB) GetOrderByID(ctx context.Context, id, shopID int) (*Order, error) {
 	var o Order

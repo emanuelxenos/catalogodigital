@@ -40,8 +40,9 @@ func (h *Handlers) HandleCatalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verifica se a loja está ativa
-	if !shop.IsActive {
+	// Verifica se a loja está ativa ou se o plano expirou
+	isExpired := shop.PlanID != 1 && shop.PlanExpiresAt != nil && time.Now().After(*shop.PlanExpiresAt)
+	if !shop.IsActive || isExpired {
 		data := map[string]interface{}{
 			"Shop": shop,
 		}
@@ -124,8 +125,9 @@ func (h *Handlers) HandleProductsByCategory(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if !shop.IsActive {
-		http.Error(w, "Loja inativa", http.StatusForbidden)
+	isExpired := shop.PlanID != 1 && shop.PlanExpiresAt != nil && time.Now().After(*shop.PlanExpiresAt)
+	if !shop.IsActive || isExpired {
+		http.Error(w, "Loja inativa ou plano expirado", http.StatusForbidden)
 		return
 	}
 
@@ -271,11 +273,12 @@ func (h *Handlers) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !shop.IsActive {
+	isExpired := shop.PlanID != 1 && shop.PlanExpiresAt != nil && time.Now().After(*shop.PlanExpiresAt)
+	if !shop.IsActive || isExpired {
 		w.WriteHeader(http.StatusForbidden)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"message": "Loja inativa",
+			"message": "A loja está temporariamente indisponível devido à expiração do plano.",
 		})
 		return
 	}
