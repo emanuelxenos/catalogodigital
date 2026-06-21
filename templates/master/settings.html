@@ -1,0 +1,135 @@
+{{define "content"}}
+<div class="space-y-10 relative">
+
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 border-b border-slate-900 pb-8">
+        <div>
+            <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded bg-gradient-to-r from-violet-500 to-indigo-600 text-[10px] font-black tracking-widest text-white uppercase neon-border">
+                    PLATFORM CONFIGURATION
+                </span>
+            </div>
+            <h1 class="text-4xl font-extrabold tracking-tight text-white mt-3 bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+                Configurações do Sistema
+            </h1>
+            <p class="text-slate-400 mt-1.5 text-sm font-medium">Controle as variáveis da plataforma e os limites de planos de assinatura</p>
+        </div>
+    </div>
+
+    <!-- Main Content Split Grid -->
+    <div class="grid grid-cols-1 gap-8">
+        
+        <!-- Configs Form -->
+        <div class="glass-super rounded-3xl border border-slate-900 p-6 shadow-2xl">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="text-violet-400 text-lg">⚙️</span>
+                <h2 class="text-lg font-bold text-white tracking-tight">Definições Gerais</h2>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed mb-6">Ajuste o comportamento global da sua plataforma.</p>
+            
+            <form hx-post="/master/configs" hx-swap="none" class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Nome da Plataforma</label>
+                    <input type="text" name="platform_name" value="{{index .Configs "platform_name"}}" 
+                           class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-sm font-semibold focus:outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">WhatsApp de Suporte</label>
+                    <input type="text" name="support_whatsapp" value="{{index .Configs "support_whatsapp"}}" 
+                           class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-900 focus:border-violet-500/50 text-slate-200 text-sm font-semibold focus:outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Modo Manutenção</label>
+                    <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-900">
+                        <input type="checkbox" name="maintenance_mode" value="true" {{if eq (index .Configs "maintenance_mode") "true"}}checked{{end}} 
+                               class="w-4.5 h-4.5 rounded bg-slate-950 border-slate-900 text-violet-600 focus:ring-violet-500/40">
+                        <span class="text-xs text-slate-400 font-semibold">Ativar Modo Manutenção</span>
+                    </div>
+                </div>
+                <div class="md:col-span-3">
+                    <button type="submit" class="w-full md:w-auto px-6 py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-violet-600/10 active:scale-[0.98] transition-all">
+                        Salvar Configurações Gerais
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SaaS Plans Configuration Section -->
+    <div class="glass-super rounded-3xl border border-slate-900 shadow-2xl p-6 mt-8">
+        <div class="flex items-center gap-2 mb-6">
+            <span class="text-violet-400 text-xl">💎</span>
+            <div>
+                <h2 class="text-lg font-bold text-white tracking-tight">Gerenciamento de Planos</h2>
+                <p class="text-xs text-slate-400 mt-0.5">Configure os limites e preços cobrados dos lojistas na plataforma</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {{range .Plans}}
+            <div class="bg-slate-950/80 border border-slate-900 rounded-2xl p-5 hover:border-violet-500/20 transition-all flex flex-col justify-between">
+                <div>
+                    <h3 class="font-bold text-white text-sm uppercase tracking-wider mb-3">{{.Name}}</h3>
+                    
+                    <form hx-post="/master/plans/{{.ID}}" hx-swap="none" class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Preço Mensal (R$)</label>
+                            <input type="number" step="0.01" name="price" value="{{formatPriceRaw .Price}}" 
+                                   class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 focus:border-violet-500/40 text-slate-200 text-xs font-semibold focus:outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Limite de Produtos</label>
+                            <input type="number" name="max_products" value="{{.MaxProducts}}" 
+                                   class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 focus:border-violet-500/40 text-slate-200 text-xs font-semibold focus:outline-none transition-all">
+                            <span class="text-[9px] text-slate-500 font-medium mt-1 block">(-1 para ilimitado)</span>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Limite de Categorias</label>
+                            <input type="number" name="max_categories" value="{{.MaxCategories}}" 
+                                   class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 focus:border-violet-500/40 text-slate-200 text-xs font-semibold focus:outline-none transition-all">
+                            <span class="text-[9px] text-slate-500 font-medium mt-1 block">(-1 para ilimitado)</span>
+                        </div>
+                        
+                        <button type="submit" class="w-full py-2 rounded-xl bg-violet-600/10 hover:bg-violet-600/20 text-violet-400 border border-violet-500/20 text-xs font-bold uppercase tracking-wider transition-all active:scale-[0.98]">
+                            Salvar Alterações
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Audit Logs Section (Full Width) -->
+    <div class="glass-super rounded-3xl border border-slate-900 p-6 shadow-2xl mt-8">
+        <div class="flex items-center gap-2 mb-4">
+            <span class="text-pink-400 text-lg">📃</span>
+            <h2 class="text-lg font-bold text-white tracking-tight">Audit Logs da Plataforma</h2>
+        </div>
+        <p class="text-xs text-slate-400 leading-relaxed mb-6">Histórico de ações e eventos críticos executados na infraestrutura SaaS.</p>
+        
+        <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+            {{range .AuditLogs}}
+            <div class="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-900/60 flex items-start gap-3.5 hover:border-slate-800/80 transition-all">
+                <div class="p-2 rounded-lg bg-slate-900 border border-slate-800/40 text-sm mt-0.5">
+                    {{if or (eq .Action "CONFIG_UPDATE") (eq .Action "PLAN_CONFIG_UPDATE")}}⚙️{{else if eq .Action "SHOP_SUSPEND"}}🚫{{else if eq .Action "SHOP_ACTIVATE"}}✅{{else}}📝{{end}}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-bold text-slate-200 uppercase tracking-wide">{{.Action}}</span>
+                        <span class="text-[9px] font-semibold text-slate-500">{{formatTime .CreatedAt}}</span>
+                    </div>
+                    <p class="text-xs text-slate-450 mt-1 font-medium leading-relaxed">{{.Details}}</p>
+                </div>
+            </div>
+            {{end}}
+            
+            {{if not .AuditLogs}}
+            <div class="text-center py-12 text-slate-500">
+                <p class="text-sm font-semibold">Nenhum evento registrado no log</p>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</div>
+{{end}}

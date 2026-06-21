@@ -1,0 +1,211 @@
+{{define "content"}}
+<div class="space-y-10 relative">
+
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 border-b border-slate-900 pb-8">
+        <div>
+            <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded bg-gradient-to-r from-violet-500 to-indigo-600 text-[10px] font-black tracking-widest text-white uppercase neon-border">
+                    TENANT MANAGEMENT
+                </span>
+            </div>
+            <h1 class="text-4xl font-extrabold tracking-tight text-white mt-3 bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+                Gerenciamento de Lojas
+            </h1>
+            <p class="text-slate-400 mt-1.5 text-sm font-medium">Visualize, ative/suspenda lojas e altere planos de assinatura manualmente</p>
+        </div>
+    </div>
+
+    <!-- Stores Table Container -->
+    <div id="tabela-lojas" class="glass-super rounded-3xl border border-slate-900 shadow-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-900 bg-slate-900/20 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h3 class="text-lg font-bold text-white tracking-tight">Gerenciamento de Tenants</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Ative ou suspenda lojas parceiras instantaneamente</p>
+            </div>
+            <form method="GET" action="/master/lojas" class="flex gap-2 max-w-md w-full md:w-auto">
+                <input type="text" name="search" value="{{.SearchTerm}}" placeholder="Buscar por loja, slug, proprietário..." class="bg-slate-950/60 border border-slate-800 focus:border-violet-500 rounded-xl px-4 py-2 text-xs text-white focus:outline-none transition-all w-full sm:w-64">
+                <button type="submit" class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all active:scale-95">
+                    Buscar
+                </button>
+                {{if .SearchTerm}}
+                <a href="/master/lojas" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs font-bold transition-all active:scale-95 text-center flex items-center">
+                    Limpar
+                </a>
+                {{end}}
+            </form>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full admin-table text-sm text-left">
+                <thead>
+                    <tr class="border-b border-slate-900/80 text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-950/40">
+                        <th class="px-6 py-4 text-left">Loja</th>
+                        <th class="px-6 py-4 text-left hidden lg:table-cell">Slug (Endereço)</th>
+                        <th class="px-6 py-4 text-left hidden md:table-cell">Proprietário</th>
+                        <th class="px-6 py-4 text-left hidden sm:table-cell">DDI/WhatsApp</th>
+                        <th class="px-6 py-4 text-left">Plano</th>
+                        <th class="px-6 py-4 text-left hidden md:table-cell">Vencimento</th>
+                        <th class="px-6 py-4 text-left hidden lg:table-cell">Criação</th>
+                        <th class="px-6 py-4 text-right">Ações / Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-900/40 text-slate-350">
+                    {{range .Shops}}
+                    <tr class="hover:bg-slate-900/20 transition-colors">
+                        <!-- Loja info -->
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-slate-900 overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-800/50 shadow-inner">
+                                    {{if .LogoURL}}
+                                    <img src="{{.LogoURL}}" alt="" class="w-full h-full object-cover">
+                                    {{else}}
+                                    <span class="text-violet-400 font-extrabold text-sm">{{slice .Name 0 1}}</span>
+                                    {{end}}
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="font-bold text-white truncate">{{.Name}}</p>
+                                    <span class="text-[10px] font-semibold text-slate-500">ID: #{{.ID}}</span>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <!-- Slug -->
+                        <td class="px-6 py-4 hidden lg:table-cell">
+                            <a href="/{{.Slug}}" target="_blank" class="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors flex items-center gap-1">
+                                <span>/{{.Slug}}</span>
+                                <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                </svg>
+                            </a>
+                        </td>
+                        
+                        <!-- Lojista proprietário -->
+                        <td class="px-6 py-4 hidden md:table-cell">
+                            <div class="min-w-0">
+                                <p class="text-slate-350 font-semibold truncate">{{.OwnerName}}</p>
+                                <p class="text-xs text-slate-500 truncate">{{.OwnerEmail}}</p>
+                            </div>
+                        </td>
+                        
+                        <!-- WhatsApp -->
+                        <td class="px-6 py-4 hidden sm:table-cell text-slate-300 font-medium">
+                            <a href="https://wa.me/{{.WhatsappNumber}}" target="_blank" class="hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                <span>+{{.WhatsappNumber}}</span>
+                            </a>
+                        </td>
+                        
+                        <!-- Plano -->
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold 
+                                {{if eq .PlanID 1}}bg-slate-500/10 text-slate-400 border border-slate-500/20
+                                {{else if eq .PlanID 2}}bg-indigo-500/10 text-indigo-400 border border-indigo-500/20
+                                {{else if eq .PlanID 3}}bg-amber-500/10 text-amber-400 border border-amber-500/20
+                                {{else}}bg-pink-500/10 text-pink-400 border border-pink-500/20{{end}}">
+                                {{.PlanName}}
+                            </span>
+                        </td>
+                        
+                        <!-- Vencimento -->
+                        <td class="px-6 py-4 hidden md:table-cell text-xs text-slate-300 font-semibold">
+                            {{if .PlanExpiresAt}}
+                                {{formatTimePtr .PlanExpiresAt}}
+                            {{else}}
+                                <span class="text-slate-500">Sem Expiração</span>
+                            {{end}}
+                        </td>
+                        
+                        <!-- Criação -->
+                        <td class="px-6 py-4 hidden lg:table-cell text-slate-400 font-medium">
+                            {{formatTime .CreatedAt}}
+                        </td>
+                        
+                        <!-- Ações HTMX -->
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex flex-col gap-2 items-end">
+                                <div class="flex items-center justify-end gap-2">
+                                    {{if .IsActive}}
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>
+                                        Ativa
+                                    </span>
+                                    <button hx-post="/master/shops/{{.ID}}/toggle" 
+                                            hx-swap="outerHTML" 
+                                            hx-target="closest div" 
+                                            class="px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold transition-all active:scale-[0.98]">
+                                        Suspender
+                                    </button>
+                                    {{else}}
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20">
+                                        Suspensa
+                                    </span>
+                                    <button hx-post="/master/shops/{{.ID}}/toggle" 
+                                            hx-swap="outerHTML" 
+                                            hx-target="closest div" 
+                                            class="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-bold transition-all active:scale-[0.98]">
+                                        Reativar
+                                    </button>
+                                    {{end}}
+                                </div>
+
+                                <form hx-post="/master/shops/{{.ID}}/plan" hx-swap="none" class="flex items-center gap-1.5 mt-1.5">
+                                    <select name="plan_id" class="px-2 py-1 rounded bg-slate-950 border border-slate-900 text-slate-350 text-[11px] focus:outline-none focus:border-violet-500 font-bold">
+                                        <option value="1" {{if eq .PlanID 1}}selected{{end}}>Bronze (Grátis/Teste)</option>
+                                        <option value="2" {{if eq .PlanID 2}}selected{{end}}>Prata (Essencial)</option>
+                                        <option value="3" {{if eq .PlanID 3}}selected{{end}}>Ouro (Profissional)</option>
+                                        <option value="4" {{if eq .PlanID 4}}selected{{end}}>Diamante (Ilimitado)</option>
+                                    </select>
+                                    <button type="submit" class="px-2 py-1 rounded bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 border border-violet-500/35 text-[10px] font-black uppercase tracking-wider transition-all active:scale-[0.98]">
+                                        Mudar
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {{end}}
+                    
+                    {{if not .Shops}}
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center text-slate-500">
+                            <span class="text-3xl block mb-2">🏪</span>
+                            <p class="font-bold">Nenhuma loja cadastrada no sistema</p>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        {{if .ShowPagination}}
+        <div class="px-6 py-4 border-t border-slate-900 bg-slate-950/20 flex items-center justify-between gap-4">
+            <div class="text-xs text-slate-400 font-semibold">
+                Página <span class="text-white">{{.CurrentPage}}</span> de <span class="text-white">{{.TotalPages}}</span>
+            </div>
+            <div class="flex gap-2">
+                {{if .HasPrevPage}}
+                <a href="/master/lojas?page={{.PrevPage}}&search={{.SearchTerm}}" class="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-all active:scale-95">
+                    &larr; Anterior
+                </a>
+                {{else}}
+                <button disabled class="px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-900/50 text-slate-600 text-xs font-bold cursor-not-allowed opacity-50">
+                    &larr; Anterior
+                </button>
+                {{end}}
+
+                {{if .HasNextPage}}
+                <a href="/master/lojas?page={{.NextPage}}&search={{.SearchTerm}}" class="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-all active:scale-95">
+                    Próxima &rarr;
+                </a>
+                {{else}}
+                <button disabled class="px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-900/50 text-slate-600 text-xs font-bold cursor-not-allowed opacity-50">
+                    Próxima &rarr;
+                </button>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+    </div>
+</div>
+{{end}}

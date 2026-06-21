@@ -215,3 +215,10 @@ type PaymentChargeWithDetails struct {
 	ShopName string `json:"shop_name"`
 	PlanName string `json:"plan_name"`
 }
+
+// SaaSRevenuePoint representa um ponto de faturamento SaaS para exibição em gráficos
+type SaaSRevenuePoint struct {
+	DayName    string  `json:"day_name"`    // "20/06" ou "Junho"
+	TotalSales float64 `json:"total_sales"` // Faturamento correspondente
+	OrderCount int     `json:"order_count"` // Qtd de faturas pagas no período
+}

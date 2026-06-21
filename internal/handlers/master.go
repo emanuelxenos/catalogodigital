@@ -1,10 +1,14 @@
 package handlers
 
 import (
+	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"catalogo/internal/database"
 	"catalogo/internal/middleware"
@@ -89,7 +93,7 @@ func (h *Handlers) HandleMasterLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/master/login", http.StatusSeeOther)
 }
 
-// HandleMasterDashboard renderiza o painel de controle mestre do SaaS
+// HandleMasterDashboard renderiza o painel de controle mestre do SaaS (Visão Geral - Métricas)
 func (h *Handlers) HandleMasterDashboard(w http.ResponseWriter, r *http.Request) {
 	user := middleware.GetUserFromContext(r)
 
@@ -106,33 +110,77 @@ func (h *Handlers) HandleMasterDashboard(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	// 2. Busca lista de lojas
-	shops, err := h.DB.ListShopsWithOwners(r.Context())
-	if err != nil {
-		log.Printf("[MASTER] Erro ao listar lojas: %v", err)
-		shops = []database.ShopWithOwner{}
+	data := map[string]interface{}{
+		"User":      user,
+		"Metrics":   metrics,
+		"ActiveTab": "dashboard",
 	}
 
-	// 3. Busca configurações globais
+	// Renderiza usando o layout exclusivo do super admin ("super")
+	if err := h.Tmpl.Render(w, "super", "master/dashboard.html", data); err != nil {
+		log.Printf("[MASTER] Erro ao renderizar master dashboard: %v", err)
+		http.Error(w, "Erro interno", http.StatusInternalServerError)
+	}
+}
+
+// HandleMasterSettings renderiza a tela de configurações globais e planos do SaaS
+func (h *Handlers) HandleMasterSettings(w http.ResponseWriter, r *http.Request) {
+	user := middleware.GetUserFromContext(r)
+
+	// 1. Busca configurações globais
 	configs, err := h.DB.GetPlatformConfigs(r.Context())
 	if err != nil {
 		log.Printf("[MASTER] Erro ao carregar configurações: %v", err)
 		configs = map[string]string{
-			"platform_name":           "Catálogo Digital SaaS",
-			"maintenance_mode":        "false",
-			"global_subscription_fee": "49.90",
-			"support_whatsapp":        "5511999999999",
+			"platform_name":    "Catálogo Digital SaaS",
+			"maintenance_mode": "false",
+			"support_whatsapp": "5511999999999",
 		}
 	}
 
-	// 4. Busca logs de auditoria
+	// 2. Busca planos cadastrados
+	rows, err := h.DB.Pool.Query(r.Context(), "SELECT id, name, price, max_products, max_categories FROM plans ORDER BY id ASC")
+	var plans []database.Plan
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var p database.Plan
+			if err := rows.Scan(&p.ID, &p.Name, &p.Price, &p.MaxProducts, &p.MaxCategories); err == nil {
+				plans = append(plans, p)
+			}
+		}
+	} else {
+		log.Printf("[MASTER] Erro ao carregar planos: %v", err)
+	}
+
+	// 3. Busca logs de auditoria
 	auditLogs, err := h.DB.ListPlatformAuditLogs(r.Context())
 	if err != nil {
 		log.Printf("[MASTER] Erro ao carregar logs de auditoria: %v", err)
 		auditLogs = []database.PlatformAuditLog{}
 	}
 
-	// 5. Busca cobranças globais paginadas (10 itens por página)
+	data := map[string]interface{}{
+		"User":      user,
+		"Configs":   configs,
+		"Plans":     plans,
+		"AuditLogs": auditLogs,
+		"ActiveTab": "settings",
+	}
+
+	// Renderiza usando o layout exclusivo do super admin ("super")
+	if err := h.Tmpl.Render(w, "super", "master/settings.html", data); err != nil {
+		log.Printf("[MASTER] Erro ao renderizar master settings: %v", err)
+		http.Error(w, "Erro interno", http.StatusInternalServerError)
+	}
+}
+
+// HandleMasterShops lista todas as lojas cadastradas para o super admin com suporte a busca e paginação
+func (h *Handlers) HandleMasterShops(w http.ResponseWriter, r *http.Request) {
+	user := middleware.GetUserFromContext(r)
+	search := r.URL.Query().Get("search")
+
+	// Busca lista de lojas de forma paginada (10 por página)
 	page := 1
 	if pStr := r.URL.Query().Get("page"); pStr != "" {
 		if p, err := strconv.Atoi(pStr); err == nil && p > 0 {
@@ -142,9 +190,75 @@ func (h *Handlers) HandleMasterDashboard(w http.ResponseWriter, r *http.Request)
 	limit := 10
 	offset := (page - 1) * limit
 
-	charges, totalCharges, err := h.DB.ListGlobalChargesPaginated(r.Context(), limit, offset)
+	shops, totalShops, err := h.DB.ListShopsWithOwnersPaginated(r.Context(), limit, offset, search)
 	if err != nil {
-		log.Printf("[MASTER] Erro ao carregar cobranças globais: %v", err)
+		log.Printf("[MASTER] Erro ao listar lojas: %v", err)
+		shops = []database.ShopWithOwner{}
+	}
+
+	totalPages := (totalShops + limit - 1) / limit
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
+	data := map[string]interface{}{
+		"User":           user,
+		"Shops":          shops,
+		"ActiveTab":      "shops",
+		"CurrentPage":    page,
+		"TotalPages":     totalPages,
+		"ShowPagination": totalPages > 1,
+		"HasPrevPage":    page > 1,
+		"HasNextPage":    page < totalPages,
+		"PrevPage":       page - 1,
+		"NextPage":       page + 1,
+		"SearchTerm":     search,
+	}
+
+	// Renderiza usando o layout exclusivo do super admin ("super")
+	if err := h.Tmpl.Render(w, "super", "master/shops.html", data); err != nil {
+		log.Printf("[MASTER] Erro ao renderizar master lojas: %v", err)
+		http.Error(w, "Erro interno", http.StatusInternalServerError)
+	}
+}
+
+// HandleMasterBilling lista faturas globais com filtros, métricas e gráficos para o super admin
+func (h *Handlers) HandleMasterBilling(w http.ResponseWriter, r *http.Request) {
+	user := middleware.GetUserFromContext(r)
+
+	// Captura filtros da URL
+	startDate := r.URL.Query().Get("start_date")
+	endDate := r.URL.Query().Get("end_date")
+	yearStr := r.URL.Query().Get("year")
+
+	year := 0
+	if yearStr != "" {
+		if y, err := strconv.Atoi(yearStr); err == nil {
+			year = y
+		}
+	}
+
+	// Se for o primeiro carregamento (URL limpa), define últimos 30 dias por padrão
+	isFiltered := r.URL.Query().Has("start_date") || r.URL.Query().Has("end_date") || r.URL.Query().Has("year")
+	if !isFiltered {
+		endDate = time.Now().Format("2006-01-02")
+		startDate = time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	}
+
+	// Busca paginação
+	page := 1
+	if pStr := r.URL.Query().Get("page"); pStr != "" {
+		if p, err := strconv.Atoi(pStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	limit := 10
+	offset := (page - 1) * limit
+
+	// 1. Busca faturas filtradas e paginadas
+	charges, totalCharges, err := h.DB.ListGlobalChargesFiltered(r.Context(), limit, offset, startDate, endDate, year)
+	if err != nil {
+		log.Printf("[MASTER] Erro ao carregar faturas filtradas: %v", err)
 		charges = []database.PaymentChargeWithDetails{}
 	}
 
@@ -153,12 +267,46 @@ func (h *Handlers) HandleMasterDashboard(w http.ResponseWriter, r *http.Request)
 		totalPages = 1
 	}
 
+	// 2. Busca todas as faturas do filtro para calcular totais/estatísticas do período
+	allFiltered, err := h.DB.ListGlobalChargesFilteredAll(r.Context(), startDate, endDate, year)
+	var totalRevenue float64
+	var paidCount int
+	var pendingCount int
+	if err == nil {
+		for _, c := range allFiltered {
+			if c.Status == "RECEIVED" || c.Status == "CONFIRMED" {
+				totalRevenue += c.Amount
+				paidCount++
+			} else if c.Status == "PENDING" {
+				pendingCount++
+			}
+		}
+	} else {
+		log.Printf("[MASTER] Erro ao carregar totalizador de faturas: %v", err)
+	}
+
+	// 3. Busca pontos do gráfico de faturamento
+	chartPoints, err := h.DB.GetSaaSRevenueChartData(r.Context(), startDate, endDate, year)
+	if err != nil {
+		log.Printf("[MASTER] Erro ao obter dados do gráfico de faturamento: %v", err)
+		chartPoints = []database.SaaSRevenuePoint{}
+	}
+
+	// Converte os pontos para JSON
+	chartJSON := "[]"
+	if bytes, err := json.Marshal(chartPoints); err == nil {
+		chartJSON = string(bytes)
+	}
+
+	// 4. Busca os anos distintos de cobranças para popular o dropdown
+	years, err := h.DB.GetDistinctBillingYears(r.Context())
+	if err != nil {
+		log.Printf("[MASTER] Erro ao buscar anos distintos de faturamento: %v", err)
+		years = []int{time.Now().Year()}
+	}
+
 	data := map[string]interface{}{
 		"User":           user,
-		"Metrics":        metrics,
-		"Shops":          shops,
-		"Configs":        configs,
-		"AuditLogs":      auditLogs,
 		"Charges":        charges,
 		"CurrentPage":    page,
 		"TotalPages":     totalPages,
@@ -167,11 +315,26 @@ func (h *Handlers) HandleMasterDashboard(w http.ResponseWriter, r *http.Request)
 		"HasNextPage":    page < totalPages,
 		"PrevPage":       page - 1,
 		"NextPage":       page + 1,
+		"ActiveTab":      "billing",
+		
+		// Filtros e Estatísticas do Período
+		"StartDate":      startDate,
+		"EndDate":        endDate,
+		"SelectedYear":   year,
+		"Years":          years,
+		
+		"TotalRevenue":   totalRevenue,
+		"TotalCharges":   len(allFiltered),
+		"PaidCount":      paidCount,
+		"PendingCount":   pendingCount,
+		
+		// JSON para o gráfico analítico
+		"ChartDataJSON":  chartJSON,
 	}
 
 	// Renderiza usando o layout exclusivo do super admin ("super")
-	if err := h.Tmpl.Render(w, "super", "master/dashboard.html", data); err != nil {
-		log.Printf("[MASTER] Erro ao renderizar master dashboard: %v", err)
+	if err := h.Tmpl.Render(w, "super", "master/billing.html", data); err != nil {
+		log.Printf("[MASTER] Erro ao renderizar master faturamento: %v", err)
 		http.Error(w, "Erro interno", http.StatusInternalServerError)
 	}
 }
@@ -413,3 +576,230 @@ func (h *Handlers) HandleMasterConfirmCharge(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("HX-Refresh", "true")
 	w.WriteHeader(http.StatusOK)
 }
+
+// HandleMasterUpdatePlan atualiza os limites e preço de um plano
+func (h *Handlers) HandleMasterUpdatePlan(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	planID, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID de plano inválido", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Formulário inválido", http.StatusBadRequest)
+		return
+	}
+
+	priceStr := r.FormValue("price")
+	price, err := strconv.ParseFloat(priceStr, 64)
+	if err != nil {
+		http.Error(w, "Preço inválido", http.StatusBadRequest)
+		return
+	}
+
+	maxProductsStr := r.FormValue("max_products")
+	maxProducts, err := strconv.Atoi(maxProductsStr)
+	if err != nil {
+		http.Error(w, "Limite de produtos inválido", http.StatusBadRequest)
+		return
+	}
+
+	maxCategoriesStr := r.FormValue("max_categories")
+	maxCategories, err := strconv.Atoi(maxCategoriesStr)
+	if err != nil {
+		http.Error(w, "Limite de categorias inválido", http.StatusBadRequest)
+		return
+	}
+
+	// 1. Busca nome do plano antes de atualizar
+	var planName string
+	err = h.DB.Pool.QueryRow(r.Context(), "SELECT name FROM plans WHERE id = $1", planID).Scan(&planName)
+	if err != nil {
+		log.Printf("[MASTER] Erro ao buscar nome do plano %d: %v", planID, err)
+		planName = fmt.Sprintf("ID #%d", planID)
+	}
+
+	// 2. Atualiza no banco
+	if err := h.DB.UpdatePlan(r.Context(), planID, price, maxProducts, maxCategories); err != nil {
+		log.Printf("[MASTER] Erro ao atualizar plano %d: %v", planID, err)
+		http.Error(w, "Erro ao atualizar plano", http.StatusInternalServerError)
+		return
+	}
+
+	// 3. Registra log de auditoria
+	details := fmt.Sprintf("Plano '%s' (ID %d) atualizado: Preço=R$ %.2f, MaxProdutos=%d, MaxCategorias=%d",
+		planName, planID, price, maxProducts, maxCategories)
+	if err := h.DB.CreatePlatformAuditLog(r.Context(), "PLAN_CONFIG_UPDATE", details); err != nil {
+		log.Printf("[MASTER] Erro ao criar log de auditoria: %v", err)
+	}
+
+	w.Header().Set("HX-Refresh", "true")
+	w.WriteHeader(http.StatusOK)
+}
+
+// HandleMasterExportBillingCSV exporta todo o histórico de faturamento filtrado em CSV
+func (h *Handlers) HandleMasterExportBillingCSV(w http.ResponseWriter, r *http.Request) {
+	// Captura os mesmos filtros da tela
+	startDate := r.URL.Query().Get("start_date")
+	endDate := r.URL.Query().Get("end_date")
+	yearStr := r.URL.Query().Get("year")
+
+	year := 0
+	if yearStr != "" {
+		if y, err := strconv.Atoi(yearStr); err == nil {
+			year = y
+		}
+	}
+
+	// Se for URL limpa, define últimos 30 dias por padrão
+	isFiltered := r.URL.Query().Has("start_date") || r.URL.Query().Has("end_date") || r.URL.Query().Has("year")
+	if !isFiltered {
+		endDate = time.Now().Format("2006-01-02")
+		startDate = time.Now().AddDate(0, 0, -30).Format("2006-01-02")
+	}
+
+	charges, err := h.DB.ListGlobalChargesFilteredAll(r.Context(), startDate, endDate, year)
+	if err != nil {
+		log.Printf("[MASTER] Erro ao carregar cobranças para CSV: %v", err)
+		http.Error(w, "Erro ao carregar dados", http.StatusInternalServerError)
+		return
+	}
+
+	// Define os headers de resposta para download do arquivo CSV
+	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=relatorio_fiscal_faturamento_%s.csv", time.Now().Format("2006-01-02_150405")))
+
+	// Escreve o BOM UTF-8 para garantir que o Excel abra os acentos corretamente
+	w.Write([]byte{0xEF, 0xBB, 0xBF})
+
+	writer := csv.NewWriter(w)
+	writer.Comma = ';' // Delimitador padrão do Excel em português
+
+	// Cabeçalhos das colunas
+	headers := []string{
+		"ID Interno",
+		"ID Transacao Asaas",
+		"Loja",
+		"Proprietario",
+		"Email Proprietario",
+		"WhatsApp",
+		"Plano Contratado",
+		"Metodo",
+		"Valor (R$)",
+		"Status",
+		"Data Criacao",
+		"Vencimento",
+	}
+	if err := writer.Write(headers); err != nil {
+		log.Printf("[MASTER] Erro ao escrever cabeçalho do CSV: %v", err)
+		return
+	}
+
+	for _, c := range charges {
+		// Busca a loja e o proprietário para trazer dados completos e auditáveis
+		ownerName := "Desconhecido"
+		ownerEmail := "Desconhecido"
+		whatsapp := ""
+		shop, sErr := h.DB.GetShopByID(r.Context(), c.ShopID)
+		if sErr == nil {
+			whatsapp = shop.WhatsappNumber
+			user, uErr := h.DB.GetUserByID(r.Context(), shop.UserID)
+			if uErr == nil {
+				ownerName = user.Name
+				ownerEmail = user.Email
+			}
+		}
+
+		expiresStr := "Sem Vencimento"
+		if c.ExpiresAt != nil {
+			expiresStr = c.ExpiresAt.Format("02/01/2006 15:04")
+		}
+
+		billingType := c.BillingType
+		if billingType == "CREDIT_CARD" {
+			billingType = "Cartão de Crédito"
+		}
+
+		amountStr := fmt.Sprintf("%.2f", c.Amount)
+		amountStr = strings.ReplaceAll(amountStr, ".", ",") // padrão numérico local
+
+		row := []string{
+			strconv.Itoa(c.ID),
+			c.AsaasPaymentID,
+			c.ShopName,
+			ownerName,
+			ownerEmail,
+			whatsapp,
+			c.PlanName,
+			billingType,
+			amountStr,
+			c.Status,
+			c.CreatedAt.Format("02/01/2006 15:04"),
+			expiresStr,
+		}
+
+		if err := writer.Write(row); err != nil {
+			log.Printf("[MASTER] Erro ao escrever linha do CSV: %v", err)
+			return
+		}
+	}
+
+	writer.Flush()
+}
+
+// HandleMasterPrintInvoiceReceipt renderiza o recibo/comprovante individual da transação
+func (h *Handlers) HandleMasterPrintInvoiceReceipt(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	chargeID, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID de fatura inválido", http.StatusBadRequest)
+		return
+	}
+
+	// 1. Busca a cobrança
+	charge, err := h.DB.GetChargeByID(r.Context(), chargeID)
+	if err != nil {
+		http.Error(w, "Fatura não encontrada", http.StatusNotFound)
+		return
+	}
+
+	// 2. Busca a loja correspondente
+	shop, err := h.DB.GetShopByID(r.Context(), charge.ShopID)
+	if err != nil {
+		http.Error(w, "Loja associada não encontrada", http.StatusNotFound)
+		return
+	}
+
+	// 3. Busca o plano faturado
+	plan, err := h.DB.GetPlanByID(r.Context(), charge.PlanID)
+	if err != nil {
+		plan = &database.Plan{Name: "Bronze (Grátis)", Price: 0.0}
+	}
+
+	// 4. Busca os dados do proprietário (User)
+	ownerName := "Desconhecido"
+	ownerEmail := "Desconhecido"
+	user, err := h.DB.GetUserByID(r.Context(), shop.UserID)
+	if err == nil {
+		ownerName = user.Name
+		ownerEmail = user.Email
+	}
+
+	data := map[string]interface{}{
+		"Charge":     charge,
+		"Shop":       shop,
+		"Plan":       plan,
+		"OwnerName":  ownerName,
+		"OwnerEmail": ownerEmail,
+		"Now":        time.Now(),
+	}
+
+	// Renderiza a página standalone de impressão (sem layouts)
+	if err := h.Tmpl.RenderPage(w, "master/print_invoice.html", data); err != nil {
+		log.Printf("[MASTER] Erro ao renderizar recibo de faturamento master: %v", err)
+		http.Error(w, "Erro interno", http.StatusInternalServerError)
+	}
+}
+
+

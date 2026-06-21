@@ -88,6 +88,25 @@ func (db *DB) GetShopByUserID(ctx context.Context, userID int) (*Shop, error) {
 	return shop, nil
 }
 
+// GetShopByID busca uma loja pelo ID
+func (db *DB) GetShopByID(ctx context.Context, id int) (*Shop, error) {
+	shop := &Shop{}
+	err := db.Pool.QueryRow(ctx,
+		`SELECT id, user_id, name, slug, whatsapp_number, logo_url, primary_color, is_active, created_at,
+		        banner_url, delivery_fee, business_hours, plan_id, plan_expires_at, COALESCE(asaas_customer_id, ''), COALESCE(asaas_subscription_id, '')
+		 FROM shops WHERE id = $1`,
+		id,
+	).Scan(&shop.ID, &shop.UserID, &shop.Name, &shop.Slug, &shop.WhatsappNumber,
+		&shop.LogoURL, &shop.PrimaryColor, &shop.IsActive, &shop.CreatedAt,
+		&shop.BannerURL, &shop.DeliveryFee, &shop.BusinessHours, &shop.PlanID, &shop.PlanExpiresAt,
+		&shop.AsaasCustomerID, &shop.AsaasSubscriptionID)
+	if err != nil {
+		return nil, fmt.Errorf("loja não encontrada pelo ID %d: %w", id, err)
+	}
+	return shop, nil
+}
+
+
 
 // UpdateShop atualiza os dados de uma loja
 func (db *DB) UpdateShop(ctx context.Context, shop *Shop) error {

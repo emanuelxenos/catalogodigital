@@ -46,24 +46,24 @@ func NewHandlers(db *database.DB, mailer *mail.Mailer, devMode bool, asaasClient
 func NewTemplateEngine(baseDir string, devMode bool) *TemplateEngine {
 	funcMap := template.FuncMap{
 		"formatPrice": func(price float64) string {
-			// Formato brasileiro: R$ 1.234,56
-			intPart := int(price)
-			decPart := int((price - float64(intPart)) * 100)
-			
-			// Formata com separador de milhares
-			str := fmt.Sprintf("%d", intPart)
-			if len(str) > 3 {
+			// Formata com 2 casas decimais e substitui ponto por vírgula para evitar erros de ponto flutuante
+			str := fmt.Sprintf("%.2f", price)
+			parts := strings.Split(str, ".")
+			intPart := parts[0]
+			decPart := parts[1]
+
+			if len(intPart) > 3 {
 				var result []string
-				for i := len(str); i > 0; i -= 3 {
+				for i := len(intPart); i > 0; i -= 3 {
 					start := i - 3
 					if start < 0 {
 						start = 0
 					}
-					result = append([]string{str[start:i]}, result...)
+					result = append([]string{intPart[start:i]}, result...)
 				}
-				str = strings.Join(result, ".")
+				intPart = strings.Join(result, ".")
 			}
-			return fmt.Sprintf("R$ %s,%02d", str, decPart)
+			return fmt.Sprintf("R$ %s,%s", intPart, decPart)
 		},
 		"formatPriceRaw": func(price float64) string {
 			return fmt.Sprintf("%.2f", price)

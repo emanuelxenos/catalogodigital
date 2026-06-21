@@ -76,7 +76,7 @@
         
         <!-- Navigation -->
         <nav class="flex-1 px-4 py-8 space-y-2">
-            <a href="/master" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold bg-violet-500/10 text-violet-300 border border-violet-500/20 shadow-md shadow-violet-500/5 transition-all">
+            <a href="/master" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm {{if eq .ActiveTab "dashboard"}}font-semibold bg-violet-500/10 text-violet-300 border border-violet-500/20 shadow-md shadow-violet-500/5{{else}}font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-900/60 border border-transparent{{end}} transition-all">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                 </svg>
@@ -88,18 +88,26 @@
             </div>
             
             <!-- Quick links/filters -->
-            <a href="#tabela-lojas" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-900/60 transition-all">
+            <a href="/master/lojas" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm {{if eq .ActiveTab "shops"}}font-semibold bg-violet-500/10 text-violet-300 border border-violet-500/20 shadow-md shadow-violet-500/5{{else}}font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-900/60 border border-transparent{{end}} transition-all">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                 </svg>
                 Gerenciar Lojas
             </a>
             
-            <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-500 cursor-not-allowed">
+            <a href="/master/faturamento" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm {{if eq .ActiveTab "billing"}}font-semibold bg-violet-500/10 text-violet-300 border border-violet-500/20 shadow-md shadow-violet-500/5{{else}}font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-900/60 border border-transparent{{end}} transition-all">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                Configurar Planos <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">Em Breve</span>
+                Faturamento SaaS
+            </a>
+            
+            <a href="/master/configuracoes" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm {{if eq .ActiveTab "settings"}}font-semibold bg-violet-500/10 text-violet-300 border border-violet-500/20 shadow-md shadow-violet-500/5{{else}}font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-900/60 border border-transparent{{end}} transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                Configurações SaaS
             </a>
         </nav>
         
@@ -145,17 +153,30 @@
             </button>
         </div>
         <nav class="px-4 py-8 space-y-2">
-            <a href="/master" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold bg-violet-500/10 text-violet-300 border border-violet-500/20">
+            <a href="/master" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm {{if eq .ActiveTab "dashboard"}}font-semibold bg-violet-500/10 text-violet-300 border border-violet-500/20 shadow-md shadow-violet-500/5{{else}}font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-900/60 border border-transparent{{end}} transition-all">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                 </svg>
                 Visão Geral SaaS
             </a>
-            <a href="#tabela-lojas" @click="sidebarOpen = false" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-900/60 transition-all">
+            <a href="/master/lojas" @click="sidebarOpen = false" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm {{if eq .ActiveTab "shops"}}font-semibold bg-violet-500/10 text-violet-300 border border-violet-500/20 shadow-md shadow-violet-500/5{{else}}font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-900/60 border border-transparent{{end}} transition-all">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                 </svg>
                 Gerenciar Lojas
+            </a>
+            <a href="/master/faturamento" @click="sidebarOpen = false" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm {{if eq .ActiveTab "billing"}}font-semibold bg-violet-500/10 text-violet-300 border border-violet-500/20 shadow-md shadow-violet-500/5{{else}}font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-900/60 border border-transparent{{end}} transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Faturamento SaaS
+            </a>
+            <a href="/master/configuracoes" @click="sidebarOpen = false" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm {{if eq .ActiveTab "settings"}}font-semibold bg-violet-500/10 text-violet-300 border border-violet-500/20 shadow-md shadow-violet-500/5{{else}}font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-900/60 border border-transparent{{end}} transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                Configurações SaaS
             </a>
         </nav>
         <div class="absolute bottom-0 inset-x-0 p-4 border-t border-slate-900 bg-slate-950">

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprovante de Pagamento - {{.Shop.Name}}</title>
-    <!-- Tailwind CSS para estilização rápida -->
+    <title>Comprovante Fiscal de Faturamento SaaS | ID #{{.Charge.ID}}</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
@@ -32,7 +32,7 @@
 
     <!-- Print Action Warning (non-printed) -->
     <div class="no-print mb-6 p-4 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-800 text-xs flex justify-between items-center">
-        <span>A janela de impressão do seu navegador foi aberta automaticamente. Caso queira fechar e retornar ao painel, clique em fechar.</span>
+        <span>Comprovante de auditoria gerado pelo Command Center. A janela de impressão do seu navegador abriu automaticamente.</span>
         <button onclick="window.close()" class="px-3 py-1 bg-violet-600 text-white rounded font-bold uppercase tracking-wider hover:bg-violet-700">Fechar Guia</button>
     </div>
 
@@ -41,14 +41,14 @@
         
         <!-- PAGO Stamp Overlay -->
         <div class="absolute top-8 right-8 border-4 border-emerald-500/30 text-emerald-500/50 font-black text-sm uppercase tracking-widest px-4 py-2 rounded-xl transform rotate-12 pointer-events-none">
-            Pago
+            {{.Charge.Status}}
         </div>
 
-        <!-- Header / Logo -->
+        <!-- Header -->
         <div class="border-b border-slate-100 pb-8 mb-8 flex justify-between items-start">
             <div>
-                <h1 class="text-xl font-extrabold text-violet-600 tracking-tight uppercase">Recibo de Pagamento</h1>
-                <p class="text-xs text-slate-400 mt-1">Comprovante de transação do plano digital</p>
+                <h1 class="text-xl font-extrabold text-violet-600 tracking-tight uppercase">Comprovante de Faturamento</h1>
+                <p class="text-xs text-slate-400 mt-1">SaaS Command Center — Registro Fiscal Interno</p>
             </div>
             <div class="text-right">
                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Data de Emissão</span>
@@ -58,32 +58,37 @@
 
         <!-- Details Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-8">
-            <!-- Emissor (SaaS Platform) -->
+            <!-- Emissor (SaaS Platform Owner) -->
             <div>
-                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Emissor</h3>
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Emissor / Proprietário da Plataforma</h3>
                 <p class="text-sm font-bold text-slate-800">Catálogo Digital SaaS</p>
-                <p class="text-xs text-slate-500 mt-0.5">Sistema de Catálogo Online para Delivery</p>
-                <p class="text-xs text-slate-500">contato@catalogodigital.com.br</p>
+                <p class="text-xs text-slate-500 mt-0.5">Console de Administração Mestre</p>
+                <p class="text-xs text-slate-500">Suporte Técnico Interno</p>
             </div>
 
-            <!-- Destinatário (Shop Owner) -->
+            <!-- Destinatário (Tenant / Shop Owner) -->
             <div>
-                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Cliente</h3>
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Lojista / Cliente</h3>
                 <p class="text-sm font-bold text-slate-800">{{.Shop.Name}}</p>
-                <p class="text-xs text-slate-500 mt-0.5">WhatsApp: {{.Shop.WhatsappNumber}}</p>
-                <p class="text-xs text-slate-500">ID Loja: #{{.Shop.ID}}</p>
+                <p class="text-xs text-slate-500 mt-0.5">Proprietário: {{.OwnerName}}</p>
+                <p class="text-xs text-slate-500">E-mail: {{.OwnerEmail}}</p>
+                <p class="text-xs text-slate-500">WhatsApp: +{{.Shop.WhatsappNumber}}</p>
             </div>
         </div>
 
         <!-- Transaction Details Table -->
         <div class="border border-slate-200/80 rounded-2xl overflow-hidden mb-8">
             <div class="bg-slate-50 px-5 py-3 border-b border-slate-200/80 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                Descrição da Assinatura
+                Dados da Cobrança Comercial
             </div>
             <div class="divide-y divide-slate-100 px-5">
                 <div class="py-3.5 flex justify-between text-xs">
-                    <span class="text-slate-500">Plano Contratado</span>
-                    <span class="font-bold text-slate-800">{{.Plan.Name}} (Acesso Mensal)</span>
+                    <span class="text-slate-500">Serviço</span>
+                    <span class="font-bold text-slate-800">Assinatura de Plano SaaS</span>
+                </div>
+                <div class="py-3.5 flex justify-between text-xs">
+                    <span class="text-slate-500">Plano Faturado</span>
+                    <span class="font-semibold text-slate-800">{{.Plan.Name}} (Limite: {{.Plan.MaxProducts}} prods / {{.Plan.MaxCategories}} cats)</span>
                 </div>
                 <div class="py-3.5 flex justify-between text-xs">
                     <span class="text-slate-500">ID da Transação Asaas</span>
@@ -96,8 +101,14 @@
                     </span>
                 </div>
                 <div class="py-3.5 flex justify-between text-xs">
-                    <span class="text-slate-500">Data de Pagamento</span>
+                    <span class="text-slate-500">Data de Registro</span>
                     <span class="font-semibold text-slate-800">{{formatTime .Charge.CreatedAt}}</span>
+                </div>
+                <div class="py-3.5 flex justify-between text-xs">
+                    <span class="text-slate-500">Vencimento / Compensação</span>
+                    <span class="font-semibold text-slate-800">
+                        {{if .Charge.ExpiresAt}}{{formatTimePtr .Charge.ExpiresAt}}{{else}}Sem Expiração{{end}}
+                    </span>
                 </div>
                 <div class="py-4 flex justify-between text-sm font-bold border-t border-slate-200">
                     <span class="text-slate-800">Valor Total Pago</span>
@@ -108,8 +119,8 @@
 
         <!-- Footer Notes -->
         <div class="text-center border-t border-slate-100 pt-6">
-            <p class="text-[10px] text-slate-400">Este documento serve como comprovação de quitação da mensalidade para o período de 30 dias subsequentes à data de pagamento.</p>
-            <p class="text-[9px] text-slate-400/80 mt-1">Dúvidas ou problemas com seu pagamento? Entre em contato com o suporte técnico.</p>
+            <p class="text-[10px] text-slate-400">Este documento é uma representação fiscal interna gerada no SaaS Command Center para fins de auditoria de receita e contabilidade.</p>
+            <p class="text-[9px] text-slate-400/80 mt-1">ID da Transação Interna: #{{.Charge.ID}} — Assinatura Ativada no Servidor</p>
         </div>
     </div>
 </body>

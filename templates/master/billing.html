@@ -1,0 +1,369 @@
+{{define "content"}}
+<div class="space-y-10 relative">
+
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 border-b border-slate-900 pb-8">
+        <div>
+            <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded bg-gradient-to-r from-emerald-500 to-teal-600 text-[10px] font-black tracking-widest text-white uppercase neon-border">
+                    FINANCIAL CONTROL
+                </span>
+            </div>
+            <h1 class="text-4xl font-extrabold tracking-tight text-white mt-3 bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+                Faturamento SaaS
+            </h1>
+            <p class="text-slate-400 mt-1.5 text-sm font-medium">Monitore faturas globais, pagamentos dos clientes e filtre os dados fiscais da plataforma</p>
+        </div>
+    </div>
+
+    <!-- Filter Control Bar -->
+    <div class="glass-super rounded-3xl border border-slate-900 p-6">
+        <form method="GET" action="/master/faturamento" class="grid grid-cols-1 md:grid-cols-4 items-end gap-6">
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Data Inicial</label>
+                <input type="date" name="start_date" value="{{.StartDate}}" class="w-full bg-slate-950/60 border border-slate-800 focus:border-violet-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Data Final</label>
+                <input type="date" name="end_date" value="{{.EndDate}}" class="w-full bg-slate-950/60 border border-slate-800 focus:border-violet-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ano Fiscal</label>
+                <select name="year" class="w-full bg-slate-950/60 border border-slate-800 focus:border-violet-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none transition-all">
+                    <option value="0" {{if eq .SelectedYear 0}}selected{{end}}>Todos os Anos</option>
+                    {{range .Years}}
+                        <option value="{{.}}" {{if eq . $.SelectedYear}}selected{{end}}>{{.}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <div class="flex items-center gap-3">
+                <button type="submit" class="flex-1 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-all active:scale-95 text-center">
+                    Filtrar Dados
+                </button>
+                <a href="/master/faturamento" class="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-sm font-bold transition-all active:scale-95 text-center">
+                    Limpar
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Metrics Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Revenue in Period -->
+        <div class="glass-super rounded-3xl p-6 border border-slate-900/60 relative overflow-hidden group hover:border-emerald-500/20 transition-all duration-300">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full pointer-events-none transition-all duration-300 group-hover:scale-110"></div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Faturamento SaaS (Período)</p>
+            <p class="text-3xl font-extrabold text-white mt-3 tracking-tight bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
+                {{formatPrice .TotalRevenue}}
+            </p>
+            <p class="text-[10px] text-slate-500 font-medium mt-1">Soma de faturas pagas e compensadas</p>
+        </div>
+
+        <!-- Total Charges in Period -->
+        <div class="glass-super rounded-3xl p-6 border border-slate-900/60 relative overflow-hidden group hover:border-violet-500/20 transition-all duration-300">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-violet-500/5 rounded-bl-full pointer-events-none transition-all duration-300 group-hover:scale-110"></div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Cobranças Emitidas</p>
+            <p class="text-3xl font-extrabold text-white mt-3 tracking-tight bg-gradient-to-r from-violet-400 to-indigo-500 bg-clip-text text-transparent">
+                {{.TotalCharges}}
+            </p>
+            <p class="text-[10px] text-slate-500 font-medium mt-1">Total de faturas geradas no intervalo</p>
+        </div>
+
+        <!-- Paid Charges in Period -->
+        <div class="glass-super rounded-3xl p-6 border border-slate-900/60 relative overflow-hidden group hover:border-indigo-500/20 transition-all duration-300">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-bl-full pointer-events-none transition-all duration-300 group-hover:scale-110"></div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Faturas Compensadas (Pagas)</p>
+            <p class="text-3xl font-extrabold text-white mt-3 tracking-tight bg-gradient-to-r from-indigo-400 to-blue-500 bg-clip-text text-transparent">
+                {{.PaidCount}}
+            </p>
+            <p class="text-[10px] text-slate-500 font-medium mt-1">Cobranças com status RECEIVED/CONFIRMED</p>
+        </div>
+
+        <!-- Pending Charges in Period -->
+        <div class="glass-super rounded-3xl p-6 border border-slate-900/60 relative overflow-hidden group hover:border-amber-500/20 transition-all duration-300">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-bl-full pointer-events-none transition-all duration-300 group-hover:scale-110"></div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Faturas em Aberto (Pendentes)</p>
+            <p class="text-3xl font-extrabold text-white mt-3 tracking-tight bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
+                {{.PendingCount}}
+            </p>
+            <p class="text-[10px] text-slate-500 font-medium mt-1">Faturas aguardando pagamento</p>
+        </div>
+    </div>
+
+    <!-- Revenue Trend Chart -->
+    <div x-data="saasChartData({{.ChartDataJSON}})" class="glass-super rounded-3xl border border-slate-900 p-6 flex flex-col space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-900/80 pb-4">
+            <div>
+                <h3 class="text-lg font-bold text-white tracking-tight">Gráfico Analítico de Faturamento</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Visão temporal de receitas e volume de assinaturas ativas</p>
+            </div>
+            <div class="text-right">
+                <span class="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-full" x-text="formatCurrency(totalRevenue)"></span>
+            </div>
+        </div>
+
+        <!-- SVG Line/Bar Chart Area -->
+        <div class="relative h-64 w-full flex items-center justify-center pt-2">
+            <svg class="w-full h-full" viewBox="0 0 500 220" preserveAspectRatio="none">
+                <!-- Grid Lines -->
+                <line x1="40" y1="20" x2="480" y2="20" stroke="#1e293b" stroke-dasharray="4" />
+                <line x1="40" y1="70" x2="480" y2="70" stroke="#1e293b" stroke-dasharray="4" />
+                <line x1="40" y1="120" x2="480" y2="120" stroke="#1e293b" stroke-dasharray="4" />
+                <line x1="40" y1="170" x2="480" y2="170" stroke="#334155" stroke-width="1.5" />
+                
+                <!-- Y-Axis -->
+                <line x1="40" y1="20" x2="40" y2="170" stroke="#334155" stroke-width="1.5" />
+                
+                <!-- Gradient definitions -->
+                <defs>
+                    <linearGradient id="saas-rev-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.4" />
+                        <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0" />
+                    </linearGradient>
+                </defs>
+                
+                <!-- Filled Area -->
+                <path :d="revenueAreaPath" fill="url(#saas-rev-grad)" />
+                
+                <!-- Trend Line -->
+                <path :d="revenueLinePath" fill="none" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                
+                <!-- Interaction Points -->
+                <template x-for="(pt, idx) in points" :key="idx">
+                    <g class="cursor-pointer">
+                        <circle :cx="pt.x" :cy="pt.y" r="8" fill="#8B5CF6" fill-opacity="0" class="hover:fill-opacity-25 transition-all duration-200" @mouseenter="hoveredIndex = idx; hoveredType = 'revenue'" @mouseleave="hoveredIndex = null" />
+                        <circle :cx="pt.x" :cy="pt.y" r="3.5" fill="#ffffff" stroke="#8B5CF6" stroke-width="2.5" />
+                    </g>
+                </template>
+            </svg>
+            
+            <!-- Tooltip -->
+            <template x-if="hoveredIndex !== null && hoveredType === 'revenue'">
+                <div class="absolute bg-slate-950/95 border border-slate-800 text-white text-[11px] font-semibold px-3 py-2 rounded-xl shadow-2xl pointer-events-none z-25 flex flex-col items-center"
+                     :style="`left: ${points[hoveredIndex].x / 500 * 100}%; top: ${(points[hoveredIndex].y - 45) / 220 * 100}%; transform: translateX(-50%);`">
+                    <span class="text-[9px] text-slate-400 font-bold" x-text="salesData[hoveredIndex].day_name"></span>
+                    <span class="text-white font-extrabold" x-text="formatCurrency(salesData[hoveredIndex].total_sales)"></span>
+                    <span class="text-[9px] text-violet-400" x-text="salesData[hoveredIndex].order_count + ' pagamentos'"></span>
+                </div>
+            </template>
+        </div>
+        
+        <!-- X-Axis Labels -->
+        <div class="flex justify-between pl-8 pr-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            <template x-for="(item, idx) in salesData" :key="idx">
+                <span class="w-12 text-center" x-text="item.day_name"></span>
+            </template>
+        </div>
+    </div>
+
+    <!-- Global Invoices Table Container -->
+    <div id="tabela-faturas" class="glass-super rounded-3xl border border-slate-900 shadow-2xl overflow-hidden mt-10">
+        <div class="px-6 py-5 border-b border-slate-900 bg-slate-900/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h3 class="text-lg font-bold text-white tracking-tight">Histórico de Faturamento SaaS</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Cobranças de planos dos lojistas e status de transações correspondentes aos filtros ativos</p>
+            </div>
+            <div>
+                <a href="/master/faturamento/exportar?start_date={{.StartDate}}&end_date={{.EndDate}}&year={{.SelectedYear}}" 
+                   target="_blank"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-450 text-xs font-bold transition-all active:scale-95">
+                    📥 Exportar Relatório Fiscal (CSV)
+                </a>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full admin-table text-sm text-left">
+                <thead>
+                    <tr class="border-b border-slate-900/80 text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-950/40">
+                        <th class="px-6 py-4 text-left">Loja</th>
+                        <th class="px-6 py-4 text-left">Plano Contratado</th>
+                        <th class="px-6 py-4 text-left">ID Transação Asaas</th>
+                        <th class="px-6 py-4 text-left">Método</th>
+                        <th class="px-6 py-4 text-left">Valor</th>
+                        <th class="px-6 py-4 text-left">Criada Em</th>
+                        <th class="px-6 py-4 text-left">Vencimento</th>
+                        <th class="px-6 py-4 text-left">Status</th>
+                        <th class="px-6 py-4 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-900/40 text-slate-300">
+                    {{range .Charges}}
+                    <tr class="hover:bg-slate-900/20 transition-colors">
+                        <!-- Loja info -->
+                        <td class="px-6 py-4 font-bold text-white">
+                            {{.ShopName}}
+                        </td>
+                        
+                        <!-- Plano -->
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 border border-slate-800 text-slate-300">
+                                {{.PlanName}}
+                            </span>
+                        </td>
+                        
+                        <!-- Asaas ID -->
+                        <td class="px-6 py-4 font-mono text-xs text-slate-400">
+                            {{.AsaasPaymentID}}
+                        </td>
+                        
+                        <!-- Método -->
+                        <td class="px-6 py-4 text-xs font-semibold uppercase">
+                            {{if eq .BillingType "CREDIT_CARD"}}Cartão{{else}}{{.BillingType}}{{end}}
+                        </td>
+                        
+                        <!-- Valor -->
+                        <td class="px-6 py-4 font-extrabold text-white">
+                            {{formatPrice .Amount}}
+                        </td>
+                        
+                        <!-- Criada em -->
+                        <td class="px-6 py-4 text-xs text-slate-400">
+                            {{formatTime .CreatedAt}}
+                        </td>
+                        
+                        <!-- Vencimento -->
+                        <td class="px-6 py-4 text-xs text-slate-400">
+                            {{if .ExpiresAt}}
+                                {{formatTimePtr .ExpiresAt}}
+                            {{else}}
+                                —
+                            {{end}}
+                        </td>
+                        
+                        <!-- Status -->
+                        <td class="px-6 py-4">
+                            {{if or (eq .Status "RECEIVED") (eq .Status "CONFIRMED")}}
+                                <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">Pago</span>
+                            {{else if eq .Status "PENDING"}}
+                                <span class="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider">Pendente</span>
+                            {{else}}
+                                <span class="px-2.5 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-wider">{{.Status}}</span>
+                            {{end}}
+                        </td>
+                        
+                        <!-- Ações -->
+                        <td class="px-6 py-4 text-right flex items-center justify-end gap-2">
+                            <a href="/master/faturamento/{{.ID}}/comprovante" 
+                               target="_blank"
+                               class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-350 hover:text-white border border-slate-800 text-xs font-bold transition-all active:scale-[0.98]">
+                                🧾 Recibo
+                            </a>
+                            {{if eq .Status "PENDING"}}
+                            <button hx-post="/master/charges/{{.ID}}/confirm" 
+                                    hx-confirm="Deseja aprovar manualmente este pagamento? Isso ativará o plano do lojista por 30 dias."
+                                    class="px-2.5 py-1 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all active:scale-[0.98]">
+                                Liberar Manual
+                            </button>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                    
+                    {{if not .Charges}}
+                    <tr>
+                        <td colspan="9" class="px-6 py-12 text-center text-slate-500">
+                            <span class="text-3xl block mb-2">💳</span>
+                            <p class="font-bold">Nenhuma cobrança registrada neste período/filtro</p>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        {{if .ShowPagination}}
+        <div class="px-6 py-4 border-t border-slate-900 bg-slate-950/20 flex items-center justify-between gap-4">
+            <div class="text-xs text-slate-400 font-semibold">
+                Página <span class="text-white">{{.CurrentPage}}</span> de <span class="text-white">{{.TotalPages}}</span>
+            </div>
+            <div class="flex gap-2">
+                {{if .HasPrevPage}}
+                <a href="/master/faturamento?page={{.PrevPage}}&start_date={{.StartDate}}&end_date={{.EndDate}}&year={{.SelectedYear}}" class="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-all active:scale-95">
+                    &larr; Anterior
+                </a>
+                {{else}}
+                <button disabled class="px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-900/50 text-slate-600 text-xs font-bold cursor-not-allowed opacity-50">
+                    &larr; Anterior
+                </button>
+                {{end}}
+
+                {{if .HasNextPage}}
+                <a href="/master/faturamento?page={{.NextPage}}&start_date={{.StartDate}}&end_date={{.EndDate}}&year={{.SelectedYear}}" class="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-all active:scale-95">
+                    Próxima &rarr;
+                </a>
+                {{else}}
+                <button disabled class="px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-900/50 text-slate-600 text-xs font-bold cursor-not-allowed opacity-50">
+                    Próxima &rarr;
+                </button>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+    </div>
+</div>
+
+<script>
+function saasChartData(salesData) {
+    salesData = salesData || [];
+    if (salesData.length === 0) {
+        salesData = [{day_name: "Sem Dados", total_sales: 0, order_count: 0}];
+    }
+
+    const totalRevenue = salesData.reduce((sum, item) => sum + item.total_sales, 0);
+    const totalOrders = salesData.reduce((sum, item) => sum + item.order_count, 0);
+
+    const width = 500;
+    const height = 220;
+    const paddingLeft = 40;
+    const paddingRight = 20;
+    const paddingTop = 20;
+    const paddingBottom = 50;
+
+    const chartWidth = width - paddingLeft - paddingRight;
+    const chartHeight = height - paddingTop - paddingBottom;
+    const zeroY = height - paddingBottom;
+
+    const maxSales = Math.max(...salesData.map(item => item.total_sales), 100);
+    const maxOrders = Math.max(...salesData.map(item => item.order_count), 5);
+
+    const points = salesData.map((item, idx) => {
+        const x = paddingLeft + (idx * (chartWidth / Math.max(salesData.length - 1, 1)));
+        const y = zeroY - ((item.total_sales / maxSales) * chartHeight);
+        return { x, y };
+    });
+
+    let revenueLinePath = '';
+    if (points.length > 0) {
+        revenueLinePath = `M ${points[0].x} ${points[0].y}`;
+        for (let i = 1; i < points.length; i++) {
+            revenueLinePath += ` L ${points[i].x} ${points[i].y}`;
+        }
+    }
+
+    let revenueAreaPath = '';
+    if (points.length > 0) {
+        revenueAreaPath = `${revenueLinePath} L ${points[points.length - 1].x} ${zeroY} L ${points[0].x} ${zeroY} Z`;
+    }
+
+    return {
+        salesData,
+        totalRevenue,
+        totalOrders,
+        points,
+        revenueLinePath,
+        revenueAreaPath,
+        hoveredIndex: null,
+        hoveredType: null,
+
+        formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(value);
+        }
+    };
+}
+</script>
+{{end}}
