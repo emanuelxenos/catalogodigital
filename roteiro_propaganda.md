@@ -1,50 +1,57 @@
-# Roteiro de Vídeo Comercial - Catálogo Digital SaaS
-**Duração Estimada:** 60 a 90 segundos  
-**Objetivo:** Atrair microempreendedores de qualquer nicho (alimentação, moda, artesanato, eletrônicos, revendedores independentes) mostrando como a plataforma simplifica vendas e profissionaliza o negócio sem custos elevados.
+# Roteiro de Vídeo Comercial - Cataloger SaaS (Foco em Alta Conversão)
+**Duração:** 60 segundos (Otimizado para Instagram Reels, TikTok e YouTube Shorts)  
+**Tom do Vídeo:** Dinâmico, moderno, persuasivo e focado em solucionar a dor do lojista.
 
 ---
 
-## Estrutura do Vídeo
+## 🎬 ESTRUTURA DO VÍDEO
 
-### 🎬 CENA 1: A Dor do Empreendedor (00:00 - 00:15)
-* **Visual:** Close-up rápido de alguém frustrado mexendo no celular, rolando por uma conversa do WhatsApp lotada de fotos de roupas espalhadas ou tentando enviar um arquivo PDF pesado de cardápio que não carrega.
-* **Áudio (Locução animada, mas com tom de desabafo):**
-  > *"Você ainda vende mandando dezenas de fotos no WhatsApp ou aquele PDF pesado que ninguém consegue abrir? E quando o cliente pergunta 'tem tamanho M?', 'tem bacon extra?', e você demora horas para responder..."*
-* **Efeitos Sonoros (SFX):** Sons de notificações de celular acumulando e barulho de "erro" digital sutil.
-
----
-
-### 🎬 CENA 2: A Solução (00:15 - 00:30)
-* **Visual:** Transição rápida e dinâmica para uma tela de smartphone elegante exibindo o Catálogo Digital com fotos de alta qualidade (mostrando um hambúrguer suculento em um segundo e uma blusa de linho moderna no outro, provando a versatilidade). A pessoa sorri ao navegar suavemente.
-* **Áudio (Locução muda para um tom entusiasmado e aliviado):**
-  > *"Chega de perder vendas por falta de organização! Conheça o **Catálogo Digital**. A plataforma onde você cria o site da sua loja em minutos, personaliza com a sua marca e gerencia tudo em um só lugar. Serve para a lanchonete do bairro, para quem vende roupas pelo Instagram ou até doces sob encomenda direto de casa!"*
-* **Texto na Tela (Motion Graphics):** "Seu Catálogo, Suas Cores, Seu Link Único".
+### ⚡ 1. O Gancho / Hook (00:00 - 00:10)
+* **Visual:** Transição rápida de cenas reais de frustração: um lojista digitando desesperado no WhatsApp com dezenas de mensagens acumuladas, fotos de roupas bagunçadas na galeria e uma mensagem de erro *"Arquivo PDF muito grande para enviar"*.
+* **Áudio (Locutor dinâmico, tom empático e provocador):**
+  > *"Sua loja ainda perde vendas porque você demora para responder no WhatsApp? Chega de ficar enviando dezenas de fotos soltas ou aquele PDF pesado de cardápio que ninguém consegue baixar!"*
+* **SFX (Efeitos Sonoros):** Sons irritantes de notificações acumulando no celular e o som de um alerta de erro.
+* **Texto na Tela (Estilo dinâmico):** **PERDENDO VENDAS NO WHATSAPP?** ❌
 
 ---
 
-### 🎬 CENA 3: Os Recursos que Vendem por Você (00:30 - 00:60)
-* **Visual:** Tela dividida ou cortes rápidos demonstrando as funcionalidades chave:
-  1. **Seleção de Opcionais (Moda/Comida):** Um clique escolhendo o tamanho "G" de uma camiseta ou adicionando "queijo duplo" no hambúrguer.
-  2. **Banners de Ofertas (Marketing):** O banner no topo do catálogo brilhando com "Frete Grátis" ou "Combo do Dia".
-  3. **Flyer de Mesa (Físico):** Uma mão colocando um display de mesa elegante com QR Code sobre um balcão de loja física, e um cliente escaneando o código.
-  4. **Relatórios no Painel Admin (Gestão):** O gráfico do Chart.js subindo com as vendas diárias na dashboard escura e elegante.
-* **Áudio (Locução ágil e focada em valor):**
-  > *"O seu cliente monta o carrinho direto pelo celular, escolhe adicionais ou tamanhos e envia o pedido prontinho e somado direto no seu WhatsApp. Além disso, você cria cupons de desconto, gera displays com QR Code prontos para imprimir e acompanha suas vendas com gráficos profissionais!"*
+### 💡 2. O Contraste e a Solução (00:10 - 00:25)
+* **Visual:** Transição rápida (efeito 'whip pan') para um smartphone elegante mostrando o catálogo carregando em menos de 1 segundo. Mostra o cliente escolhendo opções (tamanho G de uma blusa, adicionais de um hambúrguer) e clicando em "Enviar Pedido". O lojista recebe a mensagem no WhatsApp formatada, somada e com o endereço de entrega limpo.
+* **Áudio (Locutor com tom entusiasmado, claro e profissional):**
+  > *"Simplifique a vida do seu cliente com o **Cataloger**! Com um único link profissional personalizado com a sua marca, seu cliente escolhe o produto, adiciona os adicionais e o pedido chega somado, organizado e pronto direto no seu WhatsApp."*
+* **Texto na Tela:** **SITE DA SUA LOJA EM 1 MINUTO** 🚀 | **PEDIDO PRONTO NO WHATSAPP** ✅
 
 ---
 
-### 🎬 CENA 4: Chamada para Ação / CTA (00:60 - 00:75)
-* **Visual:** O lojista sorrindo, recebendo o pedido com a notificação do WhatsApp contendo a lista limpa e o valor final. O vídeo fecha exibindo o logotipo elegante da plataforma com a URL de registro.
-* **Áudio (Locução inspiradora e convidativa):**
-  > *"Profissionalize o seu atendimento, economize tempo e multiplique suas vendas hoje mesmo. Crie seu catálogo agora mesmo. Acesse nosso site e comece o seu teste grátis por 7 dias!"*
+### 💰 3. O Diferencial que Convence (00:25 - 00:40)
+* **Visual:** Gráfico de faturamento dinâmico subindo no painel de administração escuro e elegante. Um selo neon brilhando com o texto "ZERO TAXAS". Uma mão colocando um cupom de desconto "PROMO10" no carrinho.
+* **Áudio (Locutor com tom de revelação e oportunidade imperdível):**
+  > *"E o melhor de tudo: ao contrário de outros aplicativos, aqui você não paga **nenhuma comissão por venda**! Todo o seu lucro é 100% seu. Crie cupons de desconto, banners de ofertas e acompanhe seu crescimento com gráficos profissionais."*
+* **Texto na Tela:** **COMISSÃO POR VENDA: 0%** 🪙 | **100% DO LUCRO É SEU** 💰
+
+---
+
+### 🖨️ 4. O Recurso Físico / QR Code (00:40 - 00:50)
+* **Visual:** O lojista imprimindo a folha do Display de Mesa QR Code gerada pelo sistema. Um cliente em uma mesa física (ou balcão) apontando a câmera do celular para o display, abrindo o catálogo e fazendo o pedido na hora.
+* **Áudio (Locutor ágil):**
+  > *"Tem loja física ou balcão? Imprima em segundos displays de mesa com QR Code. Seu cliente chega, escaneia e pede do próprio celular, eliminando filas e otimizando seu tempo."*
+* **Texto na Tela:** **DISPLAY COM QR CODE IMPRESSO** 📲
+
+---
+
+### 🏁 5. Chamada para Ação / CTA (00:50 - 01:00)
+* **Visual:** O lojista sorrindo e comemorando o alerta de novo pedido pago. O vídeo encerra com uma tela escura premium exibindo o logo do Cataloger e o endereço de cadastro em destaque.
+* **Áudio (Locutor motivador e direto):**
+  > *"Profissionalize o seu negócio e venda muito mais a partir de hoje. Acesse **www.cataloger.com.br** e crie sua conta grátis em menos de 1 minuto!"*
 * **Texto na Tela:** 
-  > **Catálogo Digital**  
-  > 🚀 Crie grátis em 1 minuto!  
-  > `www.seusite.com.br`
+  > **Cataloger**  
+  > 🚀 Crie sua Loja Grátis em 1 Minuto!  
+  > `www.cataloger.com.br`
 
 ---
 
-## 💡 Dicas de Produção para Redes Sociais (Instagram, TikTok, YouTube Shorts):
-1. **Vídeo na Vertical (9:16):** Grave as capturas de tela do celular e do painel no formato vertical para reter mais atenção em Reels e TikTok.
-2. **Dinâmica Rápida:** Nenhum corte deve durar mais de 3 segundos para manter o espectador engajado.
-3. **Música de Fundo:** Use uma trilha sonora corporativa pop/moderna e alegre, mas com volume moderado para não cobrir a voz do locutor.
+## 📈 DIRETRIZES DE PRODUÇÃO PARA REELS E TIKTOK:
+1. **Os Primeiros 3 Segundos:** O gancho visual e sonoro precisa ser agressivo. A frustração do cliente tem que ser palpável para prender a atenção do lojista que rola o feed.
+2. **Sem Placeholders Visuais:** Mostre o painel mestre real e o catálogo funcionando (produtos reais como vestuário, lanches, doces) para gerar identificação.
+3. **Música (Soundtrack):** Trilha sonora eletrônica/lo-fi moderna, com batidas marcantes sincronizadas com os cortes do vídeo.
+4. **Legendas Dinâmicas:** Insira legendas coloridas e dinâmicas (estilo Alex Hormozi) no centro da tela para visualização sem áudio.
