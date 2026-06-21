@@ -533,6 +533,45 @@ func (db *DB) ListOrdersByShop(ctx context.Context, shopID int) ([]Order, error)
 	return orders, nil
 }
 
+// ListOrdersByShopPaginated lista os pedidos de uma loja de forma paginada e retorna também o total geral
+func (db *DB) ListOrdersByShopPaginated(ctx context.Context, shopID, limit, offset int) ([]Order, int, error) {
+	// Primeiro, pega o total de pedidos para cálculo de páginas
+	var total int
+	err := db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM orders WHERE shop_id = $1`, shopID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("erro ao contar pedidos: %w", err)
+	}
+
+	rows, err := db.Pool.Query(ctx,
+		`SELECT id, shop_id, customer_name, customer_phone, customer_email, delivery_method, address, payment_method, coupon_code, discount, subtotal, total, status, created_at
+		 FROM orders WHERE shop_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+		shopID, limit, offset,
+	)
+	if err != nil {
+		return nil, 0, fmt.Errorf("erro ao listar pedidos paginados: %w", err)
+	}
+	defer rows.Close()
+
+	var orders []Order
+	for rows.Next() {
+		var o Order
+		if err := rows.Scan(&o.ID, &o.ShopID, &o.CustomerName, &o.CustomerPhone, &o.CustomerEmail, &o.DeliveryMethod, &o.Address, &o.PaymentMethod, &o.CouponCode, &o.Discount, &o.Subtotal, &o.Total, &o.Status, &o.CreatedAt); err != nil {
+			return nil, 0, err
+		}
+		orders = append(orders, o)
+	}
+
+	// Carrega itens para cada pedido
+	for i := range orders {
+		items, err := db.ListOrderItems(ctx, orders[i].ID)
+		if err == nil {
+			orders[i].Items = items
+		}
+	}
+
+	return orders, total, nil
+}
+
 // GetOrdersCountByShop retorna o número total de pedidos de uma loja
 func (db *DB) GetOrdersCountByShop(ctx context.Context, shopID int) (int, error) {
 	var count int

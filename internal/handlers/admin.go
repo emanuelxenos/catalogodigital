@@ -944,9 +944,7 @@ func generateSlug(text string) string {
 	return slug
 }
 
-// ==================== ADMIN ORDERS ====================
-
-// HandleOrders lista todos os pedidos recebidos pela loja
+// HandleOrders lista todos os pedidos recebidos pela loja (paginado)
 func (h *Handlers) HandleOrders(w http.ResponseWriter, r *http.Request) {
 	user := middleware.GetUserFromContext(r)
 	shop := middleware.GetShopFromContext(r)
@@ -955,15 +953,36 @@ func (h *Handlers) HandleOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orders, err := h.DB.ListOrdersByShop(r.Context(), shop.ID)
+	page := 1
+	if pStr := r.URL.Query().Get("page"); pStr != "" {
+		if p, err := strconv.Atoi(pStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	limit := 15
+	offset := (page - 1) * limit
+
+	orders, totalOrders, err := h.DB.ListOrdersByShopPaginated(r.Context(), shop.ID, limit, offset)
 	if err != nil {
-		log.Printf("Erro ao listar pedidos: %v", err)
+		log.Printf("Erro ao listar pedidos paginados: %v", err)
+		orders = []database.Order{}
+	}
+
+	totalPages := (totalOrders + limit - 1) / limit
+	if totalPages < 1 {
+		totalPages = 1
 	}
 
 	data := map[string]interface{}{
-		"User":   user,
-		"Shop":   shop,
-		"Orders": orders,
+		"User":        user,
+		"Shop":        shop,
+		"Orders":      orders,
+		"CurrentPage": page,
+		"TotalPages":  totalPages,
+		"HasPrevPage": page > 1,
+		"HasNextPage": page < totalPages,
+		"PrevPage":    page - 1,
+		"NextPage":    page + 1,
 	}
 
 	if err := h.Tmpl.Render(w, "admin", "admin/orders.html", data); err != nil {
