@@ -103,7 +103,7 @@
         </div>
 
         <!-- Controles de Paginação -->
-        {{if gt .TotalPages 1}}
+        {{if .ShowPagination}}
         <div class="flex items-center justify-between border-t border-slate-800/60 pt-4 mt-4">
             <div class="text-xs text-slate-500">
                 Página <span class="text-slate-300 font-bold">{{.CurrentPage}}</span> de <span class="text-slate-300 font-bold">{{.TotalPages}}</span>

@@ -370,7 +370,7 @@
     </div>
 
     <!-- Pagination Navigation -->
-    {{if gt .TotalPages 1}}
+    {{if .ShowPagination}}
     <div class="flex items-center justify-between bg-slate-950/40 p-4 rounded-2xl border border-slate-800/40 backdrop-blur-md mt-6">
         <div class="text-xs text-slate-400 font-semibold">
             Página <span class="text-white">{{.CurrentPage}}</span> de <span class="text-white">{{.TotalPages}}</span>

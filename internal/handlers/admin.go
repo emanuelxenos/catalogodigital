@@ -974,15 +974,16 @@ func (h *Handlers) HandleOrders(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]interface{}{
-		"User":        user,
-		"Shop":        shop,
-		"Orders":      orders,
-		"CurrentPage": page,
-		"TotalPages":  totalPages,
-		"HasPrevPage": page > 1,
-		"HasNextPage": page < totalPages,
-		"PrevPage":    page - 1,
-		"NextPage":    page + 1,
+		"User":           user,
+		"Shop":           shop,
+		"Orders":         orders,
+		"CurrentPage":    page,
+		"TotalPages":     totalPages,
+		"ShowPagination": totalPages > 1,
+		"HasPrevPage":    page > 1,
+		"HasNextPage":    page < totalPages,
+		"PrevPage":       page - 1,
+		"NextPage":       page + 1,
 	}
 
 	if err := h.Tmpl.Render(w, "admin", "admin/orders.html", data); err != nil {
