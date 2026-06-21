@@ -73,6 +73,7 @@ func main() {
 
 	// Landing page
 	r.Get("/", h.HandleHome)
+	r.Get("/termos", h.HandleTerms)
 
 	// Auth (login/register - sem autenticação)
 	r.Get("/admin/login", h.HandleLoginPage)

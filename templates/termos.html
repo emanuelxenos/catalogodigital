@@ -1,0 +1,94 @@
+{{define "content"}}
+<div class="min-h-screen bg-slate-950 relative overflow-hidden flex flex-col items-center justify-center p-6 text-slate-100 font-sans">
+    
+    <!-- Decorative background elements -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div class="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-violet-600/10 blur-[150px]"></div>
+        <div class="absolute -bottom-40 -left-40 w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-[150px]"></div>
+        <div class="hero-grid absolute inset-0 opacity-20"></div>
+    </div>
+
+    <div class="relative w-full max-w-3xl glass-super rounded-3xl p-8 sm:p-12 border border-slate-900 shadow-2xl space-y-8 z-10 my-10">
+        
+        <!-- Header -->
+        <div class="border-b border-slate-900 pb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <span class="px-2.5 py-1 rounded bg-violet-500/10 border border-violet-500/20 text-[10px] font-black tracking-widest text-violet-400 uppercase">
+                    REGULATION
+                </span>
+                <h1 class="text-3xl font-extrabold text-white mt-2 tracking-tight">Termos e Condições de Uso</h1>
+                <p class="text-xs text-slate-400 mt-1">Última atualização: 21 de junho de 2026</p>
+            </div>
+            <div>
+                <a href="/admin/register" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-350 hover:text-white text-xs font-bold transition-all active:scale-95 inline-block text-center">
+                    &larr; Voltar ao Cadastro
+                </a>
+            </div>
+        </div>
+
+        <!-- Terms Content (Markdown-like style, clean styling) -->
+        <div class="space-y-6 text-slate-300 text-sm leading-relaxed overflow-y-auto max-h-[50vh] pr-4 scrollbar-thin">
+            
+            <section class="space-y-2">
+                <h3 class="text-base font-bold text-white">1. Aceitação dos Termos</h3>
+                <p>Ao criar uma conta e utilizar a plataforma Cataloger (doravante denominada "Serviço"), você ("Usuário" ou "Lojista") concorda de forma integral e irrestrita com os presentes Termos e Condições de Uso. Se você não concorda com qualquer uma das disposições aqui estabelecidas, orientamos que interrompa imediatamente o uso do Serviço.</p>
+            </section>
+
+            <section class="space-y-2">
+                <h3 class="text-base font-bold text-white">2. Cadastro e Segurança</h3>
+                <p>Para utilizar as funcionalidades exclusivas da plataforma, é obrigatória a realização de cadastro. O Usuário compromete-se a fornecer informações verdadeiras, atualizadas e completas. O Usuário é o único responsável pela confidencialidade de sua senha de acesso e por todas as atividades realizadas em sua conta.</p>
+            </section>
+
+            <section class="space-y-2">
+                <h3 class="text-base font-bold text-white">3. Planos, Assinaturas e Compensações</h3>
+                <p>A plataforma adota o modelo de Software como Serviço (SaaS). As assinaturas dos planos (Bronze, Prata, Ouro e Diamante) são cobradas mensalmente através do nosso gateway de faturamento integrado (Asaas). O atraso no pagamento acarretará na perda dos benefícios premium e suspensão temporária do painel de administração da loja, bem como do catálogo correspondente, até a devida regularização.</p>
+            </section>
+
+            <section class="space-y-2">
+                <h3 class="text-base font-bold text-white">4. Limitação de Responsabilidade</h3>
+                <p>Nós fornecemos uma ferramenta de facilitação de catálogos e integração de pedidos via WhatsApp. A plataforma não participa das transações comerciais diretas efetuadas entre o Usuário e seus clientes finais. Portanto, não nos responsabilizamos por:</p>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li>Problemas na entrega ou qualidade de mercadorias negociadas;</li>
+                    <li>Falhas de envio ocasionadas por instabilidades externas no aplicativo WhatsApp ou conexões móveis;</li>
+                    <li>Prejuízos financeiros decorrentes de interrupções momentâneas ou manutenções programadas no servidor da plataforma.</li>
+                </ul>
+            </section>
+
+            <section class="space-y-2">
+                <h3 class="text-base font-bold text-white">5. Uso Permitido e Penalidades</h3>
+                <p>É estritamente vedada a utilização do Serviço para promoção de produtos ilegais, fraude ou disseminação de vírus. O descumprimento de qualquer regra ou denúncia justificada resultará na suspensão imediata e irrevogável da loja de nossa rede de dados, sem direito a reembolsos.</p>
+            </section>
+
+            <section class="space-y-2">
+                <h3 class="text-base font-bold text-white">6. Modificações nos Termos</h3>
+                <p>Reservamo-nos o direito de modificar este regulamento a qualquer momento. Quaisquer alterações substanciais serão informadas no painel administrativo principal ou por e-mail registrado. O uso continuado após as modificações constitui anuência tácita aos novos Termos.</p>
+            </section>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="border-t border-slate-900 pt-6 text-center">
+            <p class="text-[10px] text-slate-500">Cataloger SaaS &copy; 2026. Todos os direitos reservados. Feito com transparência e responsabilidade fiscal.</p>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    /* Custom scrollbar to keep layout elegant */
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.4);
+        border-radius: 9999px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: rgba(139, 92, 246, 0.3);
+        border-radius: 9999px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: rgba(139, 92, 246, 0.5);
+    }
+</style>
+{{end}}

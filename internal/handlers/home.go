@@ -33,3 +33,14 @@ func (h *Handlers) HandleHome(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Erro interno", http.StatusInternalServerError)
 	}
 }
+
+// HandleTerms renderiza a página pública de Termos e Condições de Uso
+func (h *Handlers) HandleTerms(w http.ResponseWriter, r *http.Request) {
+	data := map[string]interface{}{
+		"Title": "Termos e Condições de Uso | Cataloger",
+	}
+
+	if err := h.Tmpl.Render(w, "base", "termos.html", data); err != nil {
+		http.Error(w, "Erro interno", http.StatusInternalServerError)
+	}
+}

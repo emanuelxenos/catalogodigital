@@ -91,9 +91,15 @@ func (h *Handlers) HandleRegisterPost(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	shopName := strings.TrimSpace(r.FormValue("shop_name"))
 	whatsapp := cleanWhatsAppNumber(strings.TrimSpace(r.FormValue("whatsapp")))
+	acceptTerms := r.FormValue("accept_terms")
 
 	if name == "" || email == "" || password == "" || shopName == "" || whatsapp == "" {
 		http.Redirect(w, r, "/admin/register?error=Preencha todos os campos", http.StatusSeeOther)
+		return
+	}
+
+	if acceptTerms == "" {
+		http.Redirect(w, r, "/admin/register?error=Você deve concordar com os Termos de Uso", http.StatusSeeOther)
 		return
 	}
 
