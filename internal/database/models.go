@@ -208,3 +208,10 @@ type PaymentCharge struct {
 	ExpiresAt      *time.Time `json:"expires_at"`
 	CreatedAt      time.Time  `json:"created_at"`
 }
+
+// PaymentChargeWithDetails contem dados da cobranca e detalhes da loja e do plano
+type PaymentChargeWithDetails struct {
+	PaymentCharge
+	ShopName string `json:"shop_name"`
+	PlanName string `json:"plan_name"`
+}

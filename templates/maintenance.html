@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manutenção Programada | Plataforma</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Outfit', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .glowing-box {
+            box-shadow: 0 0 50px rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.15);
+        }
+        .neon-pulse {
+            animation: pulse 2s infinite alternate;
+        }
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+            }
+            100% {
+                box-shadow: 0 0 25px rgba(139, 92, 246, 0.5);
+            }
+        }
+    </style>
+</head>
+<body class="h-full font-sans antialiased bg-slate-950 text-slate-100 flex items-center justify-center p-4 relative overflow-hidden">
+    
+    <!-- Glowing background nodes -->
+    <div class="absolute inset-0 pointer-events-none z-0">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-violet-600/5 blur-[150px]"></div>
+        <div class="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-pink-500/5 blur-[120px]"></div>
+    </div>
+
+    <!-- Maintenance Container -->
+    <div class="relative z-10 w-full max-w-lg bg-slate-950/60 backdrop-blur-2xl border border-slate-900 rounded-3xl p-8 md:p-10 shadow-2xl flex flex-col items-center text-center gap-6 glowing-box">
+        
+        <!-- Animated Maintenance Icon -->
+        <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-violet-500 to-indigo-600 flex items-center justify-center text-3xl shadow-lg shadow-violet-500/20 neon-pulse">
+            ⚙️
+        </div>
+        
+        <div class="space-y-3">
+            <span class="px-3 py-1 rounded-full bg-violet-500/10 text-violet-400 text-[10px] font-black tracking-widest uppercase">
+                Aviso do Sistema
+            </span>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                Manutenção Programada
+            </h1>
+            <p class="text-sm text-slate-400 leading-relaxed max-w-md mx-auto">
+                Estamos realizando atualizações importantes em nossa infraestrutura para oferecer a você uma experiência ainda melhor. Voltaremos em alguns minutos!
+            </p>
+        </div>
+
+        <div class="h-px w-full bg-slate-900"></div>
+
+        <!-- Action / Support Section -->
+        <div class="space-y-4 w-full">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Precisa de ajuda ou suporte imediato?</p>
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                {{if .SupportWhatsApp}}
+                <a href="https://wa.me/{{.SupportWhatsApp}}" target="_blank" class="px-5 py-3.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-emerald-400 text-xs font-bold transition-all active:scale-[0.98]">
+                    💬 Suporte via WhatsApp
+                </a>
+                {{end}}
+                <a href="mailto:suporte@plataforma.com" class="px-5 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-bold transition-all active:scale-[0.98]">
+                    ✉️ Enviar E-mail
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

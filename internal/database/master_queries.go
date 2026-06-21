@@ -68,3 +68,39 @@ func (db *DB) CreatePlatformAuditLog(ctx context.Context, action, details string
 	}
 	return nil
 }
+
+// ListGlobalChargesPaginated lista todas as cobranças de faturas na plataforma de forma paginada
+func (db *DB) ListGlobalChargesPaginated(ctx context.Context, limit, offset int) ([]PaymentChargeWithDetails, int, error) {
+	var total int
+	err := db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM payment_charges`).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("erro ao contar faturas globais: %w", err)
+	}
+
+	query := `
+		SELECT c.id, c.shop_id, c.plan_id, c.asaas_payment_id, c.billing_type, c.amount, c.status, c.pix_qr_code, c.pix_copy_paste, c.expires_at, c.created_at, s.name as shop_name, p.name as plan_name
+		FROM payment_charges c
+		JOIN shops s ON c.shop_id = s.id
+		JOIN plans p ON c.plan_id = p.id
+		ORDER BY c.created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+	rows, err := db.Pool.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("erro ao consultar faturas globais: %w", err)
+	}
+	defer rows.Close()
+
+	var list []PaymentChargeWithDetails
+	for rows.Next() {
+		var c PaymentChargeWithDetails
+		err := rows.Scan(
+			&c.ID, &c.ShopID, &c.PlanID, &c.AsaasPaymentID, &c.BillingType, &c.Amount, &c.Status, &c.PixQRCode, &c.PixCopyPaste, &c.ExpiresAt, &c.CreatedAt, &c.ShopName, &c.PlanName,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		list = append(list, c)
+	}
+	return list, total, nil
+}

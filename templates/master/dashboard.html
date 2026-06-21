@@ -22,7 +22,21 @@
     </div>
 
     <!-- Platform Stats Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+        <!-- SaaS Revenue -->
+        <div class="glass-super rounded-3xl p-6 border border-slate-900 shadow-2xl relative overflow-hidden group hover:border-violet-500/20 transition-all duration-300">
+            <div class="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-violet-500/5 blur-xl group-hover:bg-violet-500/10 transition-all"></div>
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="w-12 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-xl shadow-lg shadow-violet-500/5 text-violet-400 font-bold">
+                    💳
+                </div>
+                <div>
+                    <p class="text-2xl font-black text-white tracking-tight">{{formatPrice (index .Metrics "saas_revenue")}}</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Receita SaaS (Planos)</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Global Revenue -->
         <div class="glass-super rounded-3xl p-6 border border-slate-900 shadow-2xl relative overflow-hidden group hover:border-emerald-500/20 transition-all duration-300">
             <div class="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-emerald-500/5 blur-xl group-hover:bg-emerald-500/10 transition-all"></div>
@@ -31,8 +45,8 @@
                     R$
                 </div>
                 <div>
-                    <p class="text-3xl font-black text-white tracking-tight">{{formatPrice (index .Metrics "global_revenue")}}</p>
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Receita Consolidada</p>
+                    <p class="text-2xl font-black text-white tracking-tight">{{formatPrice (index .Metrics "global_revenue")}}</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Vendas Lojas (GMV)</p>
                 </div>
             </div>
         </div>
@@ -45,7 +59,7 @@
                     🏪
                 </div>
                 <div>
-                    <p class="text-3xl font-black text-white tracking-tight">{{index .Metrics "total_shops"}}</p>
+                    <p class="text-2xl font-black text-white tracking-tight">{{index .Metrics "total_shops"}}</p>
                     <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Lojas Ativas</p>
                 </div>
             </div>
@@ -55,11 +69,11 @@
         <div class="glass-super rounded-3xl p-6 border border-slate-900 shadow-2xl relative overflow-hidden group hover:border-blue-500/20 transition-all duration-300">
             <div class="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-blue-500/5 blur-xl group-hover:bg-blue-500/10 transition-all"></div>
             <div class="flex items-center gap-4 relative z-10">
-                <div class="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-xl shadow-lg shadow-blue-500/5 text-blue-450">
+                <div class="w-12 h-12 rounded-2xl bg-blue-500/10 border border-violet-550/20 flex items-center justify-center text-xl shadow-lg shadow-violet-500/5 text-blue-450">
                     📋
                 </div>
                 <div>
-                    <p class="text-3xl font-black text-white tracking-tight">{{index .Metrics "total_orders"}}</p>
+                    <p class="text-2xl font-black text-white tracking-tight">{{index .Metrics "total_orders"}}</p>
                     <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Pedidos Totais</p>
                 </div>
             </div>
@@ -73,7 +87,7 @@
                     👥
                 </div>
                 <div>
-                    <p class="text-3xl font-black text-white tracking-tight">{{index .Metrics "total_users"}}</p>
+                    <p class="text-2xl font-black text-white tracking-tight">{{index .Metrics "total_users"}}</p>
                     <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Lojistas Totais</p>
                 </div>
             </div>
@@ -307,6 +321,143 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <!-- Global Invoices Table Container -->
+    <div id="tabela-faturas" class="glass-super rounded-3xl border border-slate-900 shadow-2xl overflow-hidden scroll-mt-24 mt-10">
+        <div class="px-6 py-5 border-b border-slate-900 bg-slate-900/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h3 class="text-lg font-bold text-white tracking-tight">Histórico de Faturamento SaaS</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Cobranças de planos dos lojistas e status de transações</p>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full admin-table text-sm text-left">
+                <thead>
+                    <tr class="border-b border-slate-900/80 text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-950/40">
+                        <th class="px-6 py-4 text-left">Loja / Proprietário</th>
+                        <th class="px-6 py-4 text-left">Plano Contratado</th>
+                        <th class="px-6 py-4 text-left">ID Transação Asaas</th>
+                        <th class="px-6 py-4 text-left">Método</th>
+                        <th class="px-6 py-4 text-left">Valor</th>
+                        <th class="px-6 py-4 text-left">Criada Em</th>
+                        <th class="px-6 py-4 text-left">Vencimento</th>
+                        <th class="px-6 py-4 text-left">Status</th>
+                        <th class="px-6 py-4 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-900/40 text-slate-300">
+                    {{range .Charges}}
+                    <tr class="hover:bg-slate-900/20 transition-colors">
+                        <!-- Loja info -->
+                        <td class="px-6 py-4 font-bold text-white">
+                            {{.ShopName}}
+                        </td>
+                        
+                        <!-- Plano -->
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 border border-slate-800 text-slate-300">
+                                {{.PlanName}}
+                            </span>
+                        </td>
+                        
+                        <!-- Asaas ID -->
+                        <td class="px-6 py-4 font-mono text-xs text-slate-400">
+                            {{.AsaasPaymentID}}
+                        </td>
+                        
+                        <!-- Método -->
+                        <td class="px-6 py-4 text-xs font-semibold uppercase">
+                            {{if eq .BillingType "CREDIT_CARD"}}Cartão{{else}}{{.BillingType}}{{end}}
+                        </td>
+                        
+                        <!-- Valor -->
+                        <td class="px-6 py-4 font-extrabold text-white">
+                            {{formatPrice .Amount}}
+                        </td>
+                        
+                        <!-- Criada em -->
+                        <td class="px-6 py-4 text-xs text-slate-400">
+                            {{formatTime .CreatedAt}}
+                        </td>
+                        
+                        <!-- Vencimento -->
+                        <td class="px-6 py-4 text-xs text-slate-400">
+                            {{if .ExpiresAt}}
+                                {{formatTimePtr .ExpiresAt}}
+                            {{else}}
+                                —
+                            {{end}}
+                        </td>
+                        
+                        <!-- Status -->
+                        <td class="px-6 py-4">
+                            {{if or (eq .Status "RECEIVED") (eq .Status "CONFIRMED")}}
+                                <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">Pago</span>
+                            {{else if eq .Status "PENDING"}}
+                                <span class="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider">Pendente</span>
+                            {{else}}
+                                <span class="px-2.5 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-wider">{{.Status}}</span>
+                            {{end}}
+                        </td>
+                        
+                        <!-- Ações -->
+                        <td class="px-6 py-4 text-right">
+                            {{if eq .Status "PENDING"}}
+                            <button hx-post="/master/charges/{{.ID}}/confirm" 
+                                    hx-confirm="Deseja aprovar manualmente este pagamento? Isso ativará o plano do lojista por 30 dias."
+                                    class="px-2.5 py-1 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-all active:scale-[0.98]">
+                                Liberar Manual
+                            </button>
+                            {{else}}
+                            <span class="text-slate-600 text-xs italic">—</span>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                    
+                    {{if not .Charges}}
+                    <tr>
+                        <td colspan="9" class="px-6 py-12 text-center text-slate-500">
+                            <span class="text-3xl block mb-2">💳</span>
+                            <p class="font-bold">Nenhuma cobrança registrada na plataforma</p>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        {{if .ShowPagination}}
+        <div class="px-6 py-4 border-t border-slate-900 bg-slate-950/20 flex items-center justify-between gap-4">
+            <div class="text-xs text-slate-400 font-semibold">
+                Página <span class="text-white">{{.CurrentPage}}</span> de <span class="text-white">{{.TotalPages}}</span>
+            </div>
+            <div class="flex gap-2">
+                {{if .HasPrevPage}}
+                <a href="/master?page={{.PrevPage}}#tabela-faturas" class="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-all active:scale-95">
+                    &larr; Anterior
+                </a>
+                {{else}}
+                <button disabled class="px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-900/50 text-slate-600 text-xs font-bold cursor-not-allowed opacity-50">
+                    &larr; Anterior
+                </button>
+                {{end}}
+
+                {{if .HasNextPage}}
+                <a href="/master?page={{.NextPage}}#tabela-faturas" class="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-all active:scale-95">
+                    Próxima &rarr;
+                </a>
+                {{else}}
+                <button disabled class="px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-900/50 text-slate-600 text-xs font-bold cursor-not-allowed opacity-50">
+                    Próxima &rarr;
+                </button>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
     </div>
 </div>
 {{end}}

@@ -102,6 +102,7 @@ func (h *Handlers) HandleMasterDashboard(w http.ResponseWriter, r *http.Request)
 			"total_shops":    0,
 			"total_orders":   0,
 			"global_revenue": 0.0,
+			"saas_revenue":   0.0,
 		}
 	}
 
@@ -131,12 +132,41 @@ func (h *Handlers) HandleMasterDashboard(w http.ResponseWriter, r *http.Request)
 		auditLogs = []database.PlatformAuditLog{}
 	}
 
+	// 5. Busca cobranças globais paginadas (10 itens por página)
+	page := 1
+	if pStr := r.URL.Query().Get("page"); pStr != "" {
+		if p, err := strconv.Atoi(pStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	limit := 10
+	offset := (page - 1) * limit
+
+	charges, totalCharges, err := h.DB.ListGlobalChargesPaginated(r.Context(), limit, offset)
+	if err != nil {
+		log.Printf("[MASTER] Erro ao carregar cobranças globais: %v", err)
+		charges = []database.PaymentChargeWithDetails{}
+	}
+
+	totalPages := (totalCharges + limit - 1) / limit
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
 	data := map[string]interface{}{
-		"User":      user,
-		"Metrics":   metrics,
-		"Shops":     shops,
-		"Configs":   configs,
-		"AuditLogs": auditLogs,
+		"User":           user,
+		"Metrics":        metrics,
+		"Shops":          shops,
+		"Configs":        configs,
+		"AuditLogs":      auditLogs,
+		"Charges":        charges,
+		"CurrentPage":    page,
+		"TotalPages":     totalPages,
+		"ShowPagination": totalPages > 1,
+		"HasPrevPage":    page > 1,
+		"HasNextPage":    page < totalPages,
+		"PrevPage":       page - 1,
+		"NextPage":       page + 1,
 	}
 
 	// Renderiza usando o layout exclusivo do super admin ("super")
@@ -316,6 +346,70 @@ func (h *Handlers) HandleMasterChangePlan(w http.ResponseWriter, r *http.Request
 	}
 
 	// Força recarregamento total da página master para atualizar os dados
+	w.Header().Set("HX-Refresh", "true")
+	w.WriteHeader(http.StatusOK)
+}
+
+// HandleMasterConfirmCharge aprova manualmente um pagamento e ativa o plano correspondente
+func (h *Handlers) HandleMasterConfirmCharge(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	chargeID, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID de cobrança inválido", http.StatusBadRequest)
+		return
+	}
+
+	// 1. Busca detalhes da cobrança no banco
+	charge, err := h.DB.GetChargeByID(r.Context(), chargeID)
+	if err != nil {
+		log.Printf("[MASTER] Erro ao buscar cobrança %d: %v", chargeID, err)
+		http.Error(w, "Cobrança não encontrada", http.StatusNotFound)
+		return
+	}
+
+	if charge.Status != "PENDING" {
+		http.Error(w, "Esta cobrança já foi processada anteriormente", http.StatusBadRequest)
+		return
+	}
+
+	// 2. Busca informações do plano
+	plan, err := h.DB.GetPlanByID(r.Context(), charge.PlanID)
+	if err != nil {
+		log.Printf("[MASTER] Erro ao buscar plano %d: %v", charge.PlanID, err)
+		http.Error(w, "Plano associado não encontrado", http.StatusNotFound)
+		return
+	}
+
+	// 3. Busca informações da loja
+	var shopName string
+	err = h.DB.Pool.QueryRow(r.Context(), "SELECT name FROM shops WHERE id = $1", charge.ShopID).Scan(&shopName)
+	if err != nil {
+		log.Printf("[MASTER] Erro ao buscar nome da loja %d: %v", charge.ShopID, err)
+		shopName = fmt.Sprintf("ID #%d", charge.ShopID)
+	}
+
+	// 4. Ativa o plano da loja por 30 dias no banco
+	if err := h.DB.UpgradeShopPlan(r.Context(), charge.ShopID, charge.PlanID, 30); err != nil {
+		log.Printf("[MASTER] Erro ao atualizar plano para shop %d: %v", charge.ShopID, err)
+		http.Error(w, "Erro ao atualizar plano no banco de dados", http.StatusInternalServerError)
+		return
+	}
+
+	// 5. Atualiza status da cobrança no banco para RECEIVED
+	if err := h.DB.UpdateChargeStatus(r.Context(), charge.AsaasPaymentID, "RECEIVED"); err != nil {
+		log.Printf("[MASTER] Erro ao atualizar status da cobrança %s: %v", charge.AsaasPaymentID, err)
+	}
+
+	// 6. Grava log de auditoria
+	details := fmt.Sprintf("Confirmação de faturamento manual realizada pelo Admin Mestre. Loja: %s (ID %d). Plano: %s. Asaas ID: %s. Valor: R$ %.2f.", 
+		shopName, charge.ShopID, plan.Name, charge.AsaasPaymentID, charge.Amount)
+	if err := h.DB.CreatePlatformAuditLog(r.Context(), "PAYMENT_CONFIRM_MANUAL", details); err != nil {
+		log.Printf("[MASTER] Erro ao criar log de auditoria SaaS: %v", err)
+	}
+
+	log.Printf("[MASTER] Cobrança %d confirmada manualmente (Loja ID %d, Plano: %s)", chargeID, charge.ShopID, plan.Name)
+
+	// Força recarregamento da página para atualizar dados de vencimento e auditoria
 	w.Header().Set("HX-Refresh", "true")
 	w.WriteHeader(http.StatusOK)
 }

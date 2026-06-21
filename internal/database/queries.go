@@ -769,6 +769,14 @@ func (db *DB) GetPlatformMetrics(ctx context.Context) (map[string]interface{}, e
 	}
 	metrics["global_revenue"] = globalRevenue
 
+	// Receita SaaS da Plataforma (cobranças de faturas recebidas/confirmadas)
+	var saasRevenue float64
+	err = db.Pool.QueryRow(ctx, "SELECT COALESCE(SUM(amount), 0) FROM payment_charges WHERE status IN ('RECEIVED', 'CONFIRMED')").Scan(&saasRevenue)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao calcular receita saas: %w", err)
+	}
+	metrics["saas_revenue"] = saasRevenue
+
 	return metrics, nil
 }
 

@@ -2,7 +2,9 @@ package middleware
 
 import (
 	"context"
+	"html/template"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -155,6 +157,42 @@ func RequireMasterAuth(db *database.DB) func(http.Handler) http.Handler {
 			// Injeta user no contexto
 			ctx := context.WithValue(r.Context(), UserContextKey, user)
 			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// MaintenanceMode verifica se o sistema está em manutenção e bloqueia requisições públicas/admin
+func MaintenanceMode(db *database.DB) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			path := r.URL.Path
+			// Ignora caminhos do master admin, arquivos estáticos e favicon
+			if strings.HasPrefix(path, "/master") || path == "/favicon.ico" || strings.HasPrefix(path, "/static/") {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Busca configurações globais do banco
+			configs, err := db.GetPlatformConfigs(r.Context())
+			if err == nil && configs["maintenance_mode"] == "true" {
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				w.WriteHeader(http.StatusServiceUnavailable)
+
+				whatsapp := configs["support_whatsapp"]
+				data := map[string]interface{}{
+					"SupportWhatsApp": whatsapp,
+				}
+
+				tmpl, err := template.ParseFiles(filepath.Join("templates", "maintenance.html"))
+				if err != nil {
+					w.Write([]byte(`<h1>Modo de Manutencao</h1><p>A plataforma esta em manutencao programada. Voltaremos em breve!</p>`))
+					return
+				}
+				_ = tmpl.Execute(w, data)
+				return
+			}
+
+			next.ServeHTTP(w, r)
 		})
 	}
 }

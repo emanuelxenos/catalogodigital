@@ -60,6 +60,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.Compress(5))
+	r.Use(middleware.MaintenanceMode(db))
 
 	// Arquivos estáticos
 	fileServer := http.FileServer(http.Dir("public"))
@@ -152,6 +153,7 @@ func main() {
 		r.Post("/master/shops/{id}/toggle", h.HandleMasterToggleShop)
 		r.Post("/master/shops/{id}/plan", h.HandleMasterChangePlan)
 		r.Post("/master/configs", h.HandleMasterUpdateConfigs)
+		r.Post("/master/charges/{id}/confirm", h.HandleMasterConfirmCharge)
 	})
 
 	// Webhook Asaas (público, sem autenticação de sessão - valida token no header)
