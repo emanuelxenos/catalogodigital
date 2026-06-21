@@ -979,6 +979,7 @@ func (h *Handlers) HandleOrders(w http.ResponseWriter, r *http.Request) {
 		"Orders":         orders,
 		"CurrentPage":    page,
 		"TotalPages":     totalPages,
+		"TotalOrders":    totalOrders,
 		"ShowPagination": totalPages > 1,
 		"HasPrevPage":    page > 1,
 		"HasNextPage":    page < totalPages,

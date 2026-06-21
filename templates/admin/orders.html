@@ -2,7 +2,7 @@
 <div class="space-y-8" x-data="{
     statusFilter: sessionStorage.getItem('orders_statusFilter') || 'todos',
     dateFilter: sessionStorage.getItem('orders_dateFilter') || 'todos',
-    initialCount: {{len .Orders}},
+    initialCount: {{.TotalOrders}},
     muted: localStorage.getItem('orders_sound_muted') === 'true',
     orderStatuses: {
         {{range .Orders}}
